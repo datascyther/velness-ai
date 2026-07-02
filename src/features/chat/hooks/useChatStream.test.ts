@@ -1,18 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { AIError } from '@/services/ai/types';
-import type { ChatMessage } from '../types';
+import type { Message } from '../types';
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
-
-function formatTime(date: Date): string {
-  let hours = date.getHours();
-  const minutes = date.getMinutes();
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12 || 12;
-  const mm = minutes < 10 ? `0${minutes}` : `${minutes}`;
-  return `${hours}:${mm} ${ampm}`;
 }
 
 function classifyError(error: unknown): string {
@@ -56,15 +47,13 @@ function classifyError(error: unknown): string {
 }
 
 function buildHistory(
-  messages: ChatMessage[],
+  messages: Message[],
 ): Array<{ role: 'user' | 'assistant' | 'system'; content: string }> {
   const doneMessages = messages
-    .filter((m) => m.status === 'done' && (m.role === 'user' || m.role === 'assistant'))
+    .filter((m) => m.status === 'complete' && (m.role === 'user' || m.role === 'assistant'))
     .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
   return doneMessages;
 }
-
-// ─── Tests ────────────────────────────────────────────────────────────────
 
 describe('classifyError', () => {
   it('returns session expired message for 401', () => {
@@ -147,17 +136,18 @@ describe('classifyError', () => {
 });
 
 describe('buildHistory', () => {
-  const makeMsg = (id: string, role: 'user' | 'assistant', status: ChatMessage['status'], content: string): ChatMessage => ({
+  const makeMsg = (id: string, role: 'user' | 'assistant', status: Message['status'], content: string): Message => ({
     id,
     role,
+    type: 'markdown',
     content,
-    timestamp: '3:00 PM',
+    createdAt: new Date(),
     status,
   });
 
   it('filters out streaming messages', () => {
     const msgs = [
-      makeMsg('1', 'user', 'done', 'Hello'),
+      makeMsg('1', 'user', 'complete', 'Hello'),
       makeMsg('2', 'assistant', 'streaming', 'Hi'),
     ];
     const history = buildHistory(msgs);
@@ -165,10 +155,10 @@ describe('buildHistory', () => {
     expect(history[0].role).toBe('user');
   });
 
-  it('filters out error messages', () => {
+  it('filters out failed messages', () => {
     const msgs = [
-      makeMsg('1', 'user', 'done', 'Hello'),
-      makeMsg('2', 'assistant', 'error', 'Error'),
+      makeMsg('1', 'user', 'complete', 'Hello'),
+      makeMsg('2', 'assistant', 'failed', 'Error'),
     ];
     const history = buildHistory(msgs);
     expect(history).toHaveLength(1);
@@ -177,8 +167,8 @@ describe('buildHistory', () => {
 
   it('only includes user and assistant roles', () => {
     const msgs = [
-      makeMsg('1', 'user', 'done', 'Hello'),
-      makeMsg('2', 'assistant', 'done', 'Hi there'),
+      makeMsg('1', 'user', 'complete', 'Hello'),
+      makeMsg('2', 'assistant', 'complete', 'Hi there'),
     ];
     const history = buildHistory(msgs);
     expect(history).toHaveLength(2);
@@ -188,9 +178,9 @@ describe('buildHistory', () => {
 
   it('preserves order', () => {
     const msgs = [
-      makeMsg('1', 'user', 'done', 'First'),
-      makeMsg('2', 'assistant', 'done', 'Second'),
-      makeMsg('3', 'user', 'done', 'Third'),
+      makeMsg('1', 'user', 'complete', 'First'),
+      makeMsg('2', 'assistant', 'complete', 'Second'),
+      makeMsg('3', 'user', 'complete', 'Third'),
     ];
     const history = buildHistory(msgs);
     expect(history.map((h) => h.content)).toEqual(['First', 'Second', 'Third']);

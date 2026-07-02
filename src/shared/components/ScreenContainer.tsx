@@ -24,13 +24,16 @@ export function ScreenContainer({
       edges={edges}
     >
       <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-      <View className={`flex-1 ${className}`}>{children}</View>
+      <View style={styles.content} className={className}>{children}</View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
+    flex: 1,
+  },
+  content: {
     flex: 1,
   },
 });

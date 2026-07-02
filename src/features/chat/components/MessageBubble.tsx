@@ -1,63 +1,41 @@
-/**
- * MessageBubble
- *
- * Thin dispatcher that routes a ChatMessage to the correct bubble component:
- *   - user → UserMessageBubble
- *   - assistant (streaming, done) → AIMessageBubble
- *   - assistant (error) → ErrorBubble
- *
- * This is the only component that MessageList renders per item.
- * It keeps MessageList clean and ensures FlatList's renderItem is a
- * single stable reference.
- */
-
 import React from 'react';
-import type { ChatMessage } from '../types';
+import type { Message } from '../types';
 import { AIMessageBubble } from './AIMessageBubble';
 import { UserMessageBubble } from './UserMessageBubble';
 import { TypingIndicator } from './TypingIndicator';
 import { ErrorBubble } from './ErrorBubble';
 
 interface MessageBubbleProps {
-  message: ChatMessage;
+  message: Message;
   onRetry: () => void;
   onDismiss: (id: string) => void;
+  onDelete?: (id: string) => void;
+  onRegenerate?: () => void;
+  onCopy?: (text: string) => void;
+  onFeedback?: (type: 'helpful' | 'unhelpful') => void;
+  isGrouped?: boolean;
 }
 
-export function MessageBubble({ message, onRetry, onDismiss }: MessageBubbleProps) {
+export const MessageBubble = React.memo(function MessageBubble({ message, onRetry, onDismiss, onDelete, onRegenerate, onCopy, onFeedback, isGrouped }: MessageBubbleProps) {
   if (message.role === 'user') {
-    return (
-      <UserMessageBubble
-        message={message.content}
-        timestamp={message.timestamp}
-      />
-    );
+    return <UserMessageBubble message={message} onCopy={onCopy} onDelete={onDelete} isGrouped={isGrouped} />;
   }
 
-  // Assistant — streaming with no content yet: show typing indicator
   if (message.status === 'streaming' && message.content === '') {
     return <TypingIndicator />;
   }
 
-  // Assistant — error state
-  if (message.status === 'error') {
+  if (message.status === 'failed') {
     return (
       <ErrorBubble
-        message={message.errorMessage ?? 'Something went wrong. Tap to retry.'}
+        message={message.metadata?.errorMessage ?? 'Something went wrong. Tap to retry.'}
         onRetry={onRetry}
         onDismiss={() => onDismiss(message.id)}
       />
     );
   }
 
-  // Assistant — streaming (has content) or done
-  return (
-    <AIMessageBubble
-      message={message.content}
-      timestamp={message.timestamp}
-      isStreaming={message.status === 'streaming'}
-    />
-  );
-}
+  return <AIMessageBubble message={message} onCopy={onCopy} onFeedback={onFeedback} onDelete={onDelete} onRegenerate={onRegenerate} isGrouped={isGrouped} />;
+});
 
 export default MessageBubble;

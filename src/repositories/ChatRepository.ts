@@ -1,9 +1,3 @@
-/**
- * Chat Repository
- *
- * Manages chat message history in Firestore.
- */
-
 import {
   collection,
   doc,
@@ -17,7 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { ChatMessage as FirestoreChatMessage } from '@/shared/types';
-import type { ChatMessage } from '@/features/chat/types';
+import type { Message } from '@/features/chat/types';
 
 const COLLECTION = 'users';
 
@@ -62,19 +56,19 @@ export class ChatRepository {
     }
   }
 
-  async saveMessages(uid: string, messages: ChatMessage[], conversationId: string): Promise<boolean> {
+  async saveMessages(uid: string, messages: Message[], conversationId: string): Promise<boolean> {
     if (!uid || !db) return false;
 
     try {
       const batch: Promise<void>[] = [];
       for (const msg of messages) {
-        if (msg.status !== 'done') continue;
+        if (msg.status !== 'complete') continue;
         const docRef = doc(db, COLLECTION, uid, 'chats', msg.id);
         const data: Record<string, any> = {
           id: msg.id,
           content: msg.content,
           isUser: msg.role === 'user',
-          timestamp: Timestamp.fromDate(new Date()),
+          timestamp: Timestamp.fromDate(msg.createdAt),
           conversationId,
         };
         batch.push(setDoc(docRef, data));
@@ -87,7 +81,7 @@ export class ChatRepository {
     }
   }
 
-  async loadConversationMessages(uid: string, conversationId: string): Promise<ChatMessage[]> {
+  async loadConversationMessages(uid: string, conversationId: string): Promise<Message[]> {
     if (!uid || !db) return [];
 
     try {
@@ -105,9 +99,10 @@ export class ChatRepository {
         return {
           id: data.id as string,
           role: data.isUser ? ('user' as const) : ('assistant' as const),
+          type: 'markdown' as const,
           content: data.content as string,
-          timestamp: formatTime(ts),
-          status: 'done' as const,
+          createdAt: ts,
+          status: 'complete' as const,
         };
       });
     } catch (error) {
@@ -130,15 +125,6 @@ export class ChatRepository {
       return null;
     }
   }
-}
-
-function formatTime(date: Date): string {
-  let hours = date.getHours();
-  const minutes = date.getMinutes();
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12 || 12;
-  const mm = minutes < 10 ? `0${minutes}` : `${minutes}`;
-  return `${hours}:${mm} ${ampm}`;
 }
 
 export const chatRepository = new ChatRepository();

@@ -1,18 +1,26 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Share } from 'react-native';
 import { Brain, ThumbsUp, ThumbsDown, Clipboard } from 'lucide-react-native';
 import * as ExpoClipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
-import Animated, { FadeIn, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, withDelay, withSpring } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, withDelay, withSpring } from 'react-native-reanimated';
 import { useTheme } from '@/hooks/useTheme';
+import { BaseMessageBubble } from './BaseMessageBubble';
+import { MessageContent } from './MessageContent';
 import { MessageTimestamp } from './MessageTimestamp';
+import { MessageActionSheet } from './MessageActionSheet';
+import { aiBubble } from '../styles/bubbleVariants';
+import type { Message } from '../types/Message';
+import { spacing } from '@/core/theme/tokens';
 
 interface AIMessageBubbleProps {
-  message: string;
-  timestamp: string;
-  /** When true, shows a blinking cursor at the end of the message */
-  isStreaming?: boolean;
+  message: Message;
+  onCopy?: (text: string) => void;
+  onFeedback?: (type: 'helpful' | 'unhelpful') => void;
+  onDelete?: (id: string) => void;
+  onRegenerate?: () => void;
+  isGrouped?: boolean;
 }
 
 function ActionButton({ onPress, children, accessibilityLabel }: { onPress: () => void; children: React.ReactNode; accessibilityLabel: string }) {
@@ -29,24 +37,24 @@ function ActionButton({ onPress, children, accessibilityLabel }: { onPress: () =
 
   return (
     <Animated.View style={animStyle}>
-      <Pressable onPress={handlePress} style={styles.actionBtn} hitSlop={6} accessibilityRole="button" accessibilityLabel={accessibilityLabel}>
+      <Pressable onPress={handlePress} style={styles.actionBtn} accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityHint="Double tap to activate">
         {children}
       </Pressable>
     </Animated.View>
   );
 }
 
-export function AIMessageBubble({ message, timestamp, isStreaming = false }: AIMessageBubbleProps) {
+export const AIMessageBubble = React.memo(function AIMessageBubble({ message, onCopy, onFeedback, onDelete, onRegenerate, isGrouped }: AIMessageBubbleProps) {
   const { colors } = useTheme();
   const [feedback, setFeedback] = useState<'up' | 'down' | null>(null);
   const [copyOpacity, setCopyOpacity] = useState(1);
+  const [actionSheetVisible, setActionSheetVisible] = useState(false);
 
-  // Blinking cursor animation during streaming
+  const isStreaming = message.status === 'streaming';
+
   const cursorOpacity = useSharedValue(0);
   const cursorStyle = useAnimatedStyle(() => ({ opacity: cursorOpacity.value }));
 
-  // Subtle pulse on container during streaming (uses scale, not opacity,
-  // to avoid conflict with the FadeIn layout animation on the same element)
   const containerScale = useSharedValue(1);
   const containerStyle = useAnimatedStyle(() => ({ transform: [{ scale: containerScale.value }] }));
 
@@ -73,33 +81,64 @@ export function AIMessageBubble({ message, timestamp, isStreaming = false }: AIM
       );
     } else {
       cursorOpacity.value = withDelay(150, withTiming(0, { duration: 150 }));
-      containerScale.value = withTiming(1, { duration: 200 });
+      containerScale.value = withSequence(
+        withTiming(1.02, { duration: 150 }),
+        withTiming(1, { duration: 150 })
+      );
     }
   }, [isStreaming]);
 
   const handleCopy = useCallback(async () => {
-    if (!message) return;
+    if (!message.content) return;
     try {
-      await ExpoClipboard.setStringAsync(message);
+      await ExpoClipboard.setStringAsync(message.content);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {}
+    onCopy?.(message.content);
     setCopyOpacity(0.7);
     setTimeout(() => setCopyOpacity(1), 200);
-  }, [message]);
+  }, [message.content, onCopy]);
 
   const handleThumbsUp = useCallback(() => {
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
     setFeedback((prev) => (prev === 'up' ? null : 'up'));
-  }, []);
+    onFeedback?.('helpful');
+  }, [onFeedback]);
 
   const handleThumbsDown = useCallback(() => {
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
     setFeedback((prev) => (prev === 'down' ? null : 'down'));
+    onFeedback?.('unhelpful');
+  }, [onFeedback]);
+
+  const handleLongPress = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setActionSheetVisible(true);
   }, []);
 
+  const handleShare = useCallback(async () => {
+    if (!message.content) return;
+    try {
+      await Share.share({ message: message.content, title: 'Message from Neeva' });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {}
+  }, [message.content]);
+
+  const actionSheetActions = [
+    {
+      label: 'Copy',
+      onPress: handleCopy,
+    },
+    {
+      label: 'Share',
+      onPress: handleShare,
+    },
+    ...(onRegenerate ? [{ label: 'Regenerate', onPress: onRegenerate }] : []),
+    ...(onDelete ? [{ label: 'Delete', onPress: () => onDelete(message.id), destructive: true }] : []),
+  ];
+
   return (
-    <Animated.View entering={FadeIn.duration(300).springify().damping(20).stiffness(200)} style={[styles.container, { backgroundColor: colors.surface.secondary }, containerStyle]}>
-      {/* Header: Avatar + Neeva label */}
+    <BaseMessageBubble containerStyle={[aiBubble.container, { backgroundColor: colors.surface.secondary }, isGrouped && { marginBottom: spacing.xs }, containerStyle]}>
       <View style={styles.headerRow}>
         <View style={styles.avatarContainer}>
           <Svg width={28} height={28} style={StyleSheet.absoluteFillObject}>
@@ -118,28 +157,29 @@ export function AIMessageBubble({ message, timestamp, isStreaming = false }: AIM
         <Text style={[styles.brandLabel, { color: colors.text.primary }]}>Neeva</Text>
       </View>
 
-      {/* Message text — no bubble, just text on light surface */}
-      <Pressable onLongPress={handleCopy} style={{ opacity: copyOpacity }}>
-        <Text style={[styles.messageText, { color: colors.text.primary }]}>
-          {message}
+      <Pressable
+        onLongPress={handleLongPress}
+        style={{ opacity: copyOpacity }}
+        accessibilityHint="Long press for more options"
+      >
+        <View>
+          <MessageContent message={message} />
           {isStreaming && (
             <Animated.Text style={[styles.cursor, { color: colors.brand.primary }, cursorStyle]}>
               {'▊'}
             </Animated.Text>
           )}
-        </Text>
+        </View>
       </Pressable>
 
-      {/* Timestamp */}
-      <MessageTimestamp timestamp={timestamp} style={styles.timestampBelow} />
+      <MessageTimestamp date={message.createdAt} style={styles.timestampBelow} />
 
-      {/* Actions: 👍 👎 Copy */}
-      {!isStreaming && message ? (
+      {!isStreaming && message.content ? (
         <View style={styles.actionsRow}>
-          <ActionButton onPress={handleThumbsUp} accessibilityLabel="Good response">
+          <ActionButton onPress={handleThumbsUp} accessibilityLabel="Mark as helpful">
             <ThumbsUp size={14} color={feedback === 'up' ? colors.brand.primary : colors.text.secondary} strokeWidth={2} />
           </ActionButton>
-          <ActionButton onPress={handleThumbsDown} accessibilityLabel="Bad response">
+          <ActionButton onPress={handleThumbsDown} accessibilityLabel="Mark as unhelpful">
             <ThumbsDown size={14} color={feedback === 'down' ? colors.danger : colors.text.secondary} strokeWidth={2} />
           </ActionButton>
           <ActionButton onPress={handleCopy} accessibilityLabel="Copy message">
@@ -147,18 +187,17 @@ export function AIMessageBubble({ message, timestamp, isStreaming = false }: AIM
           </ActionButton>
         </View>
       ) : null}
-    </Animated.View>
+
+      <MessageActionSheet
+        visible={actionSheetVisible}
+        onClose={() => setActionSheetVisible(false)}
+        actions={actionSheetActions}
+      />
+    </BaseMessageBubble>
   );
-}
+});
 
 const styles = StyleSheet.create({
-  container: {
-    marginVertical: 4,
-    maxWidth: '88%',
-    borderRadius: 18,
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-  },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -181,11 +220,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 3,
-  },
-  messageText: {
-    fontSize: 16,
-    lineHeight: 26,
-    fontWeight: '400',
   },
   timestampStyle: {
     marginTop: 0,

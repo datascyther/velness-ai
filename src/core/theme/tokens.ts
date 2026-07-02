@@ -61,6 +61,7 @@ export const spacing = {
   '2xl': 24,
   '3xl': 32,
   '4xl': 48,
+  section: 40,
   '5xl': 64,
   '6xl': 80,
   '7xl': 96,

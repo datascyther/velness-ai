@@ -10,7 +10,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Brain } from 'lucide-react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import Animated, {
@@ -65,7 +65,7 @@ function AnimatedDot({ delay }: { delay: number }) {
   return <Animated.View style={[styles.dot, animStyle]} />;
 }
 
-export function TypingIndicator() {
+export const TypingIndicator = React.memo(function TypingIndicator() {
   const { colors } = useTheme();
   const avatarScale = useSharedValue(1);
 
@@ -116,10 +116,15 @@ export function TypingIndicator() {
           <AnimatedDot delay={150} />
           <AnimatedDot delay={300} />
         </View>
+        <Animated.View entering={FadeIn.duration(300).delay(300)} style={styles.labelContainer}>
+          <Text style={[styles.thinkingLabel, { color: colors.text.secondary }]}>
+            Neeva is thinking...
+          </Text>
+        </Animated.View>
       </View>
     </Animated.View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -159,6 +164,13 @@ const styles = StyleSheet.create({
     height: DOT_SIZE,
     borderRadius: DOT_SIZE / 2,
     backgroundColor: '#8B5CF6',
+  },
+  labelContainer: {
+    marginTop: 6,
+  },
+  thinkingLabel: {
+    fontSize: 12,
+    fontWeight: '400',
   },
 });
 

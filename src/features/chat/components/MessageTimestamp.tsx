@@ -3,11 +3,25 @@ import { Text, StyleSheet } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
 
 interface MessageTimestampProps {
-  timestamp: string;
+  date: Date;
   style?: any;
 }
 
-export function MessageTimestamp({ timestamp, style }: MessageTimestampProps) {
+function formatMessageDate(date: Date): string {
+  const now = new Date();
+  const isToday =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+
+  if (isToday) {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+}
+
+export function MessageTimestamp({ date, style }: MessageTimestampProps) {
   const { colors } = useTheme();
 
   return (
@@ -18,7 +32,7 @@ export function MessageTimestamp({ timestamp, style }: MessageTimestampProps) {
         style,
       ]}
     >
-      {timestamp}
+      {formatMessageDate(date)}
     </Text>
   );
 }

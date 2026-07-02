@@ -1,68 +1,33 @@
-/**
- * ChatScreen — Production-Ready Chat Screen
- *
- * Architecture (top to bottom):
- *   SafeAreaView (edges: top only)
- *     └─ KeyboardAvoidingView (fills remaining space)
- *           ├─ ChatHeader
- *           ├─ MessageList (flex: 1, scrollable)
- *           └─ ChatInput (bottom, padded by safe-area inset)
- *
- * Keyboard handling strategy:
- *   - SafeAreaView handles TOP inset only (status bar clearance)
- *   - KeyboardAvoidingView handles keyboard push-up
- *   - ChatInput receives bottom safe-area inset as `paddingBottom`
- *
- * This is the only place KeyboardAvoidingView lives — NOT inside ChatInput.
- * Having KAV inside a child component causes double-offset bugs on iOS.
- *
- * Responsibilities:
- *   - Sources uid from auth store for API calls
- *   - Coordinates useChatStream hook
- *   - Passes derived state down to MessageList and ChatInput
- */
-
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAppStore } from '@/core/store/useAppStore';
 import { ChatHeader } from '../components/ChatHeader';
 import { ScreenContainer } from '@/shared/components/ScreenContainer';
 import { MessageList } from '../components/MessageList';
 import { ChatInput } from '../components/ChatInput';
-import { useChatStream } from '../hooks/useChatStream';
-import type { ChatViewState } from '../types';
+import { useConversation } from '../conversation/useConversation';
+import { saveDraft, loadSessionMeta } from '../persistence';
 import { LAYOUT } from '@/shared/constants';
+import { SessionContextProvider } from '../hooks/useSessionContext';
 
 export function ChatScreen() {
+  return (
+    <SessionContextProvider>
+      <ChatScreenContent />
+    </SessionContextProvider>
+  );
+}
+
+function ChatScreenContent() {
   const insets = useSafeAreaInsets();
   const keyboardOffset = Platform.OS === 'ios' ? insets.top : 0;
-  const [isLoading, setIsLoading] = useState(true);
   const [pendingQuickStarter, setPendingQuickStarter] = useState<string | null>(null);
 
-  // Get uid from the global auth store — required for x-uid API header
-  const uid = useAppStore((state) => state.session.user?.uid ?? null);
-
-  const { messages, isStreaming, refreshing, sendMessage, retryLast, clearError, abort, clearConversation, refreshConversation } =
-    useChatStream({ uid });
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const chatViewState: ChatViewState =
-    isLoading && messages.length === 0
-      ? 'loading'
-      : messages.length === 0
-        ? 'empty'
-        : messages[messages.length - 1]?.status === 'error'
-          ? 'error'
-          : 'conversation';
+  const { state, controller, isRestored } = useConversation();
 
   const handleQuickStarterSelect = useCallback((text: string) => {
     setPendingQuickStarter(text);
@@ -72,7 +37,22 @@ export function ChatScreen() {
     setPendingQuickStarter(null);
   }, []);
 
-  const inConversation = chatViewState === 'conversation';
+  const handleDraftChange = useCallback((text: string) => {
+    if (state.conversationId) {
+      saveDraft(state.conversationId, text);
+    }
+  }, [state.conversationId]);
+
+  useEffect(() => {
+    loadSessionMeta().then((meta) => {
+      if (meta?.lastConversationId && meta.lastConversationId !== state.conversationId) {
+        // Session meta indicates a prior conversation; draft loading handled by ChatInput via conversationId
+      }
+    });
+  }, [state.conversationId]);
+
+  const inConversation = state.messages.length > 0;
+  const sessionStartedAt = inConversation ? state.messages[0].createdAt : undefined;
 
   return (
     <ScreenContainer>
@@ -84,28 +64,32 @@ export function ChatScreen() {
         <ChatHeader
           title="Neeva AI"
           showBackButton={inConversation}
-          onBackPress={clearConversation}
+          onBackPress={controller.clear}
+          inConversation={inConversation}
+          sessionStartedAt={sessionStartedAt}
         />
 
-        {/* Scrollable message list — flex: 1 takes all remaining vertical space */}
         <MessageList
-          messages={messages}
-          refreshing={refreshing}
-          viewState={chatViewState}
-          onRefresh={refreshConversation}
+          state={state}
+          onRefresh={controller.refresh}
           onQuickStarterSelect={handleQuickStarterSelect}
-          onRetry={retryLast}
-          onDismiss={clearError}
+          onRetry={controller.retry}
+          onDismiss={controller.dismissMessage}
+          isRestored={isRestored}
+          onDelete={controller.deleteMessage}
+          onRegenerate={controller.regenerate}
+          onResumeLastConversation={controller.resumeLastConversation}
         />
 
-        {/* Input area — bottom safe-area inset passed as paddingBottom */}
         <ChatInput
-          onSend={sendMessage}
-          onAbort={abort}
-          isStreaming={isStreaming}
+          onSend={controller.sendMessage}
+          onAbort={controller.abort}
+          isStreaming={state.status === 'streaming'}
           paddingBottom={insets.bottom + LAYOUT.TAB_BAR_HEIGHT + LAYOUT.CHAT_COMPOSER_SPACING}
           prefillText={pendingQuickStarter}
           onPrefillSent={handlePrefillSent}
+          conversationId={state.conversationId}
+          onDraftChange={handleDraftChange}
         />
       </KeyboardAvoidingView>
     </ScreenContainer>

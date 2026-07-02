@@ -4,21 +4,12 @@ import { AIError } from '@/services/ai/types';
 import { PerfTracker } from '@/utils/chat-performance';
 import { MemoryManager } from '@/services/memory';
 import { chatRepository } from '@/repositories/ChatRepository';
-import type { ChatMessage } from '../types';
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+import { saveSessionMeta, clearSessionMeta } from '@/features/chat/persistence/sessionStorage';
+import { clearDraft } from '@/features/chat/persistence/draftStorage';
+import type { Message } from '../types';
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
-
-function formatTime(date: Date): string {
-  let hours = date.getHours();
-  const minutes = date.getMinutes();
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12 || 12;
-  const mm = minutes < 10 ? `0${minutes}` : `${minutes}`;
-  return `${hours}:${mm} ${ampm}`;
 }
 
 function classifyError(error: unknown): string {
@@ -62,11 +53,11 @@ function classifyError(error: unknown): string {
 }
 
 function buildHistory(
-  messages: ChatMessage[],
+  messages: Message[],
   memoryManager?: MemoryManager | null
 ): Array<{ role: 'user' | 'assistant' | 'system'; content: string }> {
   const doneMessages = messages
-    .filter((m) => m.status === 'done' && (m.role === 'user' || m.role === 'assistant'))
+    .filter((m) => m.status === 'complete' && (m.role === 'user' || m.role === 'assistant'))
     .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
 
   if (memoryManager) {
@@ -75,37 +66,33 @@ function buildHistory(
   return doneMessages;
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
-
 export interface UseChatStreamOptions {
-  /** Firebase UID — required for the x-uid auth header */
   uid: string | null;
 }
 
 export interface UseChatStreamReturn {
-  messages: ChatMessage[];
+  messages: Message[];
   isStreaming: boolean;
   refreshing: boolean;
   sendMessage: (text: string) => Promise<void>;
   retryLast: () => Promise<void>;
   clearError: (id: string) => void;
-  /** Cancel an in-flight stream immediately */
   abort: () => void;
-  /** Clear the entire conversation and abort any in-flight request */
   clearConversation: () => void;
-  /** Trigger a refresh pulse that reloads from Firestore */
   refreshConversation: () => Promise<void>;
-  /** Current conversation ID (lazily generated on first message) */
   conversationId: string | null;
-  /** Regenerate the last assistant response */
   regenerateResponse: () => Promise<void>;
+  isRestored: boolean;
+  deleteMessage: (id: string) => void;
+  resumeLastConversation: () => Promise<void>;
 }
 
 export function useChatStream({ uid }: UseChatStreamOptions): UseChatStreamReturn {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [isRestored, setIsRestored] = useState(false);
 
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
@@ -124,12 +111,9 @@ export function useChatStream({ uid }: UseChatStreamOptions): UseChatStreamRetur
   const isLoadedRef = useRef(false);
   const loadErrorRef = useRef<string | null>(null);
 
-  // Sync conversationId state with ref for external exposure
   useEffect(() => {
     setConversationId(conversationIdRef.current);
   }, []);
-
-  // ─── Cleanup on unmount ──────────────────────────────────────────────────────
 
   useEffect(() => {
     return () => {
@@ -137,8 +121,6 @@ export function useChatStream({ uid }: UseChatStreamOptions): UseChatStreamRetur
       abortRef.current = null;
     };
   }, []);
-
-  // ─── Hydrate conversation from Firestore on mount ────────────────────────────
 
   const hydrateConversation = useCallback(async () => {
     if (!uid) return;
@@ -151,6 +133,12 @@ export function useChatStream({ uid }: UseChatStreamOptions): UseChatStreamRetur
           conversationIdRef.current = latestId;
           setConversationId(latestId);
           memoryManagerRef.current = new MemoryManager(latestId);
+          setIsRestored(true);
+          saveSessionMeta({
+            lastConversationId: latestId,
+            lastActiveAt: new Date().toISOString(),
+            messageCount: loadedMessages.length,
+          });
         }
       }
     } catch (error) {
@@ -165,22 +153,18 @@ export function useChatStream({ uid }: UseChatStreamOptions): UseChatStreamRetur
     hydrateConversation();
   }, [uid, hydrateConversation]);
 
-  // ─── Imperative message updater ─────────────────────────────────────────────
-
   const updateMessage = useCallback(
-    (id: string, updater: (msg: ChatMessage) => ChatMessage) => {
+    (id: string, updater: (msg: Message) => Message) => {
       setMessages((prev) => prev.map((m) => (m.id === id ? updater(m) : m)));
     },
     []
   );
 
-  // ─── Summarization ──────────────────────────────────────────────────────────
-
   const summarizeConversation = useCallback(async () => {
     if (!uid) return;
     const currentMsgs = messagesRef.current;
     const fullHistory = currentMsgs
-      .filter((m) => m.status === 'done' && (m.role === 'user' || m.role === 'assistant'))
+      .filter((m) => m.status === 'complete' && (m.role === 'user' || m.role === 'assistant'))
       .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
 
     if (fullHistory.length === 0) return;
@@ -197,43 +181,39 @@ export function useChatStream({ uid }: UseChatStreamOptions): UseChatStreamRetur
     }
   }, [uid]);
 
-  // ─── Core streaming logic ────────────────────────────────────────────────────
-
   const executeStream = useCallback(
-    async (text: string, historyContext: ChatMessage[]) => {
+    async (text: string, historyContext: Message[]) => {
       if (!uid) {
-        const errorMsg: ChatMessage = {
+        const errorMsg: Message = {
           id: generateId(),
           role: 'assistant',
+          type: 'markdown',
           content: '',
-          timestamp: formatTime(new Date()),
-          status: 'error',
-          errorMessage: 'Sign in required to chat with Neeva.',
+          createdAt: new Date(),
+          status: 'failed',
+          metadata: { errorMessage: 'Sign in required to chat with Neeva.' },
         };
         setMessages((prev) => [...prev, errorMsg]);
         return;
       }
 
-      // Cancel any in-flight request
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
 
-      // 30-second timeout safety net
       const timeoutId = setTimeout(() => {
         controller.abort();
       }, 30_000);
 
-      // Build history from context messages with optional memory manager
       const history = buildHistory(historyContext, memoryManagerRef.current);
 
-      // Optimistic assistant placeholder (typing indicator state)
       const assistantId = generateId();
-      const assistantPlaceholder: ChatMessage = {
+      const assistantPlaceholder: Message = {
         id: assistantId,
         role: 'assistant',
+        type: 'markdown',
         content: '',
-        timestamp: formatTime(new Date()),
+        createdAt: new Date(),
         status: 'streaming',
       };
 
@@ -261,21 +241,19 @@ export function useChatStream({ uid }: UseChatStreamOptions): UseChatStreamRetur
           }
         }
 
-        // Mark complete
         updateMessage(assistantId, (msg) => ({
           ...msg,
-          status: 'done',
+          status: 'complete',
           content: hasContent
             ? msg.content
             : "I'm sorry, I wasn't able to generate a response. Please try again.",
         }));
       } catch (error) {
-        // Don't surface abort errors if user initiated cancellation
         if (error instanceof Error && error.name === 'AbortError') {
           updateMessage(assistantId, (msg) => ({
             ...msg,
-            status: 'error',
-            errorMessage: 'Request cancelled.',
+            status: 'failed',
+            metadata: { ...msg.metadata, errorMessage: 'Request cancelled.' },
           }));
           return;
         }
@@ -289,8 +267,8 @@ export function useChatStream({ uid }: UseChatStreamOptions): UseChatStreamRetur
         const friendly = classifyError(error);
         updateMessage(assistantId, (msg) => ({
           ...msg,
-          status: 'error',
-          errorMessage: friendly,
+          status: 'failed',
+          metadata: { ...msg.metadata, errorMessage: friendly },
         }));
         hasContent = false;
       } finally {
@@ -299,10 +277,9 @@ export function useChatStream({ uid }: UseChatStreamOptions): UseChatStreamRetur
         abortRef.current = null;
       }
 
-      // ── Persist to Firestore after successful stream ──
       if (hasContent && uid && conversationIdRef.current) {
         const currentMsgs = messagesRef.current;
-        const toSave = currentMsgs.filter((m) => m.status === 'done');
+        const toSave = currentMsgs.filter((m) => m.status === 'complete');
 
         if (toSave.length > 0) {
           chatRepository
@@ -320,8 +297,6 @@ export function useChatStream({ uid }: UseChatStreamOptions): UseChatStreamRetur
     [uid, updateMessage, summarizeConversation]
   );
 
-  // ─── Public API ──────────────────────────────────────────────────────────────
-
   const sendMessage = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
@@ -329,30 +304,41 @@ export function useChatStream({ uid }: UseChatStreamOptions): UseChatStreamRetur
 
       lastUserTextRef.current = trimmed;
 
-      // Lazy-generate conversation ID on first message
       if (!conversationIdRef.current) {
         const newId = generateId();
         conversationIdRef.current = newId;
         setConversationId(newId);
         memoryManagerRef.current = new MemoryManager(newId);
+        setIsRestored(false);
+        saveSessionMeta({
+          lastConversationId: newId,
+          lastActiveAt: new Date().toISOString(),
+          messageCount: 0,
+        });
+      } else {
+        saveSessionMeta({
+          lastConversationId: conversationIdRef.current,
+          lastActiveAt: new Date().toISOString(),
+          messageCount: messagesRef.current.length,
+        });
       }
 
-      const userMessage: ChatMessage = {
+      clearDraft(conversationIdRef.current);
+
+      const userMessage: Message = {
         id: generateId(),
         role: 'user',
+        type: 'markdown',
         content: trimmed,
-        timestamp: formatTime(new Date()),
-        status: 'done',
+        createdAt: new Date(),
+        status: 'complete',
       };
       lastUserMessageIdRef.current = userMessage.id;
 
-      // Read the latest messages via ref — avoids stale closure issues.
       const historyContext = messagesRef.current;
 
-      // Append user message optimistically
       setMessages((prev) => [...prev, userMessage]);
 
-      // Execute stream with correct history (everything before the current message)
       await executeStream(trimmed, historyContext);
     },
     [executeStream]
@@ -362,22 +348,19 @@ export function useChatStream({ uid }: UseChatStreamOptions): UseChatStreamRetur
     if (isStreamingRef.current || retryingRef.current || !lastUserTextRef.current) return;
     retryingRef.current = true;
 
-    // Remove the last error assistant message (if any) before retrying
     setMessages((prev) => {
       const lastMsg = prev[prev.length - 1];
-      if (lastMsg?.status === 'error' && lastMsg.role === 'assistant') {
+      if (lastMsg?.status === 'failed' && lastMsg.role === 'assistant') {
         return prev.slice(0, -1);
       }
       return prev;
     });
 
-    // Build history context from latest messages (via ref, not stale closure)
     const latestMessages = messagesRef.current;
     const cleanMessages = latestMessages.filter(
-      (m) => !(m.status === 'error' && m.role === 'assistant')
+      (m) => !(m.status === 'failed' && m.role === 'assistant')
     );
 
-    // Find and exclude the last user message (that's the one we're retrying)
     let lastUserIdx = -1;
     for (let i = cleanMessages.length - 1; i >= 0; i--) {
       if (cleanMessages[i].role === 'user') {
@@ -398,6 +381,10 @@ export function useChatStream({ uid }: UseChatStreamOptions): UseChatStreamRetur
     setMessages((prev) => prev.filter((m) => m.id !== id));
   }, []);
 
+  const deleteMessage = useCallback((id: string) => {
+    setMessages((prev) => prev.filter((m) => m.id !== id));
+  }, []);
+
   const abort = useCallback(() => {
     if (abortRef.current) {
       abortRef.current.abort();
@@ -411,9 +398,14 @@ export function useChatStream({ uid }: UseChatStreamOptions): UseChatStreamRetur
     setMessages([]);
     setIsStreaming(false);
     lastUserTextRef.current = '';
+    if (conversationIdRef.current) {
+      clearDraft(conversationIdRef.current);
+    }
+    clearSessionMeta();
     const newId = generateId();
     conversationIdRef.current = newId;
     setConversationId(newId);
+    setIsRestored(false);
     memoryManagerRef.current = new MemoryManager(newId);
   }, []);
 
@@ -428,7 +420,7 @@ export function useChatStream({ uid }: UseChatStreamOptions): UseChatStreamRetur
       try {
         const loaded = await chatRepository.loadConversationMessages(uid, conversationIdRef.current);
         setMessages((prev) => {
-          const merged = new Map<string, ChatMessage>();
+          const merged = new Map<string, Message>();
           for (const m of prev) merged.set(m.id, m);
           for (const m of loaded) merged.set(m.id, m);
           return Array.from(merged.values());
@@ -467,11 +459,15 @@ export function useChatStream({ uid }: UseChatStreamOptions): UseChatStreamRetur
     if (!lastUserText) return;
 
     const cleanHistory = msgs.slice(0, lastAssistantIdx).filter(
-      (m) => !(m.status === 'error' && m.role === 'assistant')
+      (m) => !(m.status === 'failed' && m.role === 'assistant')
     );
 
     await executeStream(lastUserText, cleanHistory);
   }, [executeStream]);
+
+  const resumeLastConversation = useCallback(async () => {
+    await hydrateConversation();
+  }, [hydrateConversation]);
 
   return {
     messages,
@@ -485,5 +481,8 @@ export function useChatStream({ uid }: UseChatStreamOptions): UseChatStreamRetur
     clearConversation,
     refreshConversation,
     regenerateResponse,
+    isRestored,
+    deleteMessage,
+    resumeLastConversation,
   };
 }

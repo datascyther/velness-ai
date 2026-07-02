@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { ChatMessage } from '@/features/chat/types';
+import type { Message } from '@/features/chat/types';
 
 vi.mock('@/lib/firebase', () => ({
   db: {},
@@ -41,20 +41,21 @@ describe('ChatRepository', () => {
   });
 
   describe('saveMessages', () => {
-    const makeMsg = (id: string, status: ChatMessage['status']): ChatMessage => ({
+    const makeMsg = (id: string, status: Message['status']): Message => ({
       id,
       role: 'user',
+      type: 'markdown',
       content: 'Hello',
-      timestamp: '3:00 PM',
+      createdAt: new Date(),
       status,
     });
 
-    it('filters out messages with status !== done', async () => {
+    it('filters out messages with status !== complete', async () => {
       const msgs = [
-        makeMsg('1', 'done'),
+        makeMsg('1', 'complete'),
         makeMsg('2', 'streaming'),
-        makeMsg('3', 'error'),
-        makeMsg('4', 'done'),
+        makeMsg('3', 'failed'),
+        makeMsg('4', 'complete'),
       ];
 
       await repo.saveMessages('test-uid', msgs, 'conv-1');
@@ -68,7 +69,7 @@ describe('ChatRepository', () => {
     });
 
     it('adds conversationId to each message', async () => {
-      const msgs = [makeMsg('1', 'done')];
+      const msgs = [makeMsg('1', 'complete')];
 
       await repo.saveMessages('test-uid', msgs, 'conv-1');
 
