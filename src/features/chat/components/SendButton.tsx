@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import { ArrowUp } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/hooks/useTheme';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
 
 interface SendButtonProps {
   onPress: () => void;
@@ -13,16 +13,24 @@ interface SendButtonProps {
 export function SendButton({ onPress, disabled = false }: SendButtonProps) {
   const { colors } = useTheme();
   const scale = useSharedValue(1);
+  const disabledOpacity = useSharedValue(disabled ? 0.4 : 1);
+  const disabledScale = useSharedValue(disabled ? 0.92 : 1);
+
+  useEffect(() => {
+    disabledOpacity.value = withSpring(disabled ? 0.4 : 1, { damping: 15, stiffness: 200 });
+    disabledScale.value = withSpring(disabled ? 0.92 : 1, { damping: 15, stiffness: 200 });
+  }, [disabled]);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
+    opacity: disabledOpacity.value,
+    transform: [{ scale: scale.value * disabledScale.value }],
   }));
 
   const handlePress = () => {
     if (disabled) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    scale.value = withSpring(0.9, { duration: 100 }, () => {
-      scale.value = withSpring(1, { duration: 100 });
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+    scale.value = withTiming(0.9, { duration: 80 }, () => {
+      scale.value = withTiming(1, { duration: 80 });
     });
     onPress();
   };
@@ -45,7 +53,7 @@ export function SendButton({ onPress, disabled = false }: SendButtonProps) {
         accessibilityLabel="Send message"
       >
         <ArrowUp
-          size={18}
+          size={20}
           color={
             disabled
               ? colors.text.secondary
@@ -60,9 +68,9 @@ export function SendButton({ onPress, disabled = false }: SendButtonProps) {
 
 const styles = StyleSheet.create({
   sendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 8,

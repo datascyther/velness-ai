@@ -12,7 +12,7 @@ interface UserMessageBubbleProps {
 export function UserMessageBubble({ message, timestamp }: UserMessageBubbleProps) {
   const { colors } = useTheme();
   return (
-    <Animated.View entering={FadeIn.duration(300)} style={styles.container}>
+    <Animated.View entering={FadeIn.duration(250).springify().damping(22).stiffness(220)} style={styles.container}>
       <View style={styles.bubbleWrapper}>
         <View style={[styles.bubble, { backgroundColor: colors.brand.primary, shadowColor: colors.brand.primary }]}>
           <Text style={[styles.messageText, { color: colors.brand.contrastText }]}>
@@ -35,12 +35,16 @@ const styles = StyleSheet.create({
   bubbleWrapper: {
     flexDirection: 'column',
     alignItems: 'flex-end',
-    maxWidth: '80%',
+    maxWidth: '82%',
   },
   bubble: {
     borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
   messageText: {
     fontSize: 14,

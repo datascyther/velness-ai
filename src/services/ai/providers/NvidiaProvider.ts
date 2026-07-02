@@ -3,6 +3,7 @@ import { AIError } from '../types';
 import { env } from '@/core/config/env';
 import { buildContextualPrompt } from '@/prompts/mentalWellnessPrompt';
 import { PerfTracker } from '@/utils/chat-performance';
+import { Platform } from 'react-native';
 
 // ── Shared SSE line parser (no closure issues) ────────────────────────
 
@@ -75,9 +76,10 @@ export class NvidiaProvider implements AIProvider {
 
     perf.mark('request_start');
 
-    // ── Try fetch + ReadableStream (web / some RN) ────────────────
-
-    if (globalThis.fetch && typeof globalThis.ReadableStream !== 'undefined') {
+    // ── Try fetch + ReadableStream (web only) ────────────────────
+    console.log(`[NvidiaProvider] Checking stream support. Platform.OS: ${Platform.OS}`);
+    if (Platform.OS === 'web' && globalThis.fetch && typeof globalThis.ReadableStream !== 'undefined') {
+      console.log('[NvidiaProvider] Using Web Fetch API for streaming');
       const res = await fetch(targetUrl, {
         method: 'POST',
         headers,
@@ -149,9 +151,15 @@ export class NvidiaProvider implements AIProvider {
       else pending.push(e);
     };
 
+    console.log('[NvidiaProvider] Starting XHR streaming request to:', url);
     const xhr = new XMLHttpRequest();
     xhr.open('POST', url);
-    for (const [k, v] of Object.entries(headers)) xhr.setRequestHeader(k, v);
+    
+    const requestHeaders = {
+      ...headers,
+      'Accept': 'text/event-stream',
+    };
+    for (const [k, v] of Object.entries(requestHeaders)) xhr.setRequestHeader(k, v);
     xhr.responseType = 'text';
 
     let lastIdx = 0;
@@ -159,6 +167,7 @@ export class NvidiaProvider implements AIProvider {
     xhr.onprogress = () => {
       const text = xhr.responseText.slice(lastIdx);
       lastIdx = xhr.responseText.length;
+      console.log(`[NvidiaProvider] XHR progress: received ${text.length} chars (total: ${xhr.responseText.length})`);
       if (text) push({ kind: 'data', text });
     };
 
@@ -166,9 +175,11 @@ export class NvidiaProvider implements AIProvider {
       if (xhr.readyState !== 4) return;
       done = true;
       perf?.mark('complete');
+      console.log(`[NvidiaProvider] XHR completed with status: ${xhr.status}`);
       if (xhr.status >= 200 && xhr.status < 300) {
         push({ kind: 'end' });
       } else {
+        console.error(`[NvidiaProvider] XHR failed: status = ${xhr.status}, response = ${xhr.responseText}`);
         streamError = new AIError('AI request failed', xhr.status, xhr.responseText);
         push({ kind: 'error', err: streamError });
       }
@@ -176,6 +187,7 @@ export class NvidiaProvider implements AIProvider {
 
     xhr.onerror = () => {
       done = true;
+      console.error('[NvidiaProvider] XHR network error occurred');
       streamError = new Error('Network request failed');
       push({ kind: 'error', err: streamError });
     };

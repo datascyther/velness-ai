@@ -5,6 +5,7 @@ import { BlurView } from 'expo-blur';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import { useNavigationContext } from './NavigationContext';
 import ActiveIndicator from './ActiveIndicator';
+import { LAYOUT } from '@/shared/constants';
 
 interface NavigationContainerProps {
   children: React.ReactNode;
@@ -34,7 +35,7 @@ export function NavigationContainer({
   const shadowColor = theme === 'dark' ? '#000000' : '#475569';
 
   // Float bar at the bottom, adjusting position based on safe-area bottom inset
-  const bottomPosition = Math.max(16, insets.bottom);
+  const bottomPosition = Math.max(LAYOUT.TAB_BAR_MARGIN, insets.bottom);
 
   return (
     <View
@@ -110,9 +111,9 @@ export function NavigationContainer({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    left: 16,
-    right: 16,
-    height: 64,
+    left: LAYOUT.TAB_BAR_MARGIN,
+    right: LAYOUT.TAB_BAR_MARGIN,
+    height: LAYOUT.TAB_BAR_HEIGHT,
     borderRadius: 24,
     borderWidth: 1,
     elevation: 10,

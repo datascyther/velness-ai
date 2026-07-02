@@ -14,7 +14,7 @@
  *   near the bottom. This is the standard production chat pattern.
  */
 
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useEffect } from 'react';
 import {
   FlatList,
   View,
@@ -24,6 +24,7 @@ import {
   type NativeScrollEvent,
   type ListRenderItem,
 } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useTheme } from '@/hooks/useTheme';
 import { EmptyConversation } from './EmptyConversation';
 import { MessageBubble } from './MessageBubble';
@@ -34,7 +35,7 @@ import type { ChatMessage, ChatViewState } from '../types';
  * Distance from the bottom (in pixels) within which we consider
  * the user to be "at the bottom" and will auto-scroll.
  */
-const SCROLL_THRESHOLD = 120;
+const SCROLL_THRESHOLD = 80;
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -77,6 +78,15 @@ export function MessageList({
   const scrollToEnd = useCallback((animated = true) => {
     flatListRef.current?.scrollToEnd({ animated });
   }, []);
+
+  const prevMessagesLength = useRef(0);
+
+  useEffect(() => {
+    if (prevMessagesLength.current === 0 && messages.length > 0) {
+      scrollToEnd(false);
+    }
+    prevMessagesLength.current = messages.length;
+  }, [messages.length, scrollToEnd]);
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -165,9 +175,13 @@ export function MessageList({
       maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
       ListEmptyComponent={
         viewState === 'empty' ? (
-          <View style={styles.emptyContainer}>
+          <Animated.View
+            entering={FadeIn.duration(400)}
+            exiting={FadeOut.duration(200)}
+            style={styles.emptyContainer}
+          >
             <EmptyConversation onQuickStarterSelect={onQuickStarterSelect} />
-          </View>
+          </Animated.View>
         ) : null
       }
       refreshControl={

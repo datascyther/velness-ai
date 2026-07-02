@@ -57,10 +57,14 @@ export const spacing = {
   sm: 8,
   md: 12,
   lg: 16,
-  xl: 24,
-  '2xl': 32,
-  '3xl': 40,
+  xl: 20,
+  '2xl': 24,
+  '3xl': 32,
   '4xl': 48,
+  '5xl': 64,
+  '6xl': 80,
+  '7xl': 96,
+  '8xl': 120,
 } as const;
 
 export const borderRadius = {

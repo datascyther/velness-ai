@@ -1,27 +1,27 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Sparkles, Heart, HelpCircle, Flame } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useTheme } from '@/hooks/useTheme';
+import { useAppStore } from '@/core/store/useAppStore';
+import { spacing, typography, borderRadius } from '@/core/theme/tokens';
+import { CHAT_STARTERS } from '@/features/chat/constants/chat-starters';
 
-function getGreeting(): string {
+function getGreeting(name?: string): string {
   const hour = new Date().getHours();
-  if (hour >= 5 && hour < 12) return 'Good morning.';
-  if (hour >= 12 && hour < 17) return 'Good afternoon.';
-  return 'Good evening.';
-}
+  const prefix =
+    hour >= 5 && hour < 12
+      ? 'Good morning'
+      : hour >= 12 && hour < 17
+        ? 'Good afternoon'
+        : 'Good evening';
 
-interface QuickStarter {
-  icon: React.ComponentType<{ size: number; color: string }>;
-  text: string;
-  color: string;
-}
+  if (name) {
+    return `${prefix}, ${name}.`;
+  }
 
-const QUICK_STARTERS: QuickStarter[] = [
-  { icon: Heart, text: "I'm feeling a bit overwhelmed today...", color: '#EF4444' },
-  { icon: Sparkles, text: "Can we do a quick mindful check-in?", color: '#A78BFA' },
-  { icon: Flame, text: "I want to share a small win!", color: '#F59E0B' },
-  { icon: HelpCircle, text: "Help me process some thoughts", color: '#06B6D4' },
-];
+  return 'Hello.';
+}
 
 interface EmptyConversationProps {
   onQuickStarterSelect?: (text: string) => void;
@@ -29,51 +29,58 @@ interface EmptyConversationProps {
 
 export function EmptyConversation({ onQuickStarterSelect }: EmptyConversationProps) {
   const { colors } = useTheme();
+  const user = useAppStore((state) => state.session.user);
+  const firstName = user?.name?.split(' ')[0];
 
   return (
     <View style={styles.emptyContainer}>
-      {/* Greeting */}
       <Text style={[styles.greeting, { color: colors.text.primary }]}>
-        {getGreeting()}
-      </Text>
-      
-      <Text style={[styles.prompt, { color: colors.text.secondary }]}>
-        {"What's on your mind today?"}
+        {getGreeting(firstName)}
       </Text>
 
-      {/* Quick Starters Grid */}
-      <Text style={[styles.suggestionsLabel, { color: colors.text.secondary }]}>
-        Suggestions
+      <Text style={[styles.prompt, { color: colors.text.secondary }]}>
+        How are you feeling today?
       </Text>
+
       <View style={styles.startersGrid}>
-        {QUICK_STARTERS.map((starter, index) => {
+        {CHAT_STARTERS.map((starter, index) => {
           const IconComponent = starter.icon;
           return (
-            <Pressable
+            <Animated.View
               key={index}
-              onPress={() => onQuickStarterSelect?.(starter.text)}
-              style={({ pressed }) => [
-                styles.starterCard,
-                {
-                  backgroundColor: pressed ? colors.background.secondary : colors.surface.secondary,
-                  borderColor: colors.border.default,
-                },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={starter.text}
+              entering={FadeIn.duration(300).delay(index * 100)}
+              style={{ width: '100%' }}
             >
-              <View
-                style={[
-                  styles.iconCircle,
-                  { backgroundColor: `${starter.color}15` },
+              <Pressable
+                onPress={() => {
+                  try {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  } catch {}
+                  onQuickStarterSelect?.(starter.text);
+                }}
+                style={({ pressed }) => [
+                  styles.starterCard,
+                  {
+                    backgroundColor: pressed
+                      ? colors.background.secondary
+                      : colors.surface.secondary,
+                    borderColor: colors.border.default,
+                  },
                 ]}
+                accessibilityRole="button"
+                accessibilityLabel={starter.text}
+                accessibilityHint="Starts a conversation with this prompt"
               >
-                <IconComponent size={16} color={starter.color} />
-              </View>
-              <Text style={[styles.starterText, { color: colors.text.primary }]}>
-                {starter.text}
-              </Text>
-            </Pressable>
+                <View
+                  style={[styles.iconCircle, { backgroundColor: colors.surface.primary }]}
+                >
+                  <IconComponent size={16} color={colors.brand.primary} />
+                </View>
+                <Text style={[styles.starterText, { color: colors.text.primary }]}>
+                  {starter.text}
+                </Text>
+              </Pressable>
+            </Animated.View>
           );
         })}
       </View>
@@ -85,53 +92,46 @@ const styles = StyleSheet.create({
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingTop: spacing['8xl'],
+    paddingBottom: spacing['3xl'],
     width: '100%',
   },
   greeting: {
-    fontSize: 24,
+    fontSize: typography.fontSize['section-title'],
     fontWeight: '700',
     textAlign: 'center',
-    letterSpacing: -0.5,
-    marginBottom: 8,
+    letterSpacing: typography.letterSpacing['section-title'],
+    marginBottom: spacing['2xl'],
   },
   prompt: {
-    fontSize: 15,
+    fontSize: typography.fontSize.body,
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 32,
-  },
-  suggestionsLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 12,
+    lineHeight: typography.fontSize.body * typography.lineHeight.body,
+    marginBottom: spacing['6xl'],
   },
   startersGrid: {
     width: '100%',
-    gap: 12,
+    gap: spacing.lg,
   },
   starterCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 16,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
   },
   iconCircle: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: borderRadius.full,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   starterText: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: typography.fontSize['body-sm'],
+    fontWeight: '600',
     flex: 1,
   },
 });

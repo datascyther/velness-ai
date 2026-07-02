@@ -14,12 +14,14 @@ import { View, StyleSheet } from 'react-native';
 import { Brain } from 'lucide-react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import Animated, {
+  FadeIn,
   useSharedValue,
   useAnimatedStyle,
   withRepeat,
   withSequence,
   withTiming,
   withDelay,
+  withSpring,
 } from 'react-native-reanimated';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -65,60 +67,76 @@ function AnimatedDot({ delay }: { delay: number }) {
 
 export function TypingIndicator() {
   const { colors } = useTheme();
+  const avatarScale = useSharedValue(1);
+
+  useEffect(() => {
+    avatarScale.value = withRepeat(
+      withSequence(
+        withTiming(1.08, { duration: 800 }),
+        withTiming(1, { duration: 800 })
+      ),
+      -1,
+      true
+    );
+  }, []);
+
+  const avatarAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: avatarScale.value }],
+  }));
 
   return (
-    <View style={styles.container}>
-      {/* Rainbow Brain Avatar — mirrors AIMessageBubble */}
-      <View style={styles.avatarContainer}>
-        <Svg width={36} height={36} style={StyleSheet.absoluteFillObject}>
-          <Defs>
-            <LinearGradient id="rainbowGradTI" x1="0%" y1="0%" x2="100%" y2="100%">
-              <Stop offset="0%" stopColor="#8B5CF6" />
-              <Stop offset="40%" stopColor="#A78BFA" />
-              <Stop offset="75%" stopColor="#06B6D4" />
-              <Stop offset="100%" stopColor="#EF4444" />
-            </LinearGradient>
-          </Defs>
-          <Rect width="100%" height="100%" rx={18} fill="url(#rainbowGradTI)" />
-        </Svg>
-        <Brain size={18} color="#FFFFFF" strokeWidth={2} />
+    <Animated.View
+      entering={FadeIn.duration(300)}
+      style={styles.container}
+      accessibilityLabel="Neeva is typing"
+      accessibilityLiveRegion="polite"
+    >
+      {/* Header: Avatar */}
+      <View style={styles.headerRow}>
+        <Animated.View style={[styles.avatarContainer, avatarAnimStyle]}>
+          <Svg width={28} height={28} style={StyleSheet.absoluteFillObject}>
+            <Defs>
+              <LinearGradient id="rainbowGradTI" x1="0%" y1="0%" x2="100%" y2="100%">
+                <Stop offset="0%" stopColor="#8B5CF6" />
+                <Stop offset="40%" stopColor="#A78BFA" />
+                <Stop offset="75%" stopColor="#06B6D4" />
+                <Stop offset="100%" stopColor="#EF4444" />
+              </LinearGradient>
+            </Defs>
+            <Rect width="100%" height="100%" rx={14} fill="url(#rainbowGradTI)" />
+          </Svg>
+          <Brain size={14} color="#FFFFFF" strokeWidth={2} />
+        </Animated.View>
       </View>
 
-      {/* Dots Bubble */}
-      <View
-        style={[
-          styles.bubble,
-          {
-            backgroundColor: colors.surface.secondary,
-            borderColor: colors.border.default,
-          },
-        ]}
-      >
+      {/* Dots */}
+      <View style={[styles.bubble, { backgroundColor: colors.surface.secondary }]}>
         <View style={styles.dotsRow}>
           <AnimatedDot delay={0} />
           <AnimatedDot delay={150} />
           <AnimatedDot delay={300} />
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    marginVertical: 6,
+    marginVertical: 4,
     width: '100%',
-    paddingRight: 60,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   avatarContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
     position: 'relative',
     shadowColor: '#8B5CF6',
     shadowOffset: { width: 0, height: 2 },
@@ -127,9 +145,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   bubble: {
-    borderWidth: 1,
-    borderRadius: 16,
-    borderTopLeftRadius: 4,
+    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
   },

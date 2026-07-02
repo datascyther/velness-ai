@@ -12,11 +12,11 @@
  * No modals, no toasts — inline only.
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { AlertCircle, RotateCcw, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated, { FadeIn, useSharedValue, useAnimatedStyle, withSequence, withSpring } from 'react-native-reanimated';
 import { useTheme } from '@/hooks/useTheme';
 
 interface ErrorBubbleProps {
@@ -27,6 +27,21 @@ interface ErrorBubbleProps {
 
 export function ErrorBubble({ message, onRetry, onDismiss }: ErrorBubbleProps) {
   const { colors } = useTheme();
+  const translateX = useSharedValue(0);
+
+  const shakeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  useEffect(() => {
+    translateX.value = withSequence(
+      withSpring(-4),
+      withSpring(4),
+      withSpring(-2),
+      withSpring(2),
+      withSpring(0)
+    );
+  }, []);
 
   const handleRetry = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -40,12 +55,14 @@ export function ErrorBubble({ message, onRetry, onDismiss }: ErrorBubbleProps) {
 
   return (
     <Animated.View entering={FadeIn.duration(250)} style={styles.container}>
-      <View
+      <Animated.View
         style={[
           styles.bubble,
+          shakeStyle,
           {
-            backgroundColor: `${colors.danger}12`,
-            borderColor: `${colors.danger}40`,
+            backgroundColor: colors.surface.secondary,
+            borderLeftWidth: 3,
+            borderLeftColor: colors.danger,
           },
         ]}
       >
@@ -89,19 +106,16 @@ export function ErrorBubble({ message, onRetry, onDismiss }: ErrorBubbleProps) {
             <X size={14} color={colors.text.secondary} strokeWidth={2} />
           </Pressable>
         </View>
-      </View>
+      </Animated.View>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingRight: 60,
     marginVertical: 4,
-    marginLeft: 46, // align with AI bubble content (avatar width + margin)
   },
   bubble: {
-    borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,

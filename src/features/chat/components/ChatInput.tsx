@@ -10,11 +10,12 @@
  *     so the input sits above the home indicator on notched phones
  */
 
-import React, { useState, useRef, useEffect } from 'react';
-import { View, TextInput, Text, StyleSheet, Pressable } from 'react-native';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { View, TextInput, Text, StyleSheet, Pressable, type NativeSyntheticEvent, type TextInputContentSizeChangeEventData } from 'react-native';
 import { Square } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/hooks/useTheme';
-import Animated, { useSharedValue, useAnimatedStyle, withSequence, withSpring } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withSequence, withSpring, FadeIn, FadeOut } from 'react-native-reanimated';
 import { SendButton } from './SendButton';
 
 interface ChatInputProps {
@@ -40,6 +41,7 @@ export function ChatInput({
   onPrefillSent,
 }: ChatInputProps) {
   const [inputText, setInputText] = useState('');
+  const [inputHeight, setInputHeight] = useState(0);
   const inputRef = useRef<TextInput>(null);
   const { colors } = useTheme();
   const inputScale = useSharedValue(1);
@@ -74,10 +76,18 @@ export function ChatInput({
     }, 600);
 
     return () => clearTimeout(timer);
-  }, [prefillText]);
+  }, [prefillText, onSend, onPrefillSent]);
+
+  const handleContentSizeChange = useCallback(
+    (event: NativeSyntheticEvent<TextInputContentSizeChangeEventData>) => {
+      setInputHeight(event.nativeEvent.contentSize.height);
+    },
+    []
+  );
 
   const handleSend = () => {
     if (inputText.trim() === '') return;
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
     onSend(inputText.trim());
     setInputText('');
   };
@@ -86,16 +96,20 @@ export function ChatInput({
     onAbort?.();
   };
 
-  const isDisabled = disabled || (isStreaming ? false : inputText.trim() === '');
-
   return (
     <View
       style={[
         styles.outerContainer,
         {
           backgroundColor: colors.surface.primary,
-          borderTopColor: colors.border.default,
           paddingBottom: paddingBottom + 12,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 2,
+          elevation: 4,
+          borderTopWidth: isStreaming ? 1 : 0,
+          borderTopColor: isStreaming ? colors.brand.primary : 'transparent',
         },
       ]}
     >
@@ -112,36 +126,43 @@ export function ChatInput({
       >
         <TextInput
           ref={inputRef}
-          style={[styles.textInput, { color: colors.text.primary }]}
-          placeholder={isStreaming ? 'Neeva is responding...' : 'Message Neeva...'}
+          style={[
+            styles.textInput,
+            { color: colors.text.primary },
+            inputHeight > 0 && { height: Math.min(inputHeight, 150) },
+          ]}
+          placeholder={isStreaming ? 'Neeva is responding...' : "Share what's on your mind..."}
           placeholderTextColor={colors.text.secondary}
           value={inputText}
           onChangeText={setInputText}
+          onContentSizeChange={handleContentSizeChange}
           multiline
           maxLength={1000}
           editable={!disabled && !isStreaming}
-          onSubmitEditing={handleSend}
-          returnKeyType="send"
-          blurOnSubmit={false}
           accessibilityLabel="Chat input field"
         />
 
         {isStreaming ? (
           /* Stop/Abort button — shown while AI is responding */
-          <Pressable
-            onPress={handleAbort}
-            style={({ pressed }) => [
-              styles.abortButton,
-              {
-                backgroundColor: colors.brand.primary,
-                opacity: pressed ? 0.8 : 1,
-              },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Stop AI response"
+          <Animated.View
+            entering={FadeIn.duration(200)}
+            exiting={FadeOut.duration(150)}
           >
-            <Square size={14} color="#FFFFFF" fill="#FFFFFF" strokeWidth={0} />
-          </Pressable>
+            <Pressable
+              onPress={handleAbort}
+              style={({ pressed }) => [
+                styles.abortButton,
+                {
+                  backgroundColor: colors.brand.primary,
+                  opacity: pressed ? 0.8 : 1,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Stop AI response"
+            >
+              <Square size={14} color="#FFFFFF" fill="#FFFFFF" strokeWidth={0} />
+            </Pressable>
+          </Animated.View>
         ) : (
           <SendButton
             onPress={handleSend}
@@ -171,9 +192,8 @@ export function ChatInput({
 
 const styles = StyleSheet.create({
   outerContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    borderTopWidth: 1,
+    paddingHorizontal: 12,
+    paddingTop: 10,
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -189,8 +209,8 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     paddingHorizontal: 8,
     paddingVertical: 6,
-    maxHeight: 120,
-    textAlignVertical: 'center',
+    maxHeight: 150,
+    textAlignVertical: 'top',
   },
   abortButton: {
     width: 36,
