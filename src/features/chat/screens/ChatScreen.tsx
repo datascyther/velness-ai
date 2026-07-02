@@ -3,13 +3,15 @@ import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { ChatHeader } from '../components/ChatHeader';
-import { ChatContainer } from '../components/ChatContainer';
+import { ConversationList } from '../components/ConversationList';
 import { AIMessageBubble } from '../components/AIMessageBubble';
 import { UserMessageBubble } from '../components/UserMessageBubble';
 import { ChatInput } from '../components/ChatInput';
+import { useTheme } from '@/hooks/useTheme';
 
 export function ChatScreen() {
   const [messages, setMessages] = React.useState<any[]>([]);
+  const { colors } = useTheme();
 
   const formatTime = (date: Date) => {
     let hours = date.getHours();
@@ -48,11 +50,11 @@ export function ChatScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background.primary }]} edges={['top']}>
       <StatusBar style="light" />
       <ChatHeader />
       <View style={styles.content}>
-        <ChatContainer
+        <ConversationList
           messages={messages}
           onQuickStarterPress={handleQuickStarterPress}
         >
@@ -76,7 +78,7 @@ export function ChatScreen() {
             }
             return null;
           })}
-        </ChatContainer>
+        </ConversationList>
         <ChatInput onSend={handleSend} />
       </View>
     </SafeAreaView>
@@ -86,7 +88,6 @@ export function ChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B0B12',
   },
   content: {
     flex: 1,
