@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { View, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
-import { ArrowUp } from 'lucide-react-native';
+import { View, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
+import { SendButton } from './SendButton';
 
 interface ChatInputProps {
   onSend: (text: string) => void;
@@ -24,12 +24,28 @@ export function ChatInput({ onSend, disabled = false }: ChatInputProps) {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       style={styles.keyboardContainer}
     >
-      <View style={[styles.outerContainer, { borderTopColor: 'rgba(255,255,255,0.05)' }]}>
-        <View style={styles.inputWrapper}>
+      <View
+        style={[
+          styles.outerContainer,
+          {
+            backgroundColor: colors.surface.primary,
+            borderTopColor: colors.border.default,
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.inputWrapper,
+            {
+              backgroundColor: colors.background.secondary,
+              borderColor: colors.border.default,
+            },
+          ]}
+        >
           <TextInput
-            style={[styles.textInput, { color: '#FFFFFF' }]}
+            style={[styles.textInput, { color: colors.text.primary }]}
             placeholder="Message Neeva..."
-            placeholderTextColor="rgba(255, 255, 255, 0.35)"
+            placeholderTextColor={colors.text.secondary}
             value={inputText}
             onChangeText={setInputText}
             multiline
@@ -37,31 +53,10 @@ export function ChatInput({ onSend, disabled = false }: ChatInputProps) {
             editable={!disabled}
             accessibilityLabel="Chat input field"
           />
-          <Pressable
+          <SendButton
             onPress={handleSend}
             disabled={disabled || inputText.trim() === ''}
-            style={({ pressed }) => [
-              styles.sendButton,
-              {
-                backgroundColor: disabled || inputText.trim() === ''
-                  ? 'rgba(255, 255, 255, 0.05)'
-                  : '#8B5CF6',
-                opacity: pressed ? 0.8 : 1,
-              },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Send message"
-          >
-            <ArrowUp
-              size={18}
-              color={
-                disabled || inputText.trim() === ''
-                  ? 'rgba(255, 255, 255, 0.2)'
-                  : '#FFFFFF'
-              }
-              strokeWidth={2.5}
-            />
-          </Pressable>
+          />
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -75,15 +70,12 @@ const styles = StyleSheet.create({
   outerContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#0B0B12',
     borderTopWidth: 1,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 24,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -97,14 +89,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     maxHeight: 120,
     textAlignVertical: 'center',
-  },
-  sendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 8,
   },
 });
 
