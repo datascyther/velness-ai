@@ -2,26 +2,27 @@ import { ThemeTokens } from './light';
 
 export const darkTheme: ThemeTokens = {
   background: {
-    primary: '#F8F9FC',
-    secondary: '#F1F4F9',
+    primary: '#0B0B12',
+    secondary: '#12121A',
   },
   surface: {
-    primary: '#FFFFFF',
-    secondary: '#F8FAFC',
+    primary: '#161622',
+    secondary: '#1C1C2A',
   },
   text: {
-    primary: '#111827',
-    secondary: '#6B7280',
+    primary: '#FFFFFF',
+    secondary: 'rgba(255, 255, 255, 0.6)',
   },
   border: {
-    default: '#E5E7EB',
+    default: 'rgba(255, 255, 255, 0.08)',
   },
   brand: {
-    primary: '#6C4CF1',
-    secondary: '#8B5CF6',
+    primary: '#8B5CF6',
+    secondary: '#A78BFA',
     contrastText: '#FFFFFF',
   },
-  success: '#22C55E',
+  success: '#10B981',
   warning: '#F59E0B',
   danger: '#EF4444',
 };
+
