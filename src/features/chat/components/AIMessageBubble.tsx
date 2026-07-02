@@ -3,6 +3,8 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Brain } from 'lucide-react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import Animated, { FadeIn } from 'react-native-reanimated';
+import { useTheme } from '@/hooks/useTheme';
+import { MessageTimestamp } from './MessageTimestamp';
 
 interface AIMessageBubbleProps {
   message: string;
@@ -10,6 +12,8 @@ interface AIMessageBubbleProps {
 }
 
 export function AIMessageBubble({ message, timestamp }: AIMessageBubbleProps) {
+  const { colors } = useTheme();
+
   return (
     <Animated.View entering={FadeIn.duration(300)} style={styles.container}>
       {/* Rainbow Brain Avatar */}
@@ -30,10 +34,20 @@ export function AIMessageBubble({ message, timestamp }: AIMessageBubbleProps) {
 
       {/* Bubble Content */}
       <View style={styles.bubbleWrapper}>
-        <View style={styles.bubble}>
-          <Text style={styles.messageText}>{message}</Text>
+        <View
+          style={[
+            styles.bubble,
+            {
+              backgroundColor: colors.surface.secondary,
+              borderColor: colors.border.default,
+            },
+          ]}
+        >
+          <Text style={[styles.messageText, { color: colors.text.primary }]}>
+            {message}
+          </Text>
         </View>
-        <Text style={styles.timestampText}>{timestamp}</Text>
+        <MessageTimestamp timestamp={timestamp} style={styles.timestampStyle} />
       </View>
     </Animated.View>
   );
@@ -57,7 +71,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     shadowColor: '#8B5CF6',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 3,
   },
@@ -67,27 +81,21 @@ const styles = StyleSheet.create({
     maxWidth: '85%', // relative to the remaining space
   },
   bubble: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 16,
     borderTopLeftRadius: 4,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   messageText: {
-    color: '#FFFFFF',
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '400',
   },
-  timestampText: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.35)',
-    marginTop: 4,
+  timestampStyle: {
     marginLeft: 4,
-    fontWeight: '500',
   },
 });
+
 
 export default AIMessageBubble;
