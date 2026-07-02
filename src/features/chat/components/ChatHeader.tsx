@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
 import { ArrowLeft, Bell } from 'lucide-react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { Avatar } from '@/shared/components/Avatar';
@@ -101,7 +101,7 @@ export function ChatHeader({
   }));
 
   // Resolve content based on conversation state
-  const resolvedTitle = inConversation ? "Today's Companion" : "🌈 Neeva";
+  const resolvedTitle = inConversation ? "Today's Companion" : "Neeva";
   const resolvedSubtitle = inConversation && sessionStartedAt
     ? `Session started ${formatSessionTime(sessionStartedAt)}`
     : "Always here when you need it";
@@ -128,6 +128,13 @@ export function ChatHeader({
       </View>
 
       <View style={styles.leftSection}>
+        {!inConversation && (
+          <Image
+            source={require('@/shared/assets/LOGO.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+        )}
         <View style={styles.titleContainer}>
           <Text
             style={[
@@ -270,6 +277,11 @@ const styles = StyleSheet.create({
     width: NOTIFICATION_DOT_SIZE,
     height: NOTIFICATION_DOT_SIZE,
     borderRadius: NOTIFICATION_DOT_SIZE / 2,
+  },
+  logoImage: {
+    width: 28,
+    height: 28,
+    marginRight: spacing.sm,
   },
 });
 
