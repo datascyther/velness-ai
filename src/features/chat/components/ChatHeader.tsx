@@ -46,7 +46,7 @@ export function ChatHeader({ onMorePress }: ChatHeaderProps) {
   }));
 
   return (
-    <View style={[styles.headerContainer, { borderBottomColor: 'rgba(255,255,255,0.06)' }]}>
+    <View style={[styles.headerContainer, { backgroundColor: colors.surface.primary, borderBottomColor: colors.border.default }]}>
       <View style={styles.leftSection}>
         <Image
           source={require('@/shared/assets/neeva-logo.png')}
@@ -54,19 +54,19 @@ export function ChatHeader({ onMorePress }: ChatHeaderProps) {
           resizeMode="contain"
         />
         <View style={styles.titleContainer}>
-          <Text style={[styles.titleText, { color: '#FFFFFF' }]}>Neeva</Text>
+          <Text style={[styles.titleText, { color: colors.text.primary }]}>Neeva</Text>
           <View style={styles.statusRow}>
             <View style={styles.indicatorContainer}>
               <Animated.View
                 style={[
                   styles.outerPulse,
-                  { backgroundColor: '#10B981' },
+                  { backgroundColor: colors.success },
                   animatedOuterPulse,
                 ]}
               />
-              <View style={[styles.innerDot, { backgroundColor: '#10B981' }]} />
+              <View style={[styles.innerDot, { backgroundColor: colors.success }]} />
             </View>
-            <Text style={styles.statusText}>Online</Text>
+            <Text style={[styles.statusText, { color: colors.text.secondary }]}>Online</Text>
           </View>
         </View>
       </View>
@@ -74,12 +74,12 @@ export function ChatHeader({ onMorePress }: ChatHeaderProps) {
       <View style={styles.rightSection}>
         <Pressable
           onPress={onMorePress}
-          style={styles.menuButton}
+          style={[styles.menuButton, { backgroundColor: colors.background.secondary }]}
           hitSlop={12}
           accessibilityLabel="More options"
           accessibilityRole="button"
         >
-          <MoreVertical size={20} color="rgba(255,255,255,0.7)" />
+          <MoreVertical size={20} color={colors.text.secondary} />
         </Pressable>
       </View>
     </View>
@@ -94,7 +94,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    backgroundColor: '#0B0B12',
   },
   leftSection: {
     flexDirection: 'row',
@@ -141,7 +140,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 11,
     fontWeight: '500',
-    color: 'rgba(255,255,255,0.5)',
   },
   rightSection: {
     flexDirection: 'row',
@@ -153,7 +151,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.03)',
   },
 });
 
