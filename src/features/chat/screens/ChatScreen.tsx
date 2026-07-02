@@ -6,25 +6,45 @@ import { ChatHeader } from '../components/ChatHeader';
 import { ChatContainer } from '../components/ChatContainer';
 import { AIMessageBubble } from '../components/AIMessageBubble';
 import { UserMessageBubble } from '../components/UserMessageBubble';
+import { ChatInput } from '../components/ChatInput';
 
 export function ChatScreen() {
-  const [messages, setMessages] = React.useState<any[]>([
-    {
-      id: '1',
-      sender: 'ai',
-      text: "Hello! I'm Neeva. I'm here to support you. Let's take a moment together to check in on how you're feeling today.",
-      timestamp: '2:15 PM',
-    },
-    {
-      id: '2',
+  const [messages, setMessages] = React.useState<any[]>([]);
+
+  const formatTime = (date: Date) => {
+    let hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+    return `${hours}:${minutesStr} ${ampm}`;
+  };
+
+  const handleSend = (text: string) => {
+    const userMsg = {
+      id: String(Date.now()),
       sender: 'user',
-      text: "I've been feeling a bit stressed recently, mostly about school and work balancing. It's hard to keep up sometimes.",
-      timestamp: '2:16 PM',
-    },
-  ]);
+      text,
+      timestamp: formatTime(new Date()),
+    };
+    
+    setMessages((prev) => [...prev, userMsg]);
+
+    // Simulate AI response after a short delay
+    setTimeout(() => {
+      const aiResponse = {
+        id: String(Date.now() + 1),
+        sender: 'ai',
+        text: "Thank you for sharing that with me. I'm here to listen and help you process whatever is on your mind.",
+        timestamp: formatTime(new Date()),
+      };
+      setMessages((prev) => [...prev, aiResponse]);
+    }, 1000);
+  };
 
   const handleQuickStarterPress = (text: string) => {
-    console.log('Quick starter pressed:', text);
+    handleSend(text);
   };
 
   return (
@@ -57,6 +77,7 @@ export function ChatScreen() {
             return null;
           })}
         </ChatContainer>
+        <ChatInput onSend={handleSend} />
       </View>
     </SafeAreaView>
   );
