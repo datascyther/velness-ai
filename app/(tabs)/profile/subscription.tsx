@@ -46,7 +46,6 @@ const plans = [
       'Everything in Premium',
       'All future features',
       'Early access to new tools',
-      'Community badge',
     ],
   },
 ];

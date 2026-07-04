@@ -15,9 +15,6 @@ export const features = {
   /** Enable mood tracking */
   moodTracking: true,
 
-  /** Enable community features */
-  community: true,
-
   /** Enable crisis support */
   crisisSupport: true,
 
