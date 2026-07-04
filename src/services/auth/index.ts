@@ -364,6 +364,82 @@ class AuthService {
     };
   }
 
+  /**
+   * Migrate guest user data to a permanent account.
+   * Transfers exercise progress, user progress, and mood data
+   * from the guest UID to the new Firebase UID.
+   */
+  async migrateGuestAccount(guestUid: string, newUid: string): Promise<void> {
+    if (!guestUid || !newUid || guestUid === newUid) return;
+
+    try {
+      const { doc, getDoc, setDoc, getDocs, collection, writeBatch } = await import('firebase/firestore');
+      const { db } = await import('@/lib/firebase');
+      if (!db) return;
+
+      const batch = writeBatch(db);
+
+      // Transfer exercise progress
+      const guestExercisesSnap = await getDocs(collection(db, 'users', guestUid, 'exercises'));
+      for (const exerciseDoc of guestExercisesSnap.docs) {
+        const newRef = doc(db, 'users', newUid, 'exercises', exerciseDoc.id);
+        batch.set(newRef, exerciseDoc.data(), { merge: true });
+      }
+
+      // Transfer user progress document
+      const guestProgressSnap = await getDoc(doc(db, 'users', guestUid, 'progress', 'journey'));
+      if (guestProgressSnap.exists()) {
+        const newRef = doc(db, 'users', newUid, 'progress', 'journey');
+        batch.set(newRef, guestProgressSnap.data(), { merge: true });
+      }
+
+      // Transfer recommendations
+      const guestRecSnap = await getDocs(collection(db, 'users', guestUid, 'recommendations'));
+      for (const recDoc of guestRecSnap.docs) {
+        const newRef = doc(db, 'users', newUid, 'recommendations', recDoc.id);
+        batch.set(newRef, recDoc.data(), { merge: true });
+      }
+
+      // Transfer streaks
+      const guestStreakSnap = await getDocs(collection(db, 'users', guestUid, 'streaks'));
+      for (const streakDoc of guestStreakSnap.docs) {
+        const newRef = doc(db, 'users', newUid, 'streaks', streakDoc.id);
+        batch.set(newRef, streakDoc.data(), { merge: true });
+      }
+
+      // Transfer moods
+      const guestMoodsSnap = await getDocs(collection(db, 'users', guestUid, 'moods'));
+      for (const moodDoc of guestMoodsSnap.docs) {
+        const newRef = doc(db, 'users', newUid, 'moods', moodDoc.id);
+        batch.set(newRef, moodDoc.data(), { merge: true });
+      }
+
+      await batch.commit();
+
+      // Clear local cache for guest UID, migrate to new UID
+      const { storageService } = await import('@/services/storage');
+      const guestProgressKey = `journey_progress_${guestUid}`;
+      const guestUserProgressKey = `journey_user_progress_${guestUid}`;
+      const guestData = await storageService.getJSON(guestProgressKey);
+      if (guestData) {
+        await storageService.setJSON(`journey_progress_${newUid}`, guestData);
+        await storageService.delete(guestProgressKey);
+      }
+      const guestUserData = await storageService.getJSON(guestUserProgressKey);
+      if (guestUserData) {
+        await storageService.setJSON(`journey_user_progress_${newUid}`, guestUserData);
+        await storageService.delete(guestUserProgressKey);
+      }
+
+      await import('@/services/logging').then(({ logger }) => {
+        logger.info('auth', 'Guest account migrated', { guestUid, newUid });
+      });
+    } catch (error) {
+      const { logger } = await import('@/services/logging');
+      logger.error('auth', 'Guest migration failed', { guestUid, newUid, error: String(error) });
+    }
+  }
+
   // ─── Private helpers ──────────────────────────────────────────────────
 
   private async storeTokens(user: FirebaseUser): Promise<void> {

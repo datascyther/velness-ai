@@ -11,6 +11,6 @@ export {
   opacity,
 } from './tokens'
 export { ThemeProvider, ThemeContext } from './ThemeProvider'
-export type { Theme, ThemeMode } from './ThemeProvider'
+export type { Theme, ThemeMode } from '@/types'
 export { useTheme } from './useTheme'
 export { ThemeToggle } from './ThemeToggle'

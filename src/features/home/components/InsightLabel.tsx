@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Sparkles } from 'lucide-react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useTheme } from '@/hooks/useTheme';
 import { spacing, borderRadius } from '@/core/theme';
 
@@ -14,13 +15,18 @@ export const InsightLabel = React.memo(({ text }: InsightLabelProps) => {
   if (!text) return null;
 
   return (
-    <View style={[styles.container, { backgroundColor: `${colors.brand.primary}08`, borderColor: `${colors.brand.primary}18` }]}>
+    <Animated.View
+      entering={FadeIn.duration(500)}
+      style={[styles.container, { backgroundColor: `${colors.brand.primary}06`, borderColor: `${colors.brand.primary}12` }]}
+    >
       <View style={styles.header}>
-        <Sparkles size={13} color={colors.brand.primary} style={styles.icon} />
+        <View style={[styles.iconCircle, { backgroundColor: `${colors.brand.primary}12` }]}>
+          <Sparkles size={12} color={colors.brand.primary} />
+        </View>
         <Text style={[styles.headerText, { color: colors.brand.primary }]}>Neeva AI Insight</Text>
       </View>
       <Text style={[styles.text, { color: colors.text.secondary }]}>{text}</Text>
-    </View>
+    </Animated.View>
   );
 });
 
@@ -28,18 +34,23 @@ InsightLabel.displayName = 'InsightLabel';
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: spacing.lg,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
+    marginTop: spacing.md + 2,
+    padding: spacing.md + 2,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: spacing.xs + 2,
   },
-  icon: {
-    marginRight: 6,
+  iconCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
   },
   headerText: {
     fontSize: 10,
@@ -48,10 +59,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   text: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '500',
-    lineHeight: 18,
+    lineHeight: 19,
     letterSpacing: 0.1,
   },
 });
-

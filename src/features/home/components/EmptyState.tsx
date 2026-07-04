@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Pressable } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
+import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
 import { useTheme } from '@/hooks/useTheme';
 import { spacing, borderRadius } from '@/core/theme';
 
@@ -12,31 +13,25 @@ export const EmptyState = React.memo(({ onCheckIn }: EmptyStateProps) => {
   const { colors } = useTheme();
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.iconRing, { borderColor: colors.brand.primary }]}>
-        <Svg width={36} height={36} viewBox="0 0 40 40">
-          <Circle
-            cx={20}
-            cy={20}
-            r={18}
+    <Animated.View entering={FadeInUp.duration(500)} style={styles.container}>
+      <View style={[styles.iconRing, { borderColor: `${colors.brand.primary}30` }]}>
+        <Svg width={40} height={40} viewBox="0 0 40 40">
+          <Circle cx={20} cy={20} r={18} fill={colors.brand.primary} opacity={0.06} />
+          <Path
+            d="M20 8C15.029 8 11 11.582 11 16C11 18.72 12.1 20.4 13.2 22.5L15.5 27H24.5L26.8 22.5C27.9 20.4 29 18.72 29 16C29 11.582 24.971 8 20 8Z"
             fill={colors.brand.primary}
-            opacity={0.08}
+            opacity={0.1}
           />
           <Path
-            d="M20 10C15.582 10 12 13.582 12 18C12 20.5 13 22 14 24L16 28H24L26 24C27 22 28 20.5 28 18C28 13.582 24.418 10 20 10Z"
-            fill={colors.brand.primary}
-            opacity={0.12}
-          />
-          <Path
-            d="M16 16C16 15.172 16.672 14.5 17.5 14.5C18.328 14.5 19 15.172 19 16C19 16.828 18.328 17.5 17.5 17.5C16.672 17.5 16 16.828 16 16Z"
+            d="M15 15C15 14.172 15.672 13.5 16.5 13.5C17.328 13.5 18 14.172 18 15C18 15.828 17.328 16.5 16.5 16.5C15.672 16.5 15 15.828 15 15Z"
             fill={colors.brand.primary}
           />
           <Path
-            d="M21 16C21 15.172 21.672 14.5 22.5 14.5C23.328 14.5 24 15.172 24 16C24 16.828 23.328 17.5 22.5 17.5C21.672 17.5 21 16.828 21 16Z"
+            d="M22 15C22 14.172 22.672 13.5 23.5 13.5C24.328 13.5 25 14.172 25 15C25 15.828 24.328 16.5 23.5 16.5C22.672 16.5 22 15.828 22 15Z"
             fill={colors.brand.primary}
           />
           <Path
-            d="M17.5 22.5C17.5 22.5 18.5 24.5 20 24.5C21.5 24.5 22.5 22.5 22.5 22.5"
+            d="M17 21.5C17 21.5 18.5 24 20 24C21.5 24 23 21.5 23 21.5"
             fill="none"
             stroke={colors.brand.primary}
             strokeWidth={1.5}
@@ -46,24 +41,26 @@ export const EmptyState = React.memo(({ onCheckIn }: EmptyStateProps) => {
       </View>
 
       <Text style={[styles.mainText, { color: colors.text.primary }]}>
-        No mood history yet
+        No mood entries yet
       </Text>
       <Text style={[styles.subText, { color: colors.text.secondary }]}>
-        Start your first check-in today.
+        Start your first check-in to see your weekly history.
       </Text>
 
       {onCheckIn && (
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: colors.brand.primary }]}
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            { backgroundColor: colors.brand.primary, opacity: pressed ? 0.9 : 1 },
+          ]}
           onPress={onCheckIn}
-          activeOpacity={0.85}
         >
           <Text style={[styles.buttonText, { color: colors.brand.contrastText }]}>
-            Check In
+            Check In Now
           </Text>
-        </TouchableOpacity>
+        </Pressable>
       )}
-    </View>
+    </Animated.View>
   );
 });
 
@@ -76,34 +73,42 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   iconRing: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
-    opacity: 0.5,
+    marginBottom: spacing.md,
   },
   mainText: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginTop: spacing.md,
+    fontSize: 16,
+    fontWeight: '700',
     letterSpacing: 0.2,
+    textAlign: 'center',
   },
   subText: {
-    fontSize: 13,
+    fontSize: 13.5,
     fontWeight: '400',
     marginTop: spacing.xs,
+    textAlign: 'center',
+    lineHeight: 20,
+    opacity: 0.7,
   },
   button: {
-    marginTop: spacing.lg,
+    marginTop: spacing.lg + 2,
     paddingHorizontal: spacing['2xl'],
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm + 2,
     borderRadius: borderRadius.full,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   buttonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     letterSpacing: 0.3,
   },
 });

@@ -17,13 +17,16 @@
  */
 
 import React, { useMemo, useCallback, useState } from 'react';
-import { ScrollView, View, StyleSheet, RefreshControl } from 'react-native';
+import { ScrollView, View, Text, StyleSheet, RefreshControl } from 'react-native';
 import { Brain, Wind, Sparkles, Leaf } from 'lucide-react-native';
+import { router } from 'expo-router';
 
 import { ScreenContainer } from '@/shared/components/ScreenContainer';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { useActiveJourney } from '@/features/journey/hooks/useActiveJourney';
+import { useJourney } from '@/shared/hooks/useJourney';
+import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
+import { ROUTES } from '@/core/config/routes';
 import { spacing } from '@/core/theme';
 
 import {
@@ -33,45 +36,16 @@ import {
   CurrentProgramCard,
   PracticeCategoryCard,
   RecommendationCard,
+  AIRecommendationCard,
   WeeklyProgressTracker,
+  PersonalReflectionCard,
 } from '../components';
+import { usePersonalization } from '@/services/ai/personalization/usePersonalization';
+
+import type { Category } from '@/features/journey/models';
+import { CATEGORY_ID } from '@/features/journey/constants';
 
 // ── Practice categories data ───────────────────────────────────────────────
-
-const PRACTICE_CATEGORIES = [
-  {
-    id: 'cbt',
-    title: 'CBT Exercises',
-    description: 'Reframe thoughts and build skills',
-    countLabel: '8 Lessons',
-    accentColor: '#6C4CF1',
-    iconType: 'brain' as const,
-  },
-  {
-    id: 'breathing',
-    title: 'Breathing',
-    description: 'Reduce stress and relax',
-    countLabel: '6 Sessions',
-    accentColor: '#06B6D4',
-    iconType: 'wind' as const,
-  },
-  {
-    id: 'meditation',
-    title: 'Meditation',
-    description: 'Mindfulness made simple',
-    countLabel: '12 Sessions',
-    accentColor: '#8B5CF6',
-    iconType: 'sparkles' as const,
-  },
-  {
-    id: 'wellness',
-    title: 'Wellness Studio',
-    description: 'Tools for everyday well-being',
-    countLabel: '9 Tools',
-    accentColor: '#10B981',
-    iconType: 'leaf' as const,
-  },
-];
 
 function getCategoryIcon(type: string, color: string) {
   const size = 24;
@@ -99,23 +73,35 @@ export function JourneyScreen() {
   }, [user]);
 
   const {
-    data: journey,
+    journey,
+    categories,
+    recommendations,
+    streak,
+    weeklyProgress,
+    exercisesCompleted,
+    isLoading,
+    isEmpty,
+    error,
     resumeJourney,
-    refetchJourney,
-  } = useActiveJourney(uid);
+    refresh,
+    refreshRecommendation,
+    startExercise,
+  } = useJourney();
+
+  const { data: personalization, isLoading: personalizationLoading } = usePersonalization();
 
   // ── Handlers ───────────────────────────────────────────────────────────
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await refetchJourney();
+      await refresh();
     } catch (error) {
       console.error('[JourneyScreen] Refresh error:', error);
     } finally {
       setRefreshing(false);
     }
-  }, [refetchJourney]);
+  }, [refresh]);
 
   const handleContinue = useCallback(() => {
     if (journey) {
@@ -124,28 +110,53 @@ export function JourneyScreen() {
   }, [journey, resumeJourney]);
 
   const handleCategoryPress = useCallback((categoryId: string) => {
-    console.log(`[JourneyScreen] Category tapped: ${categoryId}`);
+    const path = ROUTES.JOURNEY.CATEGORY.replace('[categoryId]', categoryId);
+    router.push(path as any);
   }, []);
 
   const handleRecommendationStart = useCallback(() => {
-    console.log('[JourneyScreen] Recommendation start tapped');
-  }, []);
+    const rec = personalization?.todaysRecommendation;
+    if (rec?.exerciseId) {
+      startExercise(rec.exerciseId);
+    } else if (recommendations.length > 0) {
+      startExercise(recommendations[0].exerciseId);
+    } else {
+      startExercise('morning-breathing');
+    }
+  }, [personalization, recommendations, startExercise]);
 
   const handleViewAll = useCallback(() => {
-    console.log('[JourneyScreen] View all tapped');
+    router.push(ROUTES.JOURNEY.LIBRARY as any);
   }, []);
 
   const handleRefreshRecommendation = useCallback(() => {
-    console.log('[JourneyScreen] Refresh recommendation tapped');
-  }, []);
-
-  // ── Mock data (will be replaced by backend) ────────────────────────────
-
-  const streak = 6;
-  const weeklyProgress = 62;
-  const exercisesCompleted = 12;
+    refreshRecommendation();
+  }, [refreshRecommendation]);
 
   // ── Render ─────────────────────────────────────────────────────────────
+
+  if (isLoading) {
+    return (
+      <ScreenContainer>
+        <LoadingSpinner />
+      </ScreenContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <ScreenContainer>
+        <JourneyHeader streak={0} />
+        <View style={styles.errorContainer}>
+          <Text style={{ color: colors.text.secondary, textAlign: 'center' }}>
+            Something went wrong loading your journey.
+          </Text>
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  const weeklyProgressPercent = Math.min(Math.round((weeklyProgress / 7) * 100), 100);
 
   return (
     <ScreenContainer>
@@ -167,11 +178,13 @@ export function JourneyScreen() {
         <JourneyHeader streak={streak} />
 
         {/* ── 2. JourneyHero ────────────────────────────────────── */}
-        <JourneyHero
-          firstName={displayName}
-          weeklyProgress={weeklyProgress}
-          exercisesCompleted={exercisesCompleted}
-        />
+        {!isEmpty && (
+          <JourneyHero
+            firstName={displayName}
+            weeklyProgress={weeklyProgressPercent}
+            exercisesCompleted={exercisesCompleted}
+          />
+        )}
 
         {/* ── 3. Continue Current Journey (HIGHEST PRIORITY) ──── */}
         <View style={styles.sectionSpacing}>
@@ -203,13 +216,13 @@ export function JourneyScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoriesContainer}
           >
-            {PRACTICE_CATEGORIES.map((cat, idx) => (
-              <View key={cat.id} style={idx < PRACTICE_CATEGORIES.length - 1 ? styles.categoryGap : undefined}>
+            {categories.map((cat, idx) => (
+              <View key={cat.id} style={idx < categories.length - 1 ? styles.categoryGap : undefined}>
                 <PracticeCategoryCard
                   icon={getCategoryIcon(cat.iconType, cat.accentColor)}
                   title={cat.title}
                   description={cat.description}
-                  countLabel={cat.countLabel}
+                  countLabel={`${cat.exerciseCount} ${cat.id === CATEGORY_ID.WELLNESS ? 'Tools' : cat.id === CATEGORY_ID.CBT ? 'Lessons' : 'Sessions'}`}
                   accentColor={cat.accentColor}
                   width={140}
                   animationDelay={240 + idx * 60}
@@ -228,16 +241,55 @@ export function JourneyScreen() {
             onActionPress={handleRefreshRecommendation}
           />
           <View style={styles.cardPadding}>
-            <RecommendationCard
-              title="5-Minute Breathing Space"
-              description="Start your day with calm and clarity."
-              category="MORNING RESET"
-              categoryColor="#F97316"
-              durationMinutes={5}
-              onStart={handleRecommendationStart}
-            />
+            {personalization?.todaysRecommendation ? (
+              <AIRecommendationCard
+                title={personalization.todaysRecommendation.title}
+                description={personalization.todaysRecommendation.description}
+                reason={personalization.todaysRecommendation.reason}
+                durationMinutes={personalization.todaysRecommendation.durationMinutes}
+                isAIGenerated={personalization.todaysRecommendation.source === 'ai'}
+                onStart={handleRecommendationStart}
+              />
+            ) : recommendations.length > 0 ? (
+              <RecommendationCard
+                title={recommendations[0].title}
+                description={recommendations[0].description}
+                category={recommendations[0].reason.toUpperCase()}
+                categoryColor="#F97316"
+                durationMinutes={recommendations[0].durationMinutes}
+                onStart={handleRecommendationStart}
+              />
+            ) : (
+              <RecommendationCard
+                title="5-Minute Breathing Space"
+                description="Start your day with calm and clarity."
+                category="MORNING RESET"
+                categoryColor="#F97316"
+                durationMinutes={5}
+                onStart={handleRecommendationStart}
+              />
+            )}
           </View>
         </View>
+
+        {/* ── 5b. Personal Reflection ─────────────────────── */}
+        {personalization?.personalReflection && (
+          <View style={styles.sectionSpacing}>
+            <JourneySectionHeader
+              title="A thought for you"
+            />
+            <View style={styles.cardPadding}>
+              <PersonalReflectionCard
+                prompt={personalization.personalReflection.prompt}
+                context={personalization.personalReflection.context}
+                onReflect={() => {
+                  const path = `/chat?prompt=${encodeURIComponent(personalization.personalReflection!.prompt)}` as any;
+                  router.push(path);
+                }}
+              />
+            </View>
+          </View>
+        )}
 
         {/* ── 6. Your Progress ───────────────────────────────── */}
         <View style={styles.sectionSpacing}>
@@ -247,7 +299,7 @@ export function JourneyScreen() {
           />
           <View style={styles.cardPadding}>
             <WeeklyProgressTracker
-              activeDays={3}
+              activeDays={weeklyProgress}
             />
           </View>
         </View>
@@ -276,6 +328,12 @@ const styles = StyleSheet.create({
   },
   categoryGap: {
     marginRight: spacing.md,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
   },
 });
 

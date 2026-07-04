@@ -8,13 +8,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
+import { Svg, Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-
 import { useTheme } from '@/hooks/useTheme';
 import { useAppStore } from '@/core/store/useAppStore';
 import type { UserProfile } from '@/services/auth/types';
 import { analyticsService } from '@/services/analytics';
+import { spacing, colors, typography, borderRadius } from '@/theme/tokens';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -38,7 +38,7 @@ export function WelcomeScreen() {
 
   const handleGuestMode = useCallback(() => {
     analyticsService.trackEvent('login_attempt', { action: 'welcome_guest' });
-    
+
     // Create a mock guest user profile to bypass auth
     const guestProfile: UserProfile = {
       uid: `guest-${Date.now()}`,
@@ -54,13 +54,15 @@ export function WelcomeScreen() {
     setUser(guestProfile);
     setEmailVerified(true);
     setOnboardingCompleted(true);
+    const store = useAppStore.getState();
+    store.setPreviousGuestUid(guestProfile.uid);
     router.replace('/(tabs)');
   }, [setUser, setEmailVerified, setOnboardingCompleted, router]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background.primary }} className="justify-between relative">
+    <View style={{ flex: 1, backgroundColor: colors.background.primary, justifyContent: 'center', alignItems: 'center' }}>
       {/* Premium Radial Glow Background */}
-      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} pointerEvents="none">
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
         <Svg width={SCREEN_WIDTH} height={SCREEN_HEIGHT}>
           <Defs>
             <RadialGradient
@@ -81,16 +83,17 @@ export function WelcomeScreen() {
       </View>
 
       <SafeAreaView className="flex-1 px-6 justify-between py-12">
-        {/* Logo and Branding (Centered vertically in the upper screen space) */}
         <View className="flex-1 justify-center items-center">
           <Animated.View
             entering={FadeInDown.duration(800).springify()}
             className="items-center"
           >
             {/* Circle surrounding the brain logo */}
-            <View 
-              className="w-32 h-32 rounded-full items-center justify-center shadow-2xl"
+            <View
               style={{
+                width: 84,
+                height: 84,
+                borderRadius: borderRadius.lg,
                 backgroundColor: colors.surface.primary,
                 borderColor: colors.border.default,
                 borderWidth: 1,
@@ -112,72 +115,73 @@ export function WelcomeScreen() {
             </View>
 
             {/* Brand Title */}
-            <Text style={{ color: colors.text.primary }} className="text-5xl font-bold tracking-tight mt-6 font-display">
+            <Text style={{ color: colors.text.primary, ...typography.titleLarge }} className="text-5xl font-bold tracking-tight mt-6">
               Neeva
             </Text>
 
             {/* Subtext */}
-            <Text style={{ color: colors.text.secondary }} className="text-body font-medium text-center mt-3 px-8 leading-6">
+            <Text style={{ color: colors.text.secondary, ...typography.textSecondary, marginTop: spacing.md, paddingHorizontal: 8, lineHeight: 24 }}>
               Your personal AI wellness companion
             </Text>
           </Animated.View>
+
+          {/* Buttons (At the bottom) */}
+          <Animated.View
+            entering={FadeInDown.delay(200).duration(800).springify()}
+            className="space-y-4 w-full"
+          >
+            {/* Sign In Button */}
+            <Pressable
+              onPress={handleSignIn}
+              className="rounded-full py-4.5 items-center w-full active:opacity-90 shadow-lg shadow-black/20"
+              style={{
+                backgroundColor: colors.brand.primary,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.15,
+                shadowRadius: 6,
+                elevation: 4,
+              }}
+            >
+              <Text style={{ color: colors.brand.contrastText, ...typography.buttonPrimary }}>
+                Sign In
+              </Text>
+            </Pressable>
+
+            {/* Create Account Button */}
+            <Pressable
+              onPress={handleSignUp}
+              className="rounded-full py-4.5 items-center w-full active:opacity-90"
+              style={{
+                borderColor: colors.brand.primary,
+                borderWidth: 1.5,
+                backgroundColor: 'transparent',
+              }}
+            >
+              <Text style={{ color: colors.brand.primary, ...typography.buttonPrimary }}>
+                Create Account
+              </Text>
+            </Pressable>
+
+            {/* Explore as Guest Button */}
+            <Pressable
+              onPress={handleGuestMode}
+              className="rounded-full py-4.5 items-center w-full active:opacity-90"
+              style={{
+                backgroundColor: colors.surface.secondary,
+                borderColor: colors.border.default,
+                borderWidth: 1,
+                borderRadius: borderRadius.md,
+              }}
+            >
+              <Text style={{ color: colors.text.primary, ...typography.textSecondary }}>
+                Explore as Guest
+              </Text>
+            </Pressable>
+          </Animated.View>
         </View>
-
-        {/* Buttons (At the bottom) */}
-        <Animated.View
-          entering={FadeInDown.delay(200).duration(800).springify()}
-          className="space-y-4 w-full"
-        >
-          {/* Sign In Button */}
-          <Pressable
-            onPress={handleSignIn}
-            className="rounded-full py-4.5 items-center w-full active:opacity-90 shadow-lg shadow-black/20"
-            style={{
-              backgroundColor: colors.brand.primary,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.15,
-              shadowRadius: 6,
-              elevation: 4,
-            }}
-          >
-            <Text style={{ color: colors.brand.contrastText }} className="text-body-lg font-bold">
-              Sign In
-            </Text>
-          </Pressable>
-
-          {/* Create Account Button */}
-          <Pressable
-            onPress={handleSignUp}
-            className="rounded-full py-4.5 items-center w-full active:opacity-90"
-            style={{
-              borderColor: colors.brand.primary,
-              borderWidth: 1.5,
-              backgroundColor: 'transparent',
-            }}
-          >
-            <Text style={{ color: colors.brand.primary }} className="text-body-lg font-bold">
-              Create Account
-            </Text>
-          </Pressable>
-
-          {/* Explore as Guest Button */}
-          <Pressable
-            onPress={handleGuestMode}
-            className="rounded-full py-4.5 items-center w-full active:opacity-90"
-            style={{
-              backgroundColor: colors.surface.secondary,
-              borderColor: colors.border.default,
-              borderWidth: 1,
-            }}
-          >
-            <Text style={{ color: colors.text.primary }} className="text-body-lg font-bold">
-              Explore as Guest
-            </Text>
-          </Pressable>
-        </Animated.View>
       </SafeAreaView>
-    </View>
+</View>
   );
 }
 

@@ -1,10 +1,9 @@
-/**
- * Analytics Service
- *
- * Centralised analytics tracking. Currently a no-op wrapper.
- * When PostHog or other providers are integrated, the implementation
- * lives here — screens only call trackEvent().
- */
+import {
+  analytics,
+  logEvent as fbLogEvent,
+  setUserId as fbSetUserId,
+  setUserProperties as fbSetUserProperties,
+} from '@/lib/firebase';
 
 export type AnalyticsEvent =
   | 'daily_checkin'
@@ -37,7 +36,6 @@ class AnalyticsService {
   private enabled = true;
 
   init(): void {
-    // Future: Initialize PostHog or other provider
     if (__DEV__) {
       console.log('[Analytics] Initialized');
     }
@@ -54,7 +52,12 @@ class AnalyticsService {
       console.log(`[Analytics] ${event}`, properties ?? '');
     }
 
-    // Future: PostHog.capture(event, properties)
+    if (!analytics) return;
+    try {
+      fbLogEvent(analytics, event, properties);
+    } catch {
+      // analytics failures never crash the app
+    }
   }
 
   trackScreenView(screenName: string): void {
@@ -65,11 +68,20 @@ class AnalyticsService {
     if (__DEV__) {
       console.log(`[Analytics] Identify: ${userId}`, traits ?? '');
     }
-    // Future: PostHog.identify(userId, traits)
+
+    if (!analytics) return;
+    try {
+      fbSetUserId(analytics, userId);
+      if (traits) {
+        fbSetUserProperties(analytics, traits as Record<string, string>);
+      }
+    } catch {
+      // analytics failures never crash the app
+    }
   }
 
   reset(): void {
-    // Future: PostHog.reset()
+    this.identifyUser('');
   }
 }
 

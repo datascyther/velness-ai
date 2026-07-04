@@ -1,6 +1,6 @@
 import { Sun, Moon, Monitor } from 'lucide-react'
 import { useTheme } from './useTheme'
-import type { ThemeMode } from './ThemeProvider'
+import type { ThemeMode } from '@/types'
 
 interface ThemeToggleProps {
   variant?: 'icon' | 'full'

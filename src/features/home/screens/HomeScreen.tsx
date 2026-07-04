@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useMoodEntries, useSaveMood } from '@/shared/hooks/useMood';
-import { useActiveJourney } from '@/features/journey/hooks/useActiveJourney';
+import { useJourney } from '@/shared/hooks/useJourney';
 import { router } from 'expo-router';
 import { ROUTES } from '@/core/config/routes';
 import { moodRepository } from '@/repositories/MoodRepository';
@@ -94,13 +94,12 @@ export function HomeScreen() {
   }, [selectedMood, reflection, uid, saveMoodMutation]);
 
   const {
-    data: journey,
-    isLoading: journeyLoading,
-    isFetching: journeyFetching,
-    error: journeyError,
+    journey,
+    journeyLoading,
+    journeyError,
     resumeJourney,
-    refetchJourney,
-  } = useActiveJourney(uid);
+    refresh,
+  } = useJourney();
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -120,7 +119,7 @@ export function HomeScreen() {
       // 3. Re-read local cache (fast — AsyncStorage, never blocks)
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ['moods', uid] }),
-        queryClient.refetchQueries({ queryKey: ['active-journey', uid] }),
+        queryClient.refetchQueries({ queryKey: ['journey'] }),
       ]);
     } catch (error) {
       console.error('[HomeScreen] Refresh error:', error);
@@ -251,7 +250,7 @@ export function HomeScreen() {
           {journeyLoading ? (
             <JourneyLoadingState />
           ) : journeyError ? (
-            <JourneyErrorState onRetry={refetchJourney} />
+            <JourneyErrorState onRetry={refresh} />
           ) : !journey ? (
             <EmptyJourneyState onStart={() => router.push(ROUTES.TABS.JOURNEY)} />
           ) : (

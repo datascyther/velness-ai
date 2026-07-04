@@ -5,3 +5,5 @@ export { CurrentProgramCard } from './CurrentProgramCard';
 export { PracticeCategoryCard } from './PracticeCategoryCard';
 export { RecommendationCard } from './RecommendationCard';
 export { WeeklyProgressTracker } from './WeeklyProgressTracker';
+export { PersonalReflectionCard } from './PersonalReflectionCard';
+export { AIRecommendationCard } from './AIRecommendationCard';

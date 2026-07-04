@@ -2,12 +2,11 @@ import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
+  Image,
   Pressable,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Image,
-  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -15,7 +14,6 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Mail, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react-native';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
-
 import { useAuth } from '@/shared/hooks/useAuth';
 import { Button } from '@/shared/components/Button';
 import { TextField } from '@/shared/components/TextField';
@@ -23,6 +21,8 @@ import { GlassCard } from '@/shared/components/GlassCard';
 import { useTheme } from '@/hooks/useTheme';
 import { forgotPasswordSchema, type ForgotPasswordFormData } from '@/features/auth/validators';
 import { AUTH_STRINGS } from '@/features/auth/constants';
+import { spacing, colors, typography } from '@/theme/tokens';
+import { Dimensions } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -61,7 +61,7 @@ export function ForgotPasswordScreen() {
   }, [router]);
 
   return (
-    <SafeAreaView className="flex-1 bg-background-primary">
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
@@ -115,7 +115,7 @@ export function ForgotPasswordScreen() {
               </Text>
 
               {isSuccess ? (
-                <Animated.View entering={FadeIn.duration(400)} className="mt-2">
+                <Animated.View entering={FadeIn.duration(400)}>
                   <View className="items-center my-6">
                     <View className="w-16 h-16 rounded-full bg-green-500/10 border border-green-500/20 items-center justify-center mb-4">
                       <CheckCircle2 size={36} color={colors.success} />
@@ -168,7 +168,6 @@ export function ForgotPasswordScreen() {
                         autoCapitalize="none"
                         autoComplete="email"
                         returnKeyType="done"
-                        onSubmitEditing={handleSubmit(handleReset)}
                         editable={!loading}
                         leftIcon={<Mail size={18} color={colors.text.secondary} />}
                         accessibilityLabel="Email input"
@@ -197,6 +196,7 @@ export function ForgotPasswordScreen() {
                     <Text className="text-brand-primary text-body-sm font-medium">
                       {AUTH_STRINGS.FORGOT_BACK}
                     </Text>
+                    <ArrowLeft size={16} color={colors.text.primary} />
                   </Pressable>
                 </>
               )}

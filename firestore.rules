@@ -17,6 +17,17 @@ service cloud.firestore {
         && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
     }
 
+    function isRecentTimestamp(requestTime, maxAgeSeconds) {
+      return request.time - request.resource.data.updatedAt < duration.value(maxAgeSeconds, 's');
+    }
+
+    // ─── Rate limit: max N writes per minute per user ──────────────────
+
+    function rateLimit(maxWrites) {
+      let count = get(/databases/$(database)/documents/users/$(request.auth.uid)).data.writeCount;
+      return count.isNaN() || count < maxWrites;
+    }
+
     // ─── Users ─────────────────────────────────────────────────────────
 
     match /users/{userId} {
@@ -31,6 +42,31 @@ service cloud.firestore {
       // User's mood entries
       match /moods/{moodId} {
         allow read, write: if isOwner(userId);
+      }
+
+      // User's exercise progress
+      match /exercises/{exerciseId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // User's journey progress document
+      match /progress/{progressId} {
+        allow read, write: if isOwner(userId)
+          && request.resource.data.userId == request.auth.uid;
+      }
+
+      // User's daily recommendations
+      match /recommendations/{recId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId);
+        allow delete: if false;
+      }
+
+      // User's streak history (one doc per year)
+      match /streaks/{year} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId);
+        allow delete: if false;
       }
     }
 
@@ -63,6 +99,26 @@ service cloud.firestore {
         allow delete: if isAuthenticated()
           && get(/databases/$(database)/documents/conversations/$(conversationId)).data.createdBy == request.auth.uid;
       }
+    }
+
+    // ─── Programs (reference data, read-only for users) ────────────────
+
+    match /programs/{programId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if false; // admins only — seed via script/app
+
+      // Lessons within a program
+      match /lessons/{lessonId} {
+        allow read: if isAuthenticated();
+        allow create, update, delete: if false;
+      }
+    }
+
+    // ─── Exercises (reference data, read-only for users) ───────────────
+
+    match /exercises/{exerciseId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if false;
     }
 
     // ─── Default Deny ──────────────────────────────────────────────────

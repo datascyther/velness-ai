@@ -98,6 +98,16 @@ export const env = {
     isTruthyFlag(process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATORS) ||
     isTruthyFlag(process.env.VITE_USE_FIREBASE_EMULATORS),
 
+  sentryDsn: pick(
+    extra.EXPO_PUBLIC_SENTRY_DSN as string | undefined,
+    process.env.EXPO_PUBLIC_SENTRY_DSN,
+  ),
+
+  appEnv: pick(
+    extra.APP_ENV as string | undefined,
+    process.env.APP_ENV,
+  ) || 'development',
+
   appName: 'Neeva AI',
   appVersion: '1.0.0',
   isDev: __DEV__,

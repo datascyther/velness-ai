@@ -9,6 +9,14 @@ import {
   connectAuthEmulator,
 } from 'firebase/auth';
 import { getFirestore, Firestore, connectFirestoreEmulator } from 'firebase/firestore';
+import {
+  getAnalytics,
+  logEvent,
+  setUserId,
+  setUserProperties,
+  isSupported,
+  type Analytics,
+} from 'firebase/analytics';
 import { env } from '@/core/config/env';
 
 const firebaseConfig = {
@@ -24,6 +32,7 @@ const firebaseConfig = {
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
+let analytics: Analytics | null = null;
 
 function createAuth(firebaseApp: FirebaseApp): Auth {
   if (Platform.OS === 'web') {
@@ -52,6 +61,14 @@ if (firebaseConfig.apiKey) {
       connectFirestoreEmulator(db, 'localhost', 8080);
       console.log('[Firebase] Using emulators');
     }
+
+    if (!__DEV__) {
+      isSupported().then((supported) => {
+        if (supported) {
+          analytics = getAnalytics(app);
+        }
+      });
+    }
   } catch (error) {
     console.warn('[Firebase] Initialization failed:', error);
   }
@@ -65,4 +82,4 @@ export function isFirebaseConfigured(): boolean {
   return Boolean(app && auth && db);
 }
 
-export { app as default, auth, db };
+export { app as default, auth, db, analytics, logEvent, setUserId, setUserProperties };

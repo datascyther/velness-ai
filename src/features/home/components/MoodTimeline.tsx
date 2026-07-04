@@ -1,5 +1,12 @@
-import React, { useMemo } from 'react';
-import Svg, { Path, Defs, LinearGradient, Stop, Line, G } from 'react-native-svg';
+import React, { useMemo, useEffect } from 'react';
+import Svg, { Path, Defs, LinearGradient, Stop, G } from 'react-native-svg';
+import Animated, {
+  useSharedValue,
+  useAnimatedProps,
+  withRepeat,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
 import { useTheme } from '@/hooks/useTheme';
 import { MoodPoint } from './MoodPoint';
 
@@ -15,11 +22,27 @@ interface MoodTimelineProps {
   svgHeight: number;
 }
 
+const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
+
 export const MoodTimeline = React.memo(({ points, svgWidth, svgHeight }: MoodTimelineProps) => {
   const { colors } = useTheme();
 
+  const shimmerPos = useSharedValue(0);
+
+  useEffect(() => {
+    shimmerPos.value = withRepeat(
+      withTiming(1, { duration: 3000, easing: Easing.linear }),
+      -1,
+      false
+    );
+  }, [shimmerPos]);
+
+  const shimmerProps = useAnimatedProps(() => ({
+    x1: `${shimmerPos.value * 100}%`,
+    x2: `${(shimmerPos.value * 100) + 30}%`,
+  }));
+
   const pathD = useMemo(() => {
-    // Filter out points to find logged indices to draw smooth curve segment
     const validPoints = points.filter(p => p.moodLevel !== null);
     if (validPoints.length < 2) return '';
 
@@ -42,14 +65,6 @@ export const MoodTimeline = React.memo(({ points, svgWidth, svgHeight }: MoodTim
     return `${pathD} L ${last.x} ${svgHeight - 10} L ${first.x} ${svgHeight - 10} Z`;
   }, [pathD, points, svgHeight]);
 
-  // Compute grid line Y coordinates
-  const topY = 20;
-  const bottomY = svgHeight - 20;
-  const midY = (topY + bottomY) / 2;
-
-  const startX = points.length > 0 ? points[0].x : 20;
-  const endX = points.length > 0 ? points[points.length - 1].x : svgWidth - 20;
-
   return (
     <Svg
       width={svgWidth}
@@ -57,64 +72,28 @@ export const MoodTimeline = React.memo(({ points, svgWidth, svgHeight }: MoodTim
     >
       <Defs>
         <LinearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={colors.brand.primary} stopOpacity={0.16} />
-          <Stop offset="1" stopColor={colors.brand.primary} stopOpacity={0} />
+          <Stop offset="0" stopColor={colors.brand.primary} stopOpacity={0.25} />
+          <Stop offset="0.5" stopColor={colors.brand.primary} stopOpacity={0.10} />
+          <Stop offset="1" stopColor={colors.brand.primary} stopOpacity={0.02} />
         </LinearGradient>
         <LinearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
           <Stop offset="0%" stopColor={colors.brand.secondary || '#8B5CF6'} />
           <Stop offset="50%" stopColor={colors.brand.primary} />
           <Stop offset="100%" stopColor="#06B6D4" />
         </LinearGradient>
+        <AnimatedLinearGradient
+          id="shimmerGrad"
+          animatedProps={shimmerProps}
+          y1="0%"
+          y2="0%"
+        >
+          <Stop offset="0%" stopColor="transparent" stopOpacity={0} />
+          <Stop offset="40%" stopColor="#FFFFFF" stopOpacity={0.35} />
+          <Stop offset="70%" stopColor="#FFFFFF" stopOpacity={0.15} />
+          <Stop offset="100%" stopColor="transparent" stopOpacity={0} />
+        </AnimatedLinearGradient>
       </Defs>
 
-      {/* Guide lines (horizontal dashed) */}
-      <Line
-        x1={startX}
-        y1={topY}
-        x2={endX}
-        y2={topY}
-        stroke={colors.border.default}
-        strokeWidth={1}
-        strokeDasharray="4 6"
-        opacity={0.15}
-      />
-      <Line
-        x1={startX}
-        y1={midY}
-        x2={endX}
-        y2={midY}
-        stroke={colors.border.default}
-        strokeWidth={1}
-        strokeDasharray="4 6"
-        opacity={0.15}
-      />
-      <Line
-        x1={startX}
-        y1={bottomY}
-        x2={endX}
-        y2={bottomY}
-        stroke={colors.border.default}
-        strokeWidth={1}
-        strokeDasharray="4 6"
-        opacity={0.15}
-      />
-
-      {/* Vertical connector grids linking points to days axis */}
-      {points.map((p, i) => (
-        <Line
-          key={`v-grid-${i}`}
-          x1={p.x}
-          y1={p.moodLevel !== null ? p.y + 4 : topY}
-          x2={p.x}
-          y2={svgHeight - 10}
-          stroke={colors.border.default}
-          strokeWidth={1}
-          strokeDasharray="2 3"
-          opacity={p.moodLevel !== null ? 0.18 : 0.05}
-        />
-      ))}
-
-      {/* Filled area under curve */}
       {areaD.length > 0 && (
         <Path
           d={areaD}
@@ -124,29 +103,33 @@ export const MoodTimeline = React.memo(({ points, svgWidth, svgHeight }: MoodTim
 
       {pathD.length > 0 && (
         <G>
-          {/* Neon wide outer glow */}
           <Path
             d={pathD}
             stroke="url(#lineGrad)"
-            strokeWidth={9}
+            strokeWidth={12}
             fill="none"
             strokeLinecap="round"
-            opacity={0.1}
+            opacity={0.08}
           />
-          {/* Neon medium glow */}
           <Path
             d={pathD}
             stroke="url(#lineGrad)"
-            strokeWidth={5}
+            strokeWidth={7}
             fill="none"
             strokeLinecap="round"
-            opacity={0.25}
+            opacity={0.2}
           />
-          {/* Main foreground crisp line */}
+          <Path
+            d={pathD}
+            stroke="url(#shimmerGrad)"
+            strokeWidth={7}
+            fill="none"
+            strokeLinecap="round"
+          />
           <Path
             d={pathD}
             stroke="url(#lineGrad)"
-            strokeWidth={2.5}
+            strokeWidth={3.5}
             fill="none"
             strokeLinecap="round"
             opacity={0.95}
@@ -154,7 +137,6 @@ export const MoodTimeline = React.memo(({ points, svgWidth, svgHeight }: MoodTim
         </G>
       )}
 
-      {/* Mood Points markers */}
       {points.map((p, i) => (
         <MoodPoint
           key={i}
@@ -169,5 +151,3 @@ export const MoodTimeline = React.memo(({ points, svgWidth, svgHeight }: MoodTim
 });
 
 MoodTimeline.displayName = 'MoodTimeline';
-
-

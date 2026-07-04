@@ -4,13 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Mail, RefreshCw, LogOut, CheckCircle2, ArrowRight } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-
 import { useAuth } from '@/shared/hooks/useAuth';
 import { Button } from '@/shared/components/Button';
 import { GlassCard } from '@/shared/components/GlassCard';
-import { useTheme } from '@/hooks/useTheme';
-import { AUTH_STRINGS } from '@/features/auth/constants';
 import { useAppStore } from '@/core/store/useAppStore';
+import { AUTH_STRINGS } from '@/features/auth/constants';
+import { spacing, colors, typography } from '@/theme/tokens';
 
 const { width } = Dimensions.get('window');
 
@@ -109,7 +108,6 @@ export function EmailVerificationScreen() {
   }, [checkEmailVerified, clearError, router, addToast]);
 
   const handleSkip = useCallback(() => {
-    // Skip verification for now - marked onboarded or continue
     router.replace('/onboarding');
   }, [router]);
 
@@ -128,10 +126,8 @@ export function EmailVerificationScreen() {
     }
   }, [logout, router, addToast]);
 
-  const { colors } = useTheme();
-
   return (
-    <SafeAreaView className="flex-1 bg-background-primary">
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <ScrollView
         className="flex-1"
         contentContainerClassName="flex-grow justify-center px-6 py-12"
@@ -141,7 +137,7 @@ export function EmailVerificationScreen() {
         {/* Top Branding / Logo */}
         <Animated.View
           entering={FadeInDown.duration(500).springify()}
-          className="items-center mb-8"
+          style={{ alignItems: 'center', marginBottom: spacing.md }}
         >
           <View className="w-20 h-20 rounded-full bg-brand-primary/10 border border-border-default items-center justify-center mb-4">
             <Mail size={40} color={colors.brand.primary} />
@@ -206,40 +202,38 @@ export function EmailVerificationScreen() {
               size="lg"
               className="w-full"
               accessibilityLabel="Resend verification email"
-              accessibilityHint="Sends a new verification link to your email address"
             />
+
+            {/* Footer Actions */}
+            <Animated.View
+              entering={FadeInDown.delay(200).duration(500).springify()}
+              style={{ alignItems: 'center', marginTop: spacing.md, gap: spacing.sm }}
+            >
+              <Pressable
+                className="flex-row items-center py-2 active:opacity-70"
+                onPress={handleSkip}
+                accessibilityRole="link"
+                accessibilityLabel="Skip verification"
+              >
+                <Text className="text-text-secondary text-body-sm font-semibold mr-1">
+                  {AUTH_STRINGS.VERIFICATION_SKIP}
+                </Text>
+                <ArrowRight size={14} color={colors.text.secondary} />
+              </Pressable>
+
+              <Pressable
+                className="flex-row items-center py-2 active:opacity-70"
+                onPress={handleSignOut}
+                accessibilityRole="link"
+                accessibilityLabel="Sign out of your account"
+              >
+                <LogOut size={14} color={colors.danger} className="mr-2" />
+                <Text className="text-danger text-body-sm font-medium">
+                  Sign Out / Edit Email
+                </Text>
+              </Pressable>
+            </Animated.View>
           </GlassCard>
-        </Animated.View>
-
-        {/* Footer Actions */}
-        <Animated.View
-          entering={FadeInDown.delay(200).duration(500).springify()}
-          className="items-center space-y-4 mt-4"
-        >
-          <Pressable
-            className="flex-row items-center py-2 active:opacity-70"
-            onPress={handleSkip}
-            accessibilityRole="link"
-            accessibilityLabel="Skip verification"
-            accessibilityHint="Proceed to the application without email verification"
-          >
-            <Text className="text-text-secondary text-body-sm font-semibold mr-1">
-              {AUTH_STRINGS.VERIFICATION_SKIP}
-            </Text>
-            <ArrowRight size={14} color={colors.text.secondary} />
-          </Pressable>
-
-          <Pressable
-            className="flex-row items-center py-2 active:opacity-70"
-            onPress={handleSignOut}
-            accessibilityRole="link"
-            accessibilityLabel="Sign out of your account"
-          >
-            <LogOut size={14} color={colors.danger} className="mr-2" />
-            <Text className="text-danger text-body-sm font-medium">
-              Sign Out / Edit Email
-            </Text>
-          </Pressable>
         </Animated.View>
       </ScrollView>
     </SafeAreaView>

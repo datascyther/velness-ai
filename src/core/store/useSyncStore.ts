@@ -6,13 +6,18 @@ import { moodRepository } from '@/repositories/MoodRepository';
 import { journeyRepository } from '@/repositories/JourneyRepository';
 import { profileRepository } from '@/repositories/ProfileRepository';
 import { useAppStore } from './useAppStore';
+import { logger } from '@/services/logging';
 import type { Mood } from '@/shared/types';
+import type { Recommendation } from '@/features/journey/models/Recommendation';
+import type { Streak } from '@/features/journey/models/Streak';
 
 const STORAGE_KEY = 'sync_queue';
+const MAX_RETRIES = 5;
 
 export interface SyncQueueItem {
   id: string;
-  type: 'save_mood' | 'save_exercise_progress' | 'update_profile';
+  type: 'save_mood' | 'save_exercise_progress' | 'update_profile'
+       | 'complete_lesson' | 'save_recommendation' | 'save_streak';
   payload: any;
   timestamp: number;
   status: 'pending' | 'syncing' | 'failed';
@@ -43,7 +48,6 @@ export async function checkOnline(): Promise<boolean> {
   try {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), 3000);
-    // HEAD request to a reliable public endpoint with no-cors to bypass CORS blocking
     await fetch('https://www.google.com', { method: 'HEAD', mode: 'no-cors', signal: controller.signal });
     clearTimeout(id);
     return true;
@@ -71,12 +75,38 @@ function isAlreadySynced(item: SyncQueueItem, queryClient: QueryClient): boolean
       return existing?.completed === true && existing?.streak >= streak;
     }
 
+    if (item.type === 'complete_lesson') {
+      const { uid, lessonId } = item.payload;
+      if (!uid || !lessonId) return false;
+      const cached = queryClient.getQueryData<any>(['journey', 'user-progress', uid]);
+      if (!cached?.programProgress) return false;
+      for (const prog of Object.values(cached.programProgress) as any[]) {
+        if (prog.completedLessonIds?.includes(lessonId)) return true;
+      }
+      return false;
+    }
+
     if (item.type === 'update_profile') {
       const { uid, updates } = item.payload;
       if (!uid || !updates) return false;
       const cached = queryClient.getQueryData<any>(['profile', uid]);
       if (!cached) return false;
       return Object.keys(updates).every((key) => cached[key] === updates[key]);
+    }
+
+    if (item.type === 'save_recommendation') {
+      const { uid, recId } = item.payload;
+      if (!uid || !recId) return false;
+      const cached = queryClient.getQueryData<any[]>(['journey', 'recommendations', uid]);
+      if (!cached) return false;
+      return cached.some((r: any) => r.id === recId);
+    }
+
+    if (item.type === 'save_streak') {
+      const { uid } = item.payload;
+      if (!uid) return false;
+      const cached = queryClient.getQueryData<any>(['journey', 'streak', uid]);
+      return cached != null;
     }
   } catch {
     // If cache check fails, proceed with sync to be safe
@@ -94,7 +124,6 @@ export const useSyncStore = create<SyncState>((set, get) => ({
     try {
       const savedQueue = await storageService.getJSON<SyncQueueItem[]>(STORAGE_KEY);
       if (savedQueue && Array.isArray(savedQueue)) {
-        // Any items marked 'syncing' should revert to 'pending' upon initialization
         const sanitized = savedQueue.map((item) =>
           item.status === 'syncing' ? { ...item, status: 'pending' as const } : item
         );
@@ -118,7 +147,8 @@ export const useSyncStore = create<SyncState>((set, get) => ({
       retryCount: 0,
     };
 
-    // 1. Persist mood data to AsyncStorage immediately (before queue processing)
+    logger.info('sync', 'Enqueue', { type, id });
+
     if (type === 'save_mood') {
       const { uid, entry } = payload;
       if (uid && entry) {
@@ -126,12 +156,10 @@ export const useSyncStore = create<SyncState>((set, get) => ({
       }
     }
 
-    // 2. Save queue item to Zustand state and AsyncStorage (for retry tracking)
     const updatedQueue = [...get().pendingQueue, newItem];
     set({ pendingQueue: updatedQueue });
     await storageService.setJSON(STORAGE_KEY, updatedQueue);
 
-    // 3. Apply optimistic updates immediately to UI / Query Client
     if (type === 'save_mood') {
       const { uid, entry } = payload;
       if (uid && entry) {
@@ -140,15 +168,26 @@ export const useSyncStore = create<SyncState>((set, get) => ({
           return [...old, entry];
         });
       }
-    } else if (type === 'save_exercise_progress') {
-      const { uid, exerciseId, streak } = payload;
-      if (uid && exerciseId) {
-        // Write-through: persist locally immediately (like mood)
-        await journeyRepository.persistLocal(uid, {
-          [exerciseId]: { completed: true, streak, lastCompletedAt: new Date() },
-        });
+    } else if (type === 'save_exercise_progress' || type === 'complete_lesson') {
+      const { uid, exerciseId, exercises, streak } = payload;
+      if (uid) {
+        const updates: Record<string, any> = {};
+        if (exerciseId) {
+          updates[exerciseId] = { completed: true, streak: streak ?? 1 };
+          await journeyRepository.persistLocal(uid, {
+            [exerciseId]: { completed: true, streak: streak ?? 1, lastCompletedAt: new Date() },
+          });
+        }
+        if (exercises && Array.isArray(exercises)) {
+          for (const ex of exercises) {
+            updates[ex.exerciseId] = { completed: true, streak: ex.streak ?? 1 };
+          }
+          await journeyRepository.persistLocal(uid, Object.fromEntries(
+            exercises.map((ex: any) => [ex.exerciseId, { completed: true, streak: ex.streak ?? 1, lastCompletedAt: new Date() }])
+          ));
+        }
         queryClient.setQueryData(['exercises', uid], (old: Record<string, any> = {}) => {
-          return { ...old, [exerciseId]: { ...old[exerciseId], completed: true, streak } };
+          return { ...old, ...updates };
         });
       }
     } else if (type === 'update_profile') {
@@ -157,13 +196,20 @@ export const useSyncStore = create<SyncState>((set, get) => ({
         const userStore = useAppStore.getState();
         const currentUser = userStore.session.user;
         if (currentUser && currentUser.uid === uid) {
-          // Perform optimistic update on Zustand session user
           userStore.setUser({ ...currentUser, ...updates });
         }
       }
+    } else if (type === 'save_recommendation') {
+      const { uid, recommendation } = payload;
+      if (uid && recommendation) {
+        queryClient.setQueryData(['journey', 'recommendations', uid], (old: any[] = []) => {
+          const exists = old.some((r) => r.id === recommendation.id);
+          if (exists) return old.map((r) => r.id === recommendation.id ? recommendation : r);
+          return [...old, recommendation];
+        });
+      }
     }
 
-    // 4. Trigger processing in background
     void get().processQueue(queryClient);
   },
 
@@ -172,9 +218,7 @@ export const useSyncStore = create<SyncState>((set, get) => ({
 
     const online = await checkOnline();
     set({ isOnline: online });
-    if (!online) {
-      return;
-    }
+    if (!online) return;
 
     const queue = get().pendingQueue;
     if (queue.length === 0) return;
@@ -188,7 +232,17 @@ export const useSyncStore = create<SyncState>((set, get) => ({
       const item = updatedQueue[i];
       if (item.status === 'syncing') continue;
 
-      // Check if data is already synced via onSnapshot (real-time subscription)
+      if (item.retryCount >= MAX_RETRIES) {
+        updatedQueue[i] = {
+          ...item,
+          status: 'failed',
+          error: `Exceeded max retries (${MAX_RETRIES})`,
+        };
+        logger.error('sync', 'Max retries exceeded', { type: item.type, id: item.id });
+        hasChanges = true;
+        continue;
+      }
+
       if (isAlreadySynced(item, queryClient)) {
         updatedQueue.splice(i, 1);
         i--;
@@ -204,26 +258,39 @@ export const useSyncStore = create<SyncState>((set, get) => ({
           const { uid, entry } = item.payload as { uid: string; entry: Mood };
           await moodRepository.syncToCloud(uid, entry);
           queryClient.invalidateQueries({ queryKey: ['moods', uid] });
-
         } else if (item.type === 'save_exercise_progress') {
           const { uid, exerciseId, streak } = item.payload;
           await journeyRepository.saveProgress(uid, exerciseId, streak);
           queryClient.invalidateQueries({ queryKey: ['exercises', uid] });
-
+        } else if (item.type === 'complete_lesson') {
+          const { uid, programId, lessonId, exercises } = item.payload;
+          const exerciseIds = (exercises ?? []).map((ex: any) => ex.exerciseId);
+          await journeyRepository.completeLessonAtomic(uid, programId, lessonId, exerciseIds);
+          queryClient.invalidateQueries({ queryKey: ['journey', 'exercises', uid] });
+          queryClient.invalidateQueries({ queryKey: ['journey', 'user-progress', uid] });
+          queryClient.invalidateQueries({ queryKey: ['journey', 'legacy', uid] });
         } else if (item.type === 'update_profile') {
           const { uid, updates } = item.payload;
           const currentProfile = useAppStore.getState().session.user;
           if (currentProfile) {
             await profileRepository.updateProfile(uid, updates, currentProfile);
           }
+        } else if (item.type === 'save_recommendation') {
+          const { uid, recommendation } = item.payload as { uid: string; recommendation: Recommendation };
+          await journeyRepository.saveRecommendation(uid, recommendation);
+          queryClient.invalidateQueries({ queryKey: ['journey', 'recommendations', uid] });
+        } else if (item.type === 'save_streak') {
+          const { uid, streak } = item.payload as { uid: string; streak: Streak };
+          await journeyRepository.saveStreak(uid, streak);
+          queryClient.invalidateQueries({ queryKey: ['journey', 'streak', uid] });
         }
 
-        // Successfully synced, remove from queue
+        logger.info('sync', 'Processed', { type: item.type, id: item.id });
         updatedQueue.splice(i, 1);
         i--;
         hasChanges = true;
       } catch (error) {
-        console.error(`[useSyncStore] Sync error for item ${item.id}:`, error);
+        logger.error('sync', 'Process error', { type: item.type, id: item.id, error: String(error) });
 
         const isNetworkError =
           error instanceof Error &&
@@ -233,16 +300,14 @@ export const useSyncStore = create<SyncState>((set, get) => ({
             error.message.includes('Failed to fetch'));
 
         if (isNetworkError) {
-          // Revert status to retry later
           updatedQueue[i] = {
             ...item,
             status: 'pending',
             retryCount: item.retryCount + 1,
           };
           set({ isOnline: false });
-          break; // Stop queue processing since network is down
+          break;
         } else {
-          // Permanent failure
           updatedQueue[i] = {
             ...item,
             status: 'failed',

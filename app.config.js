@@ -61,10 +61,23 @@ function loadFromGoogleServices() {
   }
 }
 
-const dotEnv = {
-  ...loadDotEnv(path.join(__dirname, '.env')),
-  ...loadDotEnv(path.join(__dirname, '.env.local')),
-};
+const APP_ENV = process.env.APP_ENV || 'development';
+
+function loadEnvForEnvironment(baseEnv) {
+  const envFiles = ['.env'];
+  if (APP_ENV === 'development') envFiles.push('.env.development');
+  else if (APP_ENV === 'staging') envFiles.push('.env.staging');
+  else if (APP_ENV === 'production') envFiles.push('.env.production');
+  envFiles.push('.env.local');
+
+  let merged = { ...baseEnv };
+  for (const file of envFiles) {
+    merged = { ...merged, ...loadDotEnv(path.join(__dirname, file)) };
+  }
+  return merged;
+}
+
+const dotEnv = loadEnvForEnvironment({});
 const googleEnv = loadFromGoogleServices();
 
 function pick(key) {
@@ -72,6 +85,7 @@ function pick(key) {
 }
 
 const firebaseExtra = {
+  APP_ENV,
   EXPO_PUBLIC_FIREBASE_API_KEY: pick('EXPO_PUBLIC_FIREBASE_API_KEY') || pick('VITE_FIREBASE_API_KEY'),
   EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: pick('EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN') || pick('VITE_FIREBASE_AUTH_DOMAIN'),
   EXPO_PUBLIC_FIREBASE_PROJECT_ID: pick('EXPO_PUBLIC_FIREBASE_PROJECT_ID') || pick('VITE_FIREBASE_PROJECT_ID'),
@@ -86,25 +100,31 @@ const firebaseExtra = {
   EXPO_PUBLIC_USE_FIREBASE_EMULATORS:
     pick('EXPO_PUBLIC_USE_FIREBASE_EMULATORS') || pick('VITE_USE_FIREBASE_EMULATORS') || 'false',
 
-  // NVIDIA API settings for direct calls from the app
-  EXPO_PUBLIC_NVIDIA_API_KEY: pick('VITE_NVIDIA_API_KEY'),
-  EXPO_PUBLIC_NVIDIA_MODEL: pick('VITE_NVIDIA_MODEL'),
-  EXPO_PUBLIC_NVIDIA_BASE_URL: pick('VITE_NVIDIA_BASE_URL'),
+  EXPO_PUBLIC_NVIDIA_API_KEY: pick('EXPO_PUBLIC_NVIDIA_API_KEY') || pick('VITE_NVIDIA_API_KEY'),
+  EXPO_PUBLIC_NVIDIA_MODEL: pick('EXPO_PUBLIC_NVIDIA_MODEL') || pick('VITE_NVIDIA_MODEL'),
+  EXPO_PUBLIC_NVIDIA_BASE_URL: pick('EXPO_PUBLIC_NVIDIA_BASE_URL') || pick('VITE_NVIDIA_BASE_URL'),
+
+  EXPO_PUBLIC_SENTRY_DSN: pick('EXPO_PUBLIC_SENTRY_DSN'),
 };
 
 const androidPackage =
   googleEnv.ANDROID_PACKAGE || pick('EXPO_PUBLIC_ANDROID_PACKAGE') || 'com.mentalhealth.app';
 
+function appNameForEnvironment() {
+  if (APP_ENV === 'development') return 'Neeva AI (Dev)';
+  if (APP_ENV === 'staging') return 'Neeva AI (Staging)';
+  return 'Neeva AI';
+}
+
 module.exports = {
   expo: {
-    name: 'Neeva AI',
+    name: appNameForEnvironment(),
     slug: 'neeva-ai',
     version: '1.0.0',
     orientation: 'portrait',
     icon: './src/shared/assets/icon.png',
     scheme: 'neeva',
     userInterfaceStyle: 'automatic',
-    // Expo Go ships its own native binary — do not force New Architecture flags here.
     splash: {
       image: './src/shared/assets/splash.png',
       resizeMode: 'contain',
@@ -112,7 +132,7 @@ module.exports = {
     },
     ios: {
       supportsTablet: true,
-      bundleIdentifier: 'com.neeva.ai',
+      bundleIdentifier: APP_ENV === 'production' ? 'com.neeva.ai' : `com.neeva.ai.${APP_ENV}`,
       infoPlist: {
         NSMicrophoneUsageDescription: 'Neeva uses the microphone to convert your speech into text, making it easier to express yourself.',
         NSSpeechRecognitionUsageDescription: 'Neeva uses speech recognition to transcribe your voice into text for messaging.',
@@ -123,13 +143,19 @@ module.exports = {
         foregroundImage: './src/shared/assets/adaptive-icon.png',
         backgroundColor: '#0F0A1A',
       },
-      package: androidPackage,
+      package: APP_ENV === 'production' ? androidPackage : `${androidPackage}.${APP_ENV}`,
     },
     web: {
       favicon: './src/shared/assets/favicon.png',
       bundler: 'metro',
     },
-    plugins: ['expo-router', 'expo-secure-store', 'expo-speech-recognition', 'expo-system-ui'],
+    plugins: [
+      'expo-router',
+      'expo-secure-store',
+      'expo-speech-recognition',
+      'expo-system-ui',
+      // '@sentry/react-native/expo',  // uncomment when @sentry/react-native is installed
+    ],
     extra: {
       ...firebaseExtra,
       eas: {

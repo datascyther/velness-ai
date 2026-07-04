@@ -1,12 +1,3 @@
-/**
- * SplashScreen — App initialization screen
- *
- * Responsibilities:
- * - Initialize Firebase auth
- * - Restore session if available
- * - Navigate to appropriate screen based on auth state
- */
-
 import React, { useEffect, useRef } from 'react';
 import { View, Text } from 'react-native';
 import Animated, {
@@ -20,6 +11,8 @@ import Animated, {
 import { useAuth } from '@/shared/hooks/useAuth';
 import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 import { Sparkles } from 'lucide-react-native';
+import { useTheme } from '@/hooks/useTheme';
+import { spacing, borderRadius, typography, colors } from '@/theme/tokens';
 
 interface SplashScreenProps {
   onComplete: (destination: 'auth' | 'home') => void;
@@ -58,7 +51,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         runOnJS(onComplete)(isAuthenticated ? 'home' : 'auth');
       }, 1200);
       return () => clearTimeout(timer);
-    }
+    };
   }, [initialized, isAuthenticated, onComplete]);
 
   const logoAnimatedStyle = useAnimatedStyle(() => ({
@@ -71,25 +64,41 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   }));
 
   return (
-    <View className="flex-1 bg-surface-dark items-center justify-center">
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: colors.background.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: spacing.xl,
+      }}
+    >
       {/* Animated Logo */}
-      <Animated.View
-        style={logoAnimatedStyle}
-        className="items-center mb-8"
-      >
-        <View className="w-24 h-24 rounded-full bg-neeva-purple-600/20 items-center justify-center border border-neeva-glass-border">
+      <Animated.View style={{ ...logoAnimatedStyle, marginBottom: spacing.lg }}>
+        <View
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: borderRadius.md,
+            backgroundColor: colors.surface.primary,
+            borderWidth: 1,
+            borderColor: colors.border.default,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
           <Sparkles size={48} color="#8B5CF6" />
         </View>
       </Animated.View>
 
       {/* Title */}
-      <Text className="text-white text-page-title font-display font-bold mb-2">
+      <Text style={{ ...typography.titleLarge, color: colors.text.primary, marginBottom: spacing.sm }}>
         Neeva
       </Text>
 
       {/* Subtitle */}
-      <Animated.View style={subtitleAnimatedStyle}>
-        <Text className="text-white/50 text-body text-center px-8 mb-12">
+      <Animated.View style={{ ...subtitleAnimatedStyle, marginBottom: spacing.md }}>
+        <Text style={{ ...typography.textSecondary, textAlign: 'center', color: colors.text.secondary, opacity: 0.5 }}>
           Your personal wellness companion
         </Text>
       </Animated.View>

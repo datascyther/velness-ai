@@ -17,14 +17,21 @@ coverage/
 # ── Environment & Secrets ─────────────────────────────────────
 # Block ALL .env files by default, then whitelist the safe template
 .env
+.env.local
+.env.*.local
 .env.*
 !.env.example
+!.env.development
+!.env.staging
+!.env.production
 
 # Credential / key files
 *.pem
 client_secret_*.json
 google-services.json
 GoogleService-Info.plist
+android/app/google-services.json
+ios/NeevaAI/GoogleService-Info.plist
 
 # ── OS Metadata ───────────────────────────────────────────────
 .DS_Store

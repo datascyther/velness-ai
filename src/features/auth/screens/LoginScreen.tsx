@@ -16,31 +16,21 @@ import { useRouter } from 'expo-router';
 import { Mail, Lock, AlertCircle } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-
 import { useAuth } from '@/shared/hooks/useAuth';
 import { authService } from '@/services/auth';
 import type { UserProfile } from '@/services/auth/types';
 import { analyticsService } from '@/services/analytics';
 import { useAppStore } from '@/core/store/useAppStore';
 import { useTheme } from '@/hooks/useTheme';
-
 import { Button } from '@/shared/components/Button';
 import { TextField } from '@/shared/components/TextField';
 import { PasswordField } from '@/shared/components/PasswordField';
 import { GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton';
 import { loginSchema, type LoginFormData } from '@/features/auth/validators';
 import { AUTH_STRINGS } from '@/features/auth/constants';
+import { spacing, colors, typography, borderRadius } from '@/theme/tokens';
 
 const { width } = Dimensions.get('window');
-
-const FacebookIcon = () => (
-  <Svg width={20} height={20} viewBox="0 0 24 24">
-    <Path
-      fill="#1877F2"
-      d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
-    />
-  </Svg>
-);
 
 export function LoginScreen() {
   const router = useRouter();
@@ -135,10 +125,6 @@ export function LoginScreen() {
     clearError();
     analyticsService.trackEvent('login_attempt', { action: 'facebook' });
     try {
-      addToast({
-        type: 'info',
-        message: 'Facebook Sign-In is not configured for mobile yet. Please use email/password.',
-      });
     } finally {
       setFacebookLoading(false);
     }
@@ -159,15 +145,15 @@ export function LoginScreen() {
     setUser(guestProfile);
     setEmailVerified(true);
     setOnboardingCompleted(true);
+    const store = useAppStore.getState();
+    store.setPreviousGuestUid(guestProfile.uid);
     router.replace('/(tabs)');
   }, [setUser, setEmailVerified, setOnboardingCompleted, router]);
 
-  const { colors } = useTheme();
+  const { colors: themeColors } = useTheme();
 
   const handleForgotPassword = useCallback(() => {
-    analyticsService.trackEvent('login_attempt', {
-      action: 'forgot_password',
-    });
+    analyticsService.trackEvent('login_attempt', { action: 'forgot_password' });
     router.push('/auth/forgot-password');
   }, [router]);
 
@@ -177,7 +163,7 @@ export function LoginScreen() {
   }, [router]);
 
   return (
-    <SafeAreaView className="flex-1 bg-background-primary">
+    <SafeAreaView style={{ flex: 1, backgroundColor: themeColors.background.primary }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
@@ -188,13 +174,12 @@ export function LoginScreen() {
           showsVerticalScrollIndicator={false}
           testID="login-scroll-view"
         >
-          {/* Header Row: Circle Logo left, App Name/Version right */}
           <Animated.View
             entering={FadeInDown.duration(600).springify()}
-            className="flex-row items-center justify-between mb-8 mt-2"
+            style={{ justifyContent: 'center', alignItems: 'center', marginBottom: spacing.md, marginTop: spacing.md }}
           >
             <View className="flex-row items-center space-x-3">
-              <View 
+              <View
                 className="w-12 h-12 rounded-full bg-surface-primary items-center justify-center border border-border-default shadow-sm"
                 style={{
                   shadowColor: '#000',
@@ -216,13 +201,12 @@ export function LoginScreen() {
               <Text className="text-text-primary text-body font-bold tracking-tight ml-2">
                 Neeva AI
               </Text>
+              <Text className="text-text-secondary text-caption font-semibold">
+                1.0.0 Beta
+              </Text>
             </View>
-            <Text className="text-text-secondary text-caption font-semibold">
-              1.0.0 Beta
-            </Text>
           </Animated.View>
 
-          {/* Form Fields Directly on Canvas */}
           <Animated.View entering={FadeInDown.delay(100).duration(600).springify()}>
             {error && (
               <View
@@ -230,7 +214,7 @@ export function LoginScreen() {
                 testID="login-error"
                 accessibilityRole="alert"
               >
-                <AlertCircle size={16} color={colors.danger} className="mr-2" />
+                <AlertCircle size={16} color={themeColors.danger} className="mr-2" />
                 <Text className="text-danger text-body-sm flex-1 font-medium">{error}</Text>
               </View>
             )}
@@ -252,7 +236,7 @@ export function LoginScreen() {
                   returnKeyType="next"
                   editable={!loading}
                   testID="login-email-input"
-                  leftIcon={<Mail size={18} color={colors.text.secondary} />}
+                  leftIcon={<Mail size={18} color={themeColors.text.secondary} />}
                   accessibilityLabel={AUTH_STRINGS.LOGIN_EMAIL_LABEL}
                   accessibilityHint="Enter the email associated with your account"
                 />
@@ -274,10 +258,9 @@ export function LoginScreen() {
                   autoCapitalize="none"
                   autoComplete="password"
                   returnKeyType="done"
-                  onSubmitEditing={handleSubmit(onSubmit)}
                   editable={!loading}
                   testID="login-password-input"
-                  leftIcon={<Lock size={18} color={colors.text.secondary} />}
+                  leftIcon={<Lock size={18} color={themeColors.text.secondary} />}
                   accessibilityLabel={AUTH_STRINGS.LOGIN_PASSWORD_LABEL}
                   accessibilityHint="Enter your password"
                 />
@@ -298,7 +281,6 @@ export function LoginScreen() {
               </Text>
             </Pressable>
 
-            {/* Primary Sign In Button */}
             <Button
               title={loading ? 'Signing In...' : AUTH_STRINGS.LOGIN_BUTTON}
               onPress={handleSubmit(onSubmit)}
@@ -306,10 +288,17 @@ export function LoginScreen() {
               loading={loading}
               variant="primary"
               className="w-full mt-2"
+              style={{
+                backgroundColor: themeColors.brand.primary,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.15,
+                shadowRadius: 6,
+                elevation: 4,
+              }}
               accessibilityLabel={AUTH_STRINGS.LOGIN_BUTTON}
             />
 
-            {/* Or Divider */}
             <View className="flex-row items-center my-6">
               <View className="flex-1 h-px bg-border-default" />
               <Text className="text-text-secondary text-caption mx-4 font-semibold uppercase tracking-wider">
@@ -318,31 +307,29 @@ export function LoginScreen() {
               <View className="flex-1 h-px bg-border-default" />
             </View>
 
-            {/* Google Sign In */}
             <GoogleSignInButton
               onPress={handleGoogleSignIn}
               loading={googleLoading}
               disabled={loading}
             />
 
-            {/* Facebook Sign In */}
             <Pressable
               onPress={handleFacebookSignIn}
               disabled={loading || facebookLoading}
               className="flex-row items-center justify-center rounded-xl px-8 py-3.5 border border-border-default bg-surface-primary active:opacity-85 shadow-sm mt-4"
+              style={{ borderRadius: borderRadius.md }}
               accessibilityRole="button"
               accessibilityLabel="Continue with Facebook"
             >
-              <FacebookIcon />
               <Text className="text-text-primary font-semibold ml-3 text-body">
                 Continue with Facebook
               </Text>
             </Pressable>
 
-            {/* Explore as Guest Option */}
             <Pressable
               onPress={handleGuestMode}
               className="items-center mt-6 py-2 active:opacity-75"
+              style={{ borderRadius: borderRadius.md }}
               accessibilityRole="button"
               accessibilityLabel="Explore as Guest"
             >
@@ -352,7 +339,6 @@ export function LoginScreen() {
             </Pressable>
           </Animated.View>
 
-          {/* Bottom Redirect */}
           <Animated.View
             entering={FadeInDown.delay(200).duration(600).springify()}
             className="items-center mt-8 mb-6"
