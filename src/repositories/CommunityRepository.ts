@@ -21,7 +21,6 @@ import {
 } from '@/lib/firestore';
 import { docSnapshotToData } from '@/hooks/useRealtimeSubscription';
 import { conversationRepository } from '@/repositories/ConversationRepository';
-import type { CommunityPost, PostComment, PostReaction, Report } from '@/features/community/types';
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
