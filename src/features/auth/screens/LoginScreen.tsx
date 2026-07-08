@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import { Mail, Lock, AlertCircle } from 'lucide-react-native';
+import { Mail, Lock, AlertCircle, User } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -311,12 +311,19 @@ export function LoginScreen() {
 
             <Pressable
               onPress={handleGuestMode}
-              className="items-center mt-6 py-2 active:opacity-75"
-              style={{ borderRadius: borderRadius.md }}
+              disabled={loading}
+              className="flex-row items-center justify-center mt-5 py-3.5 active:opacity-80"
+              style={{
+                borderRadius: borderRadius.md,
+                borderWidth: 1.5,
+                borderColor: 'rgba(99, 102, 241, 0.5)',
+                backgroundColor: 'rgba(99, 102, 241, 0.07)',
+              }}
               accessibilityRole="button"
               accessibilityLabel="Explore as Guest"
             >
-              <Text className="text-brand-primary text-body-sm font-semibold underline underline-offset-4">
+              <User color="#6366F1" size={18} strokeWidth={2.2} />
+              <Text className="text-brand-primary text-body font-semibold ml-2">
                 Explore as Guest
               </Text>
             </Pressable>

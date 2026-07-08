@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Svg, Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { User } from 'lucide-react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { useAppStore } from '@/core/store/useAppStore';
 import { authService } from '@/services/auth';
@@ -113,9 +114,25 @@ export function WelcomeScreen() {
               <Text style={styles.secondaryButtonText}>Create Account</Text>
             </Pressable>
 
-            <Pressable style={styles.guestButton} onPress={handleGuestMode}>
-              <Text style={[styles.guestButtonText, { color: themeColors.text.secondary }]}>Continue as Guest</Text>
-            </Pressable>
+            <View style={styles.guestWrapper}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.guestButton,
+                  pressed && styles.guestButtonPressed,
+                ]}
+                onPress={handleGuestMode}
+                accessibilityRole="button"
+                accessibilityLabel="Continue as Guest"
+              >
+                <User color={themeColors.text.primary} size={18} strokeWidth={2.2} />
+                <Text style={[styles.guestButtonText, { color: themeColors.text.primary }]}>
+                  Continue as Guest
+                </Text>
+              </Pressable>
+              <Text style={[styles.guestHint, { color: themeColors.text.secondary }]}>
+                No account needed — start exploring instantly
+              </Text>
+            </View>
           </Animated.View>
         </View>
       </SafeAreaView>
@@ -222,14 +239,36 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: -0.3,
   },
-  guestButton: {
-    height: 52,
-    justifyContent: 'center',
+  guestWrapper: {
     alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  guestButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    height: 54,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: 'rgba(99, 102, 241, 0.5)',
+    backgroundColor: 'rgba(99, 102, 241, 0.07)',
+    paddingHorizontal: 28,
+  },
+  guestButtonPressed: {
+    backgroundColor: 'rgba(99, 102, 241, 0.14)',
   },
   guestButtonText: {
-    fontSize: 15.5,
+    fontSize: 16.5,
+    fontWeight: '600',
+    letterSpacing: -0.3,
+  },
+  guestHint: {
+    fontSize: 13,
     fontWeight: '500',
+    opacity: 0.7,
+    textAlign: 'center',
   },
 });
 
