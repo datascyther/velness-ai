@@ -84,6 +84,16 @@ import {
 } from './ProgressRepository';
 
 import {
+  GuidedProgressRepository,
+  guidedProgressRepository,
+} from './GuidedProgressRepository';
+
+import {
+  ProgramLessonProgressRepository,
+  programLessonProgressRepository,
+} from './ProgramLessonProgressRepository';
+
+import {
   AchievementRepository,
   achievementRepository,
   type AchievementInput,
@@ -116,6 +126,41 @@ import {
   analyticsRepository,
   type AnalyticsEventInput,
 } from './AnalyticsRepository';
+
+import {
+  ChatMessageRepository,
+  chatMessageRepository,
+  type ChatMessageInput,
+} from './ChatMessageRepository';
+
+import {
+  ConversationRepository as BackendConversationRepository,
+  conversationRepository as backendConversationRepository,
+  type ConversationInput,
+  type ConversationPatch,
+  type ConversationRow,
+} from './ConversationRepository';
+
+import {
+  ConversationParticipantRepository,
+  conversationParticipantRepository,
+  type ParticipantInput,
+  type ParticipantPatch,
+} from './ConversationParticipantRepository';
+
+import {
+  ConversationMessageRepository,
+  conversationMessageRepository,
+  type ConvMessageInput,
+  type ConvMessagePatch,
+} from './ConversationMessageRepository';
+
+import {
+  UserConversationRepository,
+  userConversationRepository,
+  type UserConvInput,
+  type UserConvPatch,
+} from './UserConversationRepository';
 
 // ── Re-exports ─────────────────────────────────────────────────────────────
 export {
@@ -166,6 +211,10 @@ export {
   progressRepository,
   type ProgressInput,
   type ProgressPatch,
+  GuidedProgressRepository,
+  guidedProgressRepository,
+  ProgramLessonProgressRepository,
+  programLessonProgressRepository,
   AchievementRepository,
   achievementRepository,
   type AchievementInput,
@@ -185,6 +234,26 @@ export {
   AnalyticsRepository,
   analyticsRepository,
   type AnalyticsEventInput,
+  ChatMessageRepository,
+  chatMessageRepository,
+  type ChatMessageInput,
+  BackendConversationRepository,
+  backendConversationRepository,
+  type ConversationInput,
+  type ConversationPatch,
+  type ConversationRow,
+  ConversationParticipantRepository,
+  conversationParticipantRepository,
+  type ParticipantInput,
+  type ParticipantPatch,
+  ConversationMessageRepository,
+  conversationMessageRepository,
+  type ConvMessageInput,
+  type ConvMessagePatch,
+  UserConversationRepository,
+  userConversationRepository,
+  type UserConvInput,
+  type UserConvPatch,
 };
 
 // ── Convenience namespace ──────────────────────────────────────────────────
@@ -200,11 +269,18 @@ export const repositories = {
   program: programRepository,
   lesson: lessonRepository,
   progress: progressRepository,
+  guidedProgress: guidedProgressRepository,
+  programLessonProgress: programLessonProgressRepository,
   achievement: achievementRepository,
   journal: journalRepository,
   notification: notificationRepository,
   userPreferences: userPreferencesRepository,
   analytics: analyticsRepository,
+  chatMessage: chatMessageRepository,
+  backendConversation: backendConversationRepository,
+  conversationParticipant: conversationParticipantRepository,
+  conversationMessage: conversationMessageRepository,
+  userConversation: userConversationRepository,
 } as const;
 
 export default repositories;

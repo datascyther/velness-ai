@@ -1,19 +1,4 @@
-import {
-  setDoc,
-  getDocs,
-  getDoc,
-  updateDoc,
-  query,
-  orderBy,
-  limit,
-  startAfter,
-  Timestamp,
-} from 'firebase/firestore';
-import {
-  conversationMessagesRef,
-  conversationMessageDocRef,
-} from '@/lib/firestore';
-import { docSnapshotToData } from '@/hooks/useRealtimeSubscription';
+import { conversationMessageRepository } from '../../backend/repositories/ConversationMessageRepository';
 import { conversationRepository } from './ConversationRepository';
 import type { ConversationMessage } from '@/shared/types';
 
@@ -23,9 +8,26 @@ function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 }
 
-function ensureRef<T>(ref: T | null, name: string): T {
-  if (!ref) throw new Error(`Firestore not initialized (${name})`);
-  return ref;
+function mapRowToConvMessage(row: {
+  id: string;
+  sender_id: string;
+  sender_name: string;
+  content: string;
+  created_at: string;
+  type: string;
+  reply_to: string | null;
+  read_by: any;
+}): ConversationMessage {
+  return {
+    id: row.id,
+    senderId: row.sender_id,
+    senderName: row.sender_name,
+    content: row.content,
+    timestamp: new Date(row.created_at),
+    type: row.type as ConversationMessage['type'],
+    replyTo: row.reply_to ?? undefined,
+    readBy: (row.read_by as string[]) ?? [],
+  };
 }
 
 export interface SendMessageData {
@@ -42,21 +44,15 @@ export class MessageRepository {
     const messageId = generateId();
     const now = new Date();
 
-    const message: ConversationMessage = {
+    const row = await conversationMessageRepository.create({
       id: messageId,
-      senderId: data.senderId,
-      senderName: data.senderName,
+      conversation_id: data.conversationId,
+      sender_id: data.senderId,
+      sender_name: data.senderName,
       content: data.content,
-      timestamp: now,
       type: data.type ?? 'text',
-      replyTo: data.replyTo,
-      readBy: [data.senderId],
-    };
-
-    const docRef = ensureRef(conversationMessageDocRef(data.conversationId, messageId), 'conversationMessageDocRef');
-    await setDoc(docRef, {
-      ...message,
-      timestamp: Timestamp.fromDate(now),
+      reply_to: data.replyTo ?? null,
+      read_by: [data.senderId],
     });
 
     await conversationRepository.updateLastMessage(data.conversationId, {
@@ -66,7 +62,7 @@ export class MessageRepository {
       timestamp: now,
     });
 
-    return message;
+    return mapRowToConvMessage(row);
   }
 
   async sendSystemMessage(
@@ -87,30 +83,12 @@ export class MessageRepository {
     pageSize: number = MESSAGES_PAGE_SIZE,
     cursor?: ConversationMessage,
   ): Promise<ConversationMessage[]> {
-    let messagesQuery = query(
-      ensureRef(conversationMessagesRef(conversationId), 'conversationMessagesRef'),
-      orderBy('timestamp', 'desc'),
-      limit(pageSize),
+    const rows = await conversationMessageRepository.listByConversation(
+      conversationId,
+      pageSize,
+      cursor?.id,
     );
-
-    if (cursor) {
-      const cursorDoc = await getDoc(
-        ensureRef(conversationMessageDocRef(conversationId, cursor.id), 'conversationMessageDocRef'),
-      );
-      if (cursorDoc.exists()) {
-        messagesQuery = query(
-          ensureRef(conversationMessagesRef(conversationId), 'conversationMessagesRef'),
-          orderBy('timestamp', 'desc'),
-          startAfter(cursorDoc),
-          limit(pageSize),
-        );
-      }
-    }
-
-    const snapshot = await getDocs(messagesQuery);
-    return snapshot.docs.map((doc) =>
-      docSnapshotToData<ConversationMessage>(doc),
-    );
+    return rows.map(mapRowToConvMessage);
   }
 
   async markAsRead(
@@ -118,17 +96,10 @@ export class MessageRepository {
     messageId: string,
     uid: string,
   ): Promise<void> {
-    const msgRef = ensureRef(conversationMessageDocRef(conversationId, messageId), 'conversationMessageDocRef');
-    const snap = await getDoc(msgRef);
-    if (!snap.exists()) return;
-
-    const data = snap.data() as Record<string, any>;
-    const currentReadBy: string[] = data.readBy ?? [];
-
-    if (!currentReadBy.includes(uid)) {
-      await updateDoc(msgRef, {
-        readBy: [...currentReadBy, uid],
-      });
+    try {
+      await conversationMessageRepository.markAsRead(messageId, uid);
+    } catch (error) {
+      console.error('Error marking message as read:', error);
     }
   }
 }

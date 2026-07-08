@@ -7,6 +7,8 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
@@ -88,6 +90,187 @@ export type Database = {
           },
         ]
       }
+      chat_messages: {
+        Row: {
+          content: string
+          conversation_id: string | null
+          created_at: string
+          id: string
+          is_user: boolean
+          reasoning: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          is_user?: boolean
+          reasoning?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          is_user?: boolean
+          reasoning?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          read_by: Json
+          reply_to: string | null
+          sender_id: string
+          sender_name: string
+          type: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          read_by?: Json
+          reply_to?: string | null
+          sender_id: string
+          sender_name: string
+          type?: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          read_by?: Json
+          reply_to?: string | null
+          sender_id?: string
+          sender_name?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_participants: {
+        Row: {
+          conversation_id: string
+          joined_at: string
+          last_read_at: string
+          muted_until: string | null
+          role: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          joined_at?: string
+          last_read_at?: string
+          muted_until?: string | null
+          role?: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          joined_at?: string
+          last_read_at?: string
+          muted_until?: string | null
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_participants_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          image_url: string | null
+          last_message: Json | null
+          member_count: number
+          metadata: Json
+          name: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          last_message?: Json | null
+          member_count?: number
+          metadata?: Json
+          name: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          last_message?: Json | null
+          member_count?: number
+          metadata?: Json
+          name?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exercises: {
         Row: {
           content: Json
@@ -131,6 +314,71 @@ export type Database = {
             columns: ["lesson_id"]
             isOneToOne: false
             referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guided_exercise_progress: {
+        Row: {
+          ai_reflections: Json
+          answers: Json
+          breathing_cycle: number | null
+          completed_at: string | null
+          current_step: number
+          draft_text: string | null
+          duration: number | null
+          exercise_id: string
+          id: string
+          lesson_id: string | null
+          program_id: string | null
+          started_at: string
+          status: string
+          timer_state: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_reflections?: Json
+          answers?: Json
+          breathing_cycle?: number | null
+          completed_at?: string | null
+          current_step?: number
+          draft_text?: string | null
+          duration?: number | null
+          exercise_id: string
+          id?: string
+          lesson_id?: string | null
+          program_id?: string | null
+          started_at?: string
+          status?: string
+          timer_state?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_reflections?: Json
+          answers?: Json
+          breathing_cycle?: number | null
+          completed_at?: string | null
+          current_step?: number
+          draft_text?: string | null
+          duration?: number | null
+          exercise_id?: string
+          id?: string
+          lesson_id?: string | null
+          program_id?: string | null
+          started_at?: string
+          status?: string
+          timer_state?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guided_exercise_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -266,7 +514,7 @@ export type Database = {
           description?: string | null
           id?: string
           position?: number
-          program_id: string
+          program_id?: string
           status?: Database["public"]["Enums"]["lesson_status"]
           title?: string
           updated_at?: string
@@ -368,7 +616,9 @@ export type Database = {
           display_name: string
           id: string
           is_private: boolean
+          last_login_at: string | null
           locale: string | null
+          onboarding_completed: boolean
           timezone: string | null
           updated_at: string
           username: string | null
@@ -380,7 +630,9 @@ export type Database = {
           display_name?: string
           id: string
           is_private?: boolean
+          last_login_at?: string | null
           locale?: string | null
+          onboarding_completed?: boolean
           timezone?: string | null
           updated_at?: string
           username?: string | null
@@ -392,12 +644,64 @@ export type Database = {
           display_name?: string
           id?: string
           is_private?: boolean
+          last_login_at?: string | null
           locale?: string | null
+          onboarding_completed?: boolean
           timezone?: string | null
           updated_at?: string
           username?: string | null
         }
         Relationships: []
+      }
+      program_lesson_progress: {
+        Row: {
+          completed_at: string | null
+          completion_percent: number
+          created_at: string
+          id: string
+          last_opened_at: string | null
+          lesson_id: string | null
+          program_id: string
+          started_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completion_percent?: number
+          created_at?: string
+          id?: string
+          last_opened_at?: string | null
+          lesson_id?: string | null
+          program_id: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          completion_percent?: number
+          created_at?: string
+          id?: string
+          last_opened_at?: string | null
+          lesson_id?: string | null
+          program_id?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "program_lesson_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       programs: {
         Row: {
@@ -660,6 +964,51 @@ export type Database = {
           },
         ]
       }
+      user_conversations: {
+        Row: {
+          conversation_id: string
+          is_muted: boolean
+          is_pinned: boolean
+          last_message_at: string
+          last_message_preview: string
+          last_read_at: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          is_muted?: boolean
+          is_pinned?: boolean
+          last_message_at?: string
+          last_message_preview?: string
+          last_read_at?: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          is_muted?: boolean
+          is_pinned?: boolean
+          last_message_at?: string
+          last_message_preview?: string
+          last_read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_conversations_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_conversations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_preferences: {
         Row: {
           created_at: string
@@ -706,8 +1055,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
+      [_ in never]: never
     }
     Enums: {
       achievement_type: "streak" | "milestone" | "level" | "custom"

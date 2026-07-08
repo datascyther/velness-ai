@@ -21,6 +21,8 @@ export type ProfilePatch = Partial<
     | 'timezone'
     | 'locale'
     | 'is_private'
+    | 'last_login_at'
+    | 'onboarding_completed'
   >
 >;
 

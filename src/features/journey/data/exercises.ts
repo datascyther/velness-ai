@@ -13,60 +13,135 @@ interface CustomExerciseInput {
 
 const CUSTOM_EXERCISES: Record<string, CustomExerciseInput> = {
   // CBT - Understanding Thoughts
-  'understanding-thoughts-l1': {
+  'understanding-thoughts-l1-ex1': {
     type: EXERCISE_TYPE.JOURNALING,
-    title: 'Noticing the Voice',
-    goal: 'Learn to catch automatic thoughts in real time',
+    title: 'Thought Logging',
+    goal: 'Build awareness of your stream of thoughts by writing them down',
     instructions: [
-      'Take a moment to close your eyes and breathe naturally.',
-      'Observe the commentary passing through your mind.',
-      'Write down the very first thought you clearly observe.',
-      'Label it simply as a "mental event", not an absolute truth.'
+      'Sit comfortably and observe your thoughts without judgment.',
+      'Write down the most prominent thought in your mind right now.',
+      'Observe how it feels to put this thought into words.'
     ],
-    completionCriteria: 'Save your observation to complete the lesson.'
+    completionCriteria: 'Save your observation to complete this step.'
   },
-  'understanding-thoughts-l2': {
+  'understanding-thoughts-l1-ex2': {
     type: EXERCISE_TYPE.JOURNALING,
-    title: 'Triangle Mapping',
-    goal: 'Map how thoughts drive emotions and behaviors',
+    title: 'Trigger Mapping',
+    goal: 'Identify the situation or trigger that prompted your thought',
     instructions: [
-      'Recall a situation today where you felt a sudden shift in your mood.',
-      'Write down the exact trigger (what happened).',
-      'Identify the automatic thought that immediately followed.',
-      'Note how that thought affected your feelings and behavior.'
+      'Recall the exact situation you were in when the thought occurred.',
+      'Write down who was there, what was happening, and the environment.',
+      'State: "The trigger was..."'
     ]
   },
-  'understanding-thoughts-l3': {
+  'understanding-thoughts-l1-ex3': {
     type: EXERCISE_TYPE.JOURNALING,
-    title: 'Fact vs Interpretation',
-    goal: 'Distinguish objective reality from mental stories',
+    title: 'Emotion Tracking',
+    goal: 'Identify and rate the emotions associated with your thoughts',
     instructions: [
-      'Write down a stressful thought you had today.',
-      'Strip away all interpretations: what would a camera record?',
-      'List the objective facts of the situation.',
-      'List the opinions or stories your mind added to those facts.'
+      'List the specific emotions you felt (e.g. anxiety, sadness, anger).',
+      'Rate the intensity of each emotion on a scale of 1-10.',
+      'Locate where in your body you felt the emotion (e.g. chest, shoulders).'
     ]
   },
-  'understanding-thoughts-l4': {
+  'understanding-thoughts-l2-ex1': {
     type: EXERCISE_TYPE.JOURNALING,
-    title: 'Trigger Tracking',
-    goal: 'Identify physical or environmental cues that spark stress loops',
+    title: 'Automatic Thoughts',
+    goal: 'Identify rapid, automatic reactions to a trigger',
     instructions: [
-      'Identify a situation that frequently makes you feel anxious or frustrated.',
-      'Describe the environment (who was there, what was happening).',
-      'Note any physical signals (shallow breathing, muscle tightness).',
-      'Formulate a warning label: "When [trigger] happens, my mind tends to..."'
+      'Describe a recent situation that caused a sudden shift in your mood.',
+      'Write down the very first automatic thought that came to mind.',
+      'Rate how strongly you believe this thought (0-100%).'
     ]
   },
-  'understanding-thoughts-l5': {
+  'understanding-thoughts-l2-ex2': {
     type: EXERCISE_TYPE.JOURNALING,
-    title: 'Cognitive Integration Log',
-    goal: 'Establish a structured daily thought-checking routine',
+    title: 'Evidence Testing',
+    goal: 'Examine the evidence for and against your automatic thought',
     instructions: [
-      'Think of a current stressful situation.',
-      'Log the trigger, the automatic thought, and the emotional intensity (1-10).',
-      'Review the facts objectively.',
-      'Write one balanced, supportive alternative thought.'
+      'Write down your automatic thought.',
+      'List objective, factual evidence that supports this thought.',
+      'List objective, factual evidence that contradicts this thought.'
+    ]
+  },
+  'understanding-thoughts-l2-ex3': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Alternative Thinking',
+    goal: 'Develop a balanced, alternative perspective based on evidence',
+    instructions: [
+      'Review the evidence for and against your automatic thought.',
+      'Write a new, balanced thought that incorporates all the facts.',
+      'Re-rate your belief in the original thought and your emotional intensity.'
+    ]
+  },
+  'understanding-thoughts-l3-ex1': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Thinking Traps',
+    goal: 'Learn to recognize common cognitive distortions or thinking traps',
+    instructions: [
+      'Review common traps: all-or-nothing thinking, catastrophizing, mind reading, emotional reasoning.',
+      'Write down a recent negative thought.',
+      'Identify which thinking trap(s) this thought represents.'
+    ]
+  },
+  'understanding-thoughts-l3-ex2': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Pattern Recognition',
+    goal: 'Identify recurring thinking traps in your daily life',
+    instructions: [
+      'Look over your logged thoughts from the past few days.',
+      'Note which thinking traps appear most frequently.',
+      'Describe the situations where you are most likely to fall into these traps.'
+    ]
+  },
+  'understanding-thoughts-l3-ex3': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Replacement Thinking',
+    goal: 'Practice replacing thinking traps with objective thoughts',
+    instructions: [
+      'Take a thought that fell into a thinking trap.',
+      'Rephrase it objectively, removing the trap\'s exaggeration.',
+      'Write down the revised, realistic thought.'
+    ]
+  },
+  'understanding-thoughts-l4-ex1': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Perspective Shift',
+    goal: 'View a situation from a different angle to reduce distress',
+    instructions: [
+      'Describe a situation that is currently causing you stress.',
+      'Imagine how a close, supportive friend would view this situation.',
+      'Write down what they would say or how they would describe it.'
+    ]
+  },
+  'understanding-thoughts-l4-ex2': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Balanced Thinking',
+    goal: 'Develop a moderate, realistic view of a stressful situation',
+    instructions: [
+      'Write down the extreme positive and extreme negative outcomes.',
+      'Identify the most realistic, balanced outcome in between these extremes.',
+      'Write a balanced thought summarizing this middle ground.'
+    ]
+  },
+  'understanding-thoughts-l4-ex3': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Reality Testing',
+    goal: 'Test the actual likelihood of your worries coming true',
+    instructions: [
+      'Write down a worry or negative prediction.',
+      'Rate the likelihood of it happening (0-100%).',
+      'List actions you can take to cope if the worst-case scenario occurs.'
+    ]
+  },
+  'understanding-thoughts-l5-ex1': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Thought Mastery Plan',
+    goal: 'Establish a sustainable plan for daily thought awareness',
+    instructions: [
+      'Summarize the key thinking traps and triggers you identified in this program.',
+      'Commit to a daily thought-checking routine (e.g. 5 minutes every evening).',
+      'Write a core grounding statement to remind you that thoughts are not facts.'
     ]
   },
 
@@ -128,64 +203,293 @@ const CUSTOM_EXERCISES: Record<string, CustomExerciseInput> = {
   },
 
   // CBT - Managing Anxiety
-  'managing-anxiety-l1': {
+  // Lesson 1: Recognizing Anxiety
+  'managing-anxiety-l1-ex1': {
     type: EXERCISE_TYPE.JOURNALING,
-    title: 'Anxiety Compass',
-    goal: 'Observe and demystify how anxiety triggers function',
+    title: 'Calming Breath Reset',
+    goal: 'Slow down physiological arousal with paced breathing',
     instructions: [
-      'Recall a recent anxious moment.',
-      'State what triggered the anxiety (situation, person, or thought).',
-      'Acknowledge the anxiety as a protective response (fight-or-flight).',
-      'Write: "My body is trying to protect me, but there is no actual danger."'
+      'Find a comfortable seat and place one hand on your belly.',
+      'Inhale slowly through your nose for 4 seconds, feeling your belly expand.',
+      'Exhale gently through pursed lips for 6 seconds.',
+      'Repeat this cycle for 2 minutes, then note your physical calmness.'
     ]
   },
-  'managing-anxiety-l2': {
+  'managing-anxiety-l1-ex2': {
     type: EXERCISE_TYPE.JOURNALING,
-    title: 'Somatic Map',
-    goal: 'Locate and observe physical anxiety sensations objectively',
+    title: 'Anxiety Signal Audit',
+    goal: 'Audit your typical cognitive and somatic anxiety triggers',
     instructions: [
-      'Check in with your body right now. Where do you feel tension?',
-      'Describe the sensation objectively (e.g. "warmth", "tightness", "fluttering").',
-      'Breathe into that space, allowing the physical sensation to just exist.',
-      'Observe it change or dissolve over the next two minutes.'
+      'Reflect on the past week and list two situations that triggered anxiety.',
+      'For each situation, describe the initial warning sign you noticed.',
+      'Did you notice it in your mind (thoughts) or body (sensations) first?',
+      'Reflect on how catching triggers early can help you slow down the response.'
     ]
   },
-  'managing-anxiety-l3': {
+  'managing-anxiety-l1-ex3': {
     type: EXERCISE_TYPE.JOURNALING,
-    title: 'Sensory Grounding (5-4-3-2-1)',
-    goal: 'Anchor your attention in the physical environment to disrupt panic',
+    title: 'Anxiety Compass Log',
+    goal: 'Log and demystify anxiety as a biological alarm system',
     instructions: [
-      'Take a deep breath and look around you.',
-      'Write down 5 things you can see, and 4 things you can physically feel.',
-      'Write down 3 things you can hear, and 2 things you can smell.',
-      'Write down 1 positive thing you can taste or say about yourself.'
+      'Write down a recent situation where you felt significant anxiety.',
+      'List the exact thoughts and physical sensations you experienced.',
+      'Acknowledge the feeling as a survival-driven fight-or-flight response.',
+      'Write: "My body was trying to protect me, but there was no actual danger."'
     ]
   },
-  'managing-anxiety-l4': {
+  'managing-anxiety-l1-ex4': {
     type: EXERCISE_TYPE.JOURNALING,
-    title: 'De-Catastrophizer',
-    goal: 'Challenge worst-case scenario thinking with probability',
+    title: 'Notice the Alarm',
+    goal: 'Observe the rise of anxiety triggers without running away',
     instructions: [
-      'Write down your catastrophic "what-if" thought.',
-      'Determine: what is the absolute worst-case outcome?',
-      'Determine: what is the best-case outcome?',
-      'Determine: what is the most realistic, probable outcome, and how will you cope?'
+      'Recall a minor upcoming stressor (e.g., an email you need to send).',
+      'Close your eyes and visualize starting the task, letting the alert rise.',
+      'Instead of immediately avoiding it, sit with the alarm for 1 minute.',
+      'Notice that the alarm peaks and slowly begins to fade on its own.'
     ]
   },
-  'managing-anxiety-l5': {
+  'managing-anxiety-l1-ex5': {
     type: EXERCISE_TYPE.JOURNALING,
-    title: 'My Calming Protocol',
-    goal: 'Design a personalized response plan for anxiety triggers',
+    title: 'Alarm System Check',
+    goal: 'Evaluate your perception of anxiety as a protector vs a danger',
     instructions: [
-      'Outline your warning signs (e.g., tight chest, racing thoughts).',
-      'Select your primary grounding technique (e.g., 5-4-3-2-1, Box Breathing).',
-      'Write one calming phrase to repeat: "I am safe in this moment."',
-      'Commit to taking this exact pause next time you notice a trigger.'
+      'Rate how dangerous the feeling of anxiety felt to you (1-10) before this lesson.',
+      'Rate how dangerous it feels now, knowing it is a safety alarm (1-10).',
+      'Explain what changed in your perspective.',
+      'Commit to viewing the next anxiety wave as an over-eager alarm, not a threat.'
+    ]
+  },
+
+  // Lesson 2: Body Awareness
+  'managing-anxiety-l2-ex1': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Somatic Body Breath',
+    goal: 'Direct breath to release localized physical tension',
+    instructions: [
+      'Close your eyes and locate the area in your body holding the most tension.',
+      'Inhale deeply, visualizing the breath flowing directly to that tense space.',
+      'Exhale slowly, imagining the tension softening and leaving with your breath.',
+      'Repeat this for 5 cycles and describe any physical release.'
+    ]
+  },
+  'managing-anxiety-l2-ex2': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Body Scan Audit',
+    goal: 'Audit somatic signals of anxiety across your entire body',
+    instructions: [
+      'Slowly scan your body from your feet up to your jaw.',
+      'Identify three distinct physical sensations (e.g., tight shoulders, shallow breathing, butterflies).',
+      'Notice if you are actively fighting these sensations or holding your breath.',
+      'Gently soften your posture and allow the sensations to exist without resistance.'
+    ]
+  },
+  'managing-anxiety-l2-ex3': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Somatic Map Journal',
+    goal: 'Describe physical sensations using objective, neutral language',
+    instructions: [
+      'Focus on a current or recent physical symptom of anxiety.',
+      'Describe the sensation objectively (e.g., "tightness in chest", "buzzing in hands").',
+      'Avoid alarmist words like "heart attack" or "choking".',
+      'Write a neutral statement: "My chest feels tight, and I can still breathe safely."'
+    ]
+  },
+  'managing-anxiety-l2-ex4': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Somatic Welcoming',
+    goal: 'Sit with physical discomfort to build somatic tolerance',
+    instructions: [
+      'Locate a physical sensation of anxiety or tension in your body.',
+      'Set a timer for 2 minutes and focus your attention entirely on the sensation.',
+      'Welcome it by repeating silently: "It is okay for this sensation to be here."',
+      'Observe how the physical feeling shifts, spreads, or decreases over time.'
+    ]
+  },
+  'managing-anxiety-l2-ex5': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Somatic Tolerance Check',
+    goal: 'Evaluate the intensity and safety of physical sensations',
+    instructions: [
+      'Rate the discomfort of the physical sensation from 1 to 10.',
+      'Write down what you learned by observing it without trying to fix it.',
+      'Confirm that the sensation did not harm you and was temporary.',
+      'Write: "Physical sensations are uncomfortable, but they are safe and survivable."'
+    ]
+  },
+
+  // Lesson 3: Safety Behaviors
+  'managing-anxiety-l3-ex1': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Anchored Grounding Breath',
+    goal: 'Stabilize attention with paced breathing and sensory anchors',
+    instructions: [
+      'Inhale for 4 seconds, hold for 4 seconds, and exhale for 4 seconds.',
+      'As you breathe, name three physical objects in your room to anchor your eyes.',
+      'Notice the physical support of the chair or floor underneath you.',
+      'Describe how this combination of breath and grounding affects your focus.'
+    ]
+  },
+  'managing-anxiety-l3-ex2': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Safety Behavior Audit',
+    goal: 'Identify your common avoidant and escape behaviors',
+    instructions: [
+      'List three safety behaviors you use to escape anxiety (e.g., checking phone, avoiding eye contact, leaving early).',
+      'Explain how each safety behavior makes you feel in the short term.',
+      'Explain how each behavior keeps your anxiety alive in the long term.',
+      'Select one behavior you want to challenge in this lesson.'
+    ]
+  },
+  'managing-anxiety-l3-ex3': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Avoidance Cost Log',
+    goal: 'Reflect on the long-term impact of relying on safety behaviors',
+    instructions: [
+      'Journal about a recent time you avoided a situation due to anxiety.',
+      'What did you miss out on or what was the cost of this avoidance?',
+      'How does avoiding a situation reinforce the belief that you cannot handle it?',
+      'Reflect on how facing discomfort opens up opportunities for freedom.'
+    ]
+  },
+  'managing-anxiety-l3-ex4': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Safety Behavior Delay',
+    goal: 'Practice delaying avoidant habits to build tolerance to distress',
+    instructions: [
+      'The next time you feel anxious, identify the safety behavior you want to perform.',
+      'Set a timer and commit to delaying that behavior for exactly 5 minutes.',
+      'Sit with the discomfort and breathe slowly during the delay.',
+      'Notice if the urge to perform the safety behavior decreases after 5 minutes.'
+    ]
+  },
+  'managing-anxiety-l3-ex5': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Delay Reflection',
+    goal: 'Evaluate the outcome of delaying your safety behavior',
+    instructions: [
+      'Describe the safety behavior you delayed and how long you delayed it.',
+      'Rate your urge to perform the behavior (1-10) before and after the delay.',
+      'Did the anxiety decrease naturally without the safety behavior?',
+      'Write: "I can feel anxious and delay safety behaviors; my body knows how to calm down on its own."'
+    ]
+  },
+
+  // Lesson 4: Exposure Planning
+  'managing-anxiety-l4-ex1': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Box Breathing for Courage',
+    goal: 'Calm the nervous system before approaching a challenge',
+    instructions: [
+      'Prepare to plan an exposure task by box breathing.',
+      'Inhale for 4 seconds, hold for 4 seconds, exhale for 4 seconds, hold empty for 4 seconds.',
+      'Complete 4 rounds of this box breathing cycle.',
+      'Note the sense of physiological stability and focus.'
+    ]
+  },
+  'managing-anxiety-l4-ex2': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Exposure Ladder Design',
+    goal: 'Design a graded exposure ladder for a specific fear target',
+    instructions: [
+      'Identify a situation or task you avoid due to anxiety.',
+      'Break this situation down into 3-5 progressive steps, from easiest to hardest.',
+      'Rate the expected anxiety level (0-100%) for each step on your ladder.',
+      'Identify the first step you will take (ideally scoring between 30% and 50% anxiety).'
+    ]
+  },
+  'managing-anxiety-l4-ex3': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Expectation Testing Log',
+    goal: 'Document predictions and fears before performing exposure',
+    instructions: [
+      'Write down the exposure task you plan to complete.',
+      'What is your specific prediction? (e.g. "If I speak, they will mock me").',
+      'What is the worst-case scenario, and how will you cope if it happens?',
+      'Write down the actual probability of that worst case occurring.'
+    ]
+  },
+  'managing-anxiety-l4-ex4': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Micro-Exposure Run',
+    goal: 'Execute a small exposure step and observe actual distress',
+    instructions: [
+      'Complete the first step of your exposure ladder.',
+      'Focus on staying in the situation, breathing slowly, without using safety behaviors.',
+      'Note your anxiety level at the start, peak, and end of the exposure.',
+      'Wait for the anxiety to decrease by at least 50% before leaving.'
+    ]
+  },
+  'managing-anxiety-l4-ex5': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Outcome Comparison',
+    goal: 'Evaluate actual exposure results against initial predictions',
+    instructions: [
+      'Compare what actually happened during the exposure to your prediction.',
+      'Did the worst-case scenario occur? Did you cope successfully?',
+      'Rate the accuracy of your initial fear from 0% to 100%.',
+      'Write: "My mind predicted danger, but the reality was safe and manageable."'
+    ]
+  },
+
+  // Lesson 5: Recovery Toolkit
+  'managing-anxiety-l5-ex1': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Calm Integration Breath',
+    goal: 'Use physiological sighs to trigger rapid nervous system recovery',
+    instructions: [
+      'Take a deep inhale through your nose, followed immediately by a quick second sniff.',
+      'Exhale slowly and fully through your mouth, letting your entire body relax.',
+      'Complete 3 rounds of this double-inhale, slow-exhale sigh.',
+      'Reflect on how this breath pattern acts as an instant release valve for stress.'
+    ]
+  },
+  'managing-anxiety-l5-ex2': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Anxiety Playbook Mapping',
+    goal: 'Consolidate your top somatic, cognitive, and behavioral tools',
+    instructions: [
+      'Select your most effective somatic tool (e.g., box breathing, body scan).',
+      'Select your most effective cognitive tool (e.g., cognitive reframing, reality testing).',
+      'Select your primary exposure tool (e.g., safety behavior delay, graded steps).',
+      'Map these into a 3-step emergency playbook to use during anxiety spikes.'
+    ]
+  },
+  'managing-anxiety-l5-ex3': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Resilience Anchor Journal',
+    goal: 'Write a supportive reminder of your capacity to manage distress',
+    instructions: [
+      'Write a short letter to yourself, to be read when anxiety feels overwhelming.',
+      'Remind yourself of what you have learned: anxiety is an alarm, sensations are safe, and you can cope.',
+      'Highlight a successful moment from this program where you tolerated discomfort.',
+      'End with a strong statement of self-support and trust.'
+    ]
+  },
+  'managing-anxiety-l5-ex4': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Daily Exposure Commitment',
+    goal: 'Commit to daily micro-exposures to prevent avoidance relapse',
+    instructions: [
+      'Identify one micro-exposure you can easily perform daily (e.g., asking a question, making eye contact).',
+      'How does maintaining a habit of facing minor fears protect your progress?',
+      'Write a formal commitment: "I commit to facing minor challenges daily to keep my confidence strong."',
+      'Decide on a cue to trigger this daily action.'
+    ]
+  },
+  'managing-anxiety-l5-ex5': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Recovery Toolkit Checklist',
+    goal: 'Evaluate your confidence in using your anxiety management toolkit',
+    instructions: [
+      'Rate your confidence (1-10) in your ability to manage future anxiety spikes.',
+      'Which tools will you practice regularly to keep them sharp?',
+      'Identify one potential obstacle to using your toolkit, and how you will overcome it.',
+      'Write: "I am equipped, I am capable, and I am the manager of my own peace."'
     ]
   },
 
   // CBT - Emotional Regulation
-  'emotional-regulation-l1': {
+  'emotional-regulation-l1-ex1': {
     type: EXERCISE_TYPE.JOURNALING,
     title: 'Primary Emotions Tracker',
     goal: 'Identify and validate your immediate emotional responses',
@@ -196,53 +500,53 @@ const CUSTOM_EXERCISES: Record<string, CustomExerciseInput> = {
       'Write: "It is okay to feel [emotion] right now. This feeling is temporary."'
     ]
   },
-  'emotional-regulation-l2': {
+  'emotional-regulation-l2-ex1': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Somatic Welcoming',
+    goal: 'Observe and welcome an emotional wave without resistance',
+    instructions: [
+      'Recall a recent situation where you felt a strong, uncomfortable emotion.',
+      'Focus on the physical sensation of that emotion in your body.',
+      'Practice breathing space around it, releasing any physical clenching or bracing.',
+      'Observe the feeling like a wave, letting it rise and fall without trying to force it away.'
+    ]
+  },
+  'emotional-regulation-l3-ex1': {
     type: EXERCISE_TYPE.JOURNALING,
     title: 'Emotion Wheel Audit',
-    goal: 'Translate vague feelings into precise, named emotions',
+    goal: 'Translate vague mood states into precise secondary emotions',
     instructions: [
-      'Select a vague mood state you felt today (e.g., "bad", "stressed").',
-      'Unpack it: are you feeling rejected, overwhelmed, ignored, or tired?',
+      'Select a vague mood state you felt today (e.g., "bad", "stressed", "off").',
+      'Unpack it: are you feeling rejected, overwhelmed, ignored, disappointed, or tired?',
       'Write down the specific secondary emotions you discover.',
-      'Reflect on how naming them changes their intensity.'
+      'Reflect on how naming them changes their emotional intensity.'
     ]
   },
-  'emotional-regulation-l3': {
+  'emotional-regulation-l4-ex1': {
     type: EXERCISE_TYPE.JOURNALING,
-    title: 'The STOP Pause',
-    goal: 'Practice pausing to prevent impulsive, emotion-driven actions',
+    title: 'Somatic Cooling Resets',
+    goal: 'Practice physiological resets and the STOP technique',
     instructions: [
-      'Recall a situation today where you felt like reacting impulsively.',
-      'Practice the STOP steps: **S**top, **T**ake a breath, **O**bserve, **P**roceed.',
-      'Write down what your impulsive reaction would have been.',
-      'Write down a more helpful, controlled response.'
+      'Identify a physical reset tool to use when emotions spike (e.g. splashing cold water, box breathing).',
+      'Map out the STOP steps: Stop, Take a breath, Observe, Proceed.',
+      'Write down how your physical tension level changed after visualizing this pause.',
+      'Commit to using STOP when your emotional intensity exceeds a 6/10.'
     ]
   },
-  'emotional-regulation-l4': {
-    type: EXERCISE_TYPE.JOURNALING,
-    title: 'Somatic Cooling',
-    goal: 'Use physiological resets to lower high emotional arousal',
-    instructions: [
-      'Identify a physical release that works for you (e.g., splashing cold water, progressive muscle relaxation).',
-      'Engage in paced breathing (slow count to 5 in, slow count to 5 out).',
-      'Write down how your physical tension levels changed after the reset.',
-      'Commit to using this reset when emotional intensity exceeds a 7/10.'
-    ]
-  },
-  'emotional-regulation-l5': {
+  'emotional-regulation-l5-ex1': {
     type: EXERCISE_TYPE.JOURNALING,
     title: 'Emotional Dialectic Builder',
-    goal: 'Accept intense feelings while committing to helpful behaviors',
+    goal: 'Accept intense feelings while committing to values-aligned actions',
     instructions: [
       'Describe a current difficult emotion you are experiencing.',
-      'Write an acceptance statement: "I feel [emotion], and that is valid."',
-      'Write a commitment statement: "Even though I feel [emotion], I will still [helpful action]."',
-      'Merge them: "I feel [emotion] AND I can still choose to [action]."'
+      'Write a non-judgmental acceptance statement for this feeling.',
+      'Write a commitment statement for a helpful action you want to take anyway.',
+      'Combine them into a dialectical statement: "I feel [emotion] AND I can still choose to [action]."'
     ]
   },
 
   // CBT - Building Confidence
-  'building-confidence-l1': {
+  'building-confidence-l1-ex1': {
     type: EXERCISE_TYPE.JOURNALING,
     title: 'Core Belief Audit',
     goal: 'Examine deep-seated assumptions about your self-worth',
@@ -253,9 +557,31 @@ const CUSTOM_EXERCISES: Record<string, CustomExerciseInput> = {
       'Write a more compassionate, updated version of this belief.'
     ]
   },
-  'building-confidence-l2': {
+  'building-confidence-l1-ex2': {
     type: EXERCISE_TYPE.JOURNALING,
-    title: 'Inner Critic Reframed',
+    title: 'Evidence Collection',
+    goal: 'Gather factual evidence to challenge negative core beliefs',
+    instructions: [
+      'Write down a negative core belief you identified in your audit.',
+      'List three factual experiences that directly contradict this belief.',
+      'Reflect on how you typically dismiss or minimize this counter-evidence.',
+      'Write a balanced summary that incorporates both the belief and the evidence.'
+    ]
+  },
+  'building-confidence-l1-ex3': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Strength Inventory',
+    goal: 'Catalog your personal competencies and inner resources',
+    instructions: [
+      'List five personal strengths or qualities you possess.',
+      'For each strength, describe a specific situation where you used it.',
+      'Identify which strength you underuse and why.',
+      'Commit to using this underused strength in the next 24 hours.'
+    ]
+  },
+  'building-confidence-l2-ex1': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Inner Critic Journal',
     goal: 'Answer harsh self-criticism with supportive self-compassion',
     instructions: [
       'Write down a harsh self-criticism you made today.',
@@ -264,10 +590,32 @@ const CUSTOM_EXERCISES: Record<string, CustomExerciseInput> = {
       'Direct that exact response back to yourself in writing.'
     ]
   },
-  'building-confidence-l3': {
+  'building-confidence-l2-ex2': {
     type: EXERCISE_TYPE.JOURNALING,
-    title: 'Strengths Inventory',
-    goal: 'Identify and anchor your sense of self in personal competencies',
+    title: 'Reframe Thoughts',
+    goal: 'Transform critical thoughts into balanced, realistic statements',
+    instructions: [
+      'Capture one critical thought your inner voice repeated today.',
+      'Identify the cognitive distortion present (e.g. catastrophizing, labeling).',
+      'Write a realistic, neutral alternative to this thought.',
+      'Notice how your emotional intensity shifts with the reframed version.'
+    ]
+  },
+  'building-confidence-l2-ex3': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Compassion Response',
+    goal: 'Develop a habitual compassionate reply to self-judgment',
+    instructions: [
+      'Recall a moment of self-judgment from the past week.',
+      'Write a compassionate phrase you wish you had said to yourself.',
+      'Identify the underlying need or fear the judgment was masking.',
+      'Design a 3-step compassion ritual to use when the critic appears.'
+    ]
+  },
+  'building-confidence-l3-ex1': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Personal Wins',
+    goal: 'Identify and document your recent accomplishments',
     instructions: [
       'List three things you have done well or challenges you overcame.',
       'For each, identify the personal strength you used (e.g. perseverance, kindness).',
@@ -275,9 +623,31 @@ const CUSTOM_EXERCISES: Record<string, CustomExerciseInput> = {
       'Acknowledge your capacity to grow and handle future obstacles.'
     ]
   },
-  'building-confidence-l4': {
+  'building-confidence-l3-ex2': {
     type: EXERCISE_TYPE.JOURNALING,
-    title: 'Values Affirmation',
+    title: 'Character Strength Finder',
+    goal: 'Identify your top character strengths using real-life evidence',
+    instructions: [
+      'Review the VIA classification: wisdom, courage, humanity, justice, temperance, transcendence.',
+      'Select two categories where you feel naturally strong.',
+      'List specific examples from your life that demonstrate these strengths.',
+      'Write how you can deliberately use one strength tomorrow.'
+    ]
+  },
+  'building-confidence-l3-ex3': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Daily Success Reflection',
+    goal: 'Build a nightly habit of recognizing small daily victories',
+    instructions: [
+      'Scan your day and identify one moment you handled well.',
+      'Describe what you did and why it mattered.',
+      'Name the quality or skill that helped you succeed.',
+      'Express gratitude to yourself for showing up and trying.'
+    ]
+  },
+  'building-confidence-l4-ex1': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Values Ranking',
     goal: 'Reinforce self-worth by connecting actions to core values',
     instructions: [
       'Identify one value that is deeply important to you (e.g. honesty, creativity).',
@@ -286,9 +656,31 @@ const CUSTOM_EXERCISES: Record<string, CustomExerciseInput> = {
       'Note how living your values supports your confidence independently of performance.'
     ]
   },
-  'building-confidence-l5': {
+  'building-confidence-l4-ex2': {
     type: EXERCISE_TYPE.JOURNALING,
-    title: 'Micro-Courage Challenge',
+    title: 'Identity Alignment',
+    goal: 'Align your daily actions with your authentic core identity',
+    instructions: [
+      'Describe the person you want to be at your best.',
+      'Identify one area where your current actions conflict with this identity.',
+      'Brainstorm one small change to bridge the gap between action and identity.',
+      'Write an identity statement: "I am someone who..." based on your values.'
+    ]
+  },
+  'building-confidence-l4-ex3': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Purpose Reflection',
+    goal: 'Connect your daily efforts to a deeper sense of meaning',
+    instructions: [
+      'Reflect on what gives your life a sense of direction or purpose.',
+      'Describe how your daily routines do or do not serve this purpose.',
+      'Identify one value-aligned goal that moves you toward your purpose.',
+      'Write a purpose statement that anchors your confidence in meaning.'
+    ]
+  },
+  'building-confidence-l5-ex1': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Confidence Action Plan',
     goal: 'Take a small, value-aligned risk to build efficacy',
     instructions: [
       'Define a small action that makes you slightly nervous but aligns with your values.',
@@ -297,9 +689,31 @@ const CUSTOM_EXERCISES: Record<string, CustomExerciseInput> = {
       'Commit to taking the step and logging the result.'
     ]
   },
+  'building-confidence-l5-ex2': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Fear Ladder',
+    goal: 'Break down a feared situation into manageable, graded steps',
+    instructions: [
+      'Identify a situation that makes you feel anxious or avoids.',
+      'List 5 smaller sub-steps leading up to this situation, from least to most anxiety-provoking.',
+      'Choose the first step on your ladder and commit to taking it.',
+      'Write a coping statement to repeat when you take this first step.'
+    ]
+  },
+  'building-confidence-l5-ex3': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Future Self Letter',
+    goal: 'Write a letter from your future confident self to your present self',
+    instructions: [
+      'Imagine yourself one year from now, having grown in confidence.',
+      'Write a letter from this future self to your present self.',
+      'Describe what the future self learned, overcame, and now believes.',
+      'End with a piece of encouragement and advice for the journey ahead.'
+    ]
+  },
 
   // CBT - Healthy Habits
-  'healthy-habits-l1': {
+  'healthy-habits-l1-ex1': {
     type: EXERCISE_TYPE.JOURNALING,
     title: 'Habit Mapping',
     goal: 'Deconstruct a daily routine into cue, routine, and reward',
@@ -310,18 +724,7 @@ const CUSTOM_EXERCISES: Record<string, CustomExerciseInput> = {
       'Identify the **reward** (what benefit or craving satisfaction does it provide?).'
     ]
   },
-  'healthy-habits-l2': {
-    type: EXERCISE_TYPE.JOURNALING,
-    title: 'Friction Hacking',
-    goal: 'Redesign environment triggers to make positive habits effortless',
-    instructions: [
-      'Select the habit you want to build (e.g., drinking water).',
-      'Identify one way to reduce friction (e.g., placing a water bottle on your desk).',
-      'Select a habit you want to break (e.g., scrolling social media).',
-      'Identify one way to add friction (e.g., deleting the app, placing phone in another room).'
-    ]
-  },
-  'healthy-habits-l3': {
+  'healthy-habits-l2-ex1': {
     type: EXERCISE_TYPE.JOURNALING,
     title: 'The 2-Minute Rule',
     goal: 'Scale down habits to eliminate starting resistance',
@@ -332,7 +735,7 @@ const CUSTOM_EXERCISES: Record<string, CustomExerciseInput> = {
       'Focus purely on showing up consistently rather than the intensity of the work.'
     ]
   },
-  'healthy-habits-l4': {
+  'healthy-habits-l3-ex1': {
     type: EXERCISE_TYPE.JOURNALING,
     title: 'Stacking Plan',
     goal: 'Link a new habit to an established routine to automate consistency',
@@ -343,7 +746,7 @@ const CUSTOM_EXERCISES: Record<string, CustomExerciseInput> = {
       'Specify the reward or positive check-in you will give yourself immediately after.'
     ]
   },
-  'healthy-habits-l5': {
+  'healthy-habits-l4-ex1': {
     type: EXERCISE_TYPE.JOURNALING,
     title: 'Resilience Protocol',
     goal: 'Create a recovery plan for setbacks to maintain consistency',
@@ -352,6 +755,16 @@ const CUSTOM_EXERCISES: Record<string, CustomExerciseInput> = {
       'Identify the obstacles that caused you to miss habits in the past.',
       'Formulate an "If-Then" plan: "If [obstacle occurs], then I will [backup micro-habit]."',
       'Acknowledge that showing up partially is always better than not showing up at all.'
+    ]
+  },
+  'healthy-habits-l5-ex1': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Identity Integration Playbook',
+    goal: 'Align your habits with your core values and desired identity',
+    instructions: [
+      'State the type of person you want to become (e.g., "I want to be a healthy, active person").',
+      'List two small, daily habits that act as physical proof of this identity.',
+      'Explain how you will maintain these identity-based habits over the next month.'
     ]
   },
 
@@ -769,43 +1182,136 @@ const CUSTOM_EXERCISES: Record<string, CustomExerciseInput> = {
 
   // Self Compassion
   'self-compassion-l1': {
-    type: EXERCISE_TYPE.MEDITATION,
+    type: EXERCISE_TYPE.JOURNALING,
     title: 'Loving-Kindness Practice',
     goal: 'Cultivate friendly, accepting attitudes toward yourself',
     instructions: [
       'Find a comfortable posture and place a hand over your heart.',
       'Bring to mind a mental picture of yourself.',
-      'Silently offer these phrases: "May I be safe. May I be happy. May I live with ease."',
+      'Offer yourself warm support: "May I be safe, happy, and live with ease."',
       'Breathe into the warmth of these wishes.'
     ],
-    completionCriteria: 'Meditate for 10 minutes.',
-    time: 10
+    completionCriteria: 'Complete all steps of the guided journal.',
+    time: 8
   },
   'self-compassion-l2': {
-    type: EXERCISE_TYPE.MEDITATION,
+    type: EXERCISE_TYPE.JOURNALING,
     title: 'Softening Inner Critic',
     goal: 'Soften critical self-talk using empathetic phrases',
     instructions: [
       'Recall a recent mistake or failure that made you criticize yourself.',
-      'Recognize that struggle and imperfection are part of being human.',
-      'Offer yourself support: "I did the best I could. I am worthy of kindness."',
+      'Imagine how you would support a dear friend facing the same struggle.',
+      'Offer yourself that same warmth, support, and friendship.',
       'Let go of the critical narrative.'
     ],
-    completionCriteria: 'Meditate for 10 minutes.',
-    time: 10
+    completionCriteria: 'Complete all steps of the guided journal.',
+    time: 8
   },
   'self-compassion-l3': {
-    type: EXERCISE_TYPE.MEDITATION,
+    type: EXERCISE_TYPE.JOURNALING,
     title: 'Embracing Imperfection',
     goal: 'Accept your limitations with kindness',
     instructions: [
-      'Sit quietly and reflect on a personal flaw or boundary.',
-      'Observe any shame or frustration that arises.',
-      'Breathe into these feelings, offering self-acceptance.',
-      'Remember: you are enough, exactly as you are in this moment.'
+      'Reflect on a personal flaw or mistake that triggers feelings of inadequacy.',
+      'Acknowledge that imperfection is part of the shared human experience.',
+      'Offer yourself self-acceptance and let go of perfectionism.',
+      'Breathe into the feeling of self-acceptance.'
     ],
-    completionCriteria: 'Meditate for 10 minutes.',
-    time: 10
+    completionCriteria: 'Complete all steps of the guided journal.',
+    time: 8
+  },
+  'self-compassion-l4': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Common Humanity Map',
+    goal: 'Connect personal struggles to the shared human experience',
+    instructions: [
+      'Write down a recent struggle or self-doubt.',
+      'Reflect on how many other people in the world feel this exact way right now.',
+      'Acknowledge that struggle is a normal, healthy part of being human.',
+      'Write a grounding statement of shared connection.'
+    ],
+    completionCriteria: 'Complete all steps of the guided journal.',
+    time: 8
+  },
+  'self-compassion-l5': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Self-Compassion Integration',
+    goal: 'Build a go-to self-compassion break ritual for moments of stress',
+    instructions: [
+      'Select a persistent daily stressor.',
+      'Apply the three components: Mindfulness, Common Humanity, and Self-Kindness.',
+      'Design a 2-minute self-compassion break response.',
+      'Commit to practicing this tool the next time stress arises.'
+    ],
+    completionCriteria: 'Complete all steps of the guided journal.',
+    time: 8
+  },
+
+  // CBT - Resilience
+  'resilience-l1': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Resilient Reframe',
+    goal: 'Shift from a fixed mindset to a growth mindset under stress',
+    instructions: [
+      'Identify a recent setback or challenge you faced.',
+      'Acknowledge your negative thoughts about this challenge.',
+      'Reframe the challenge as feedback and an opportunity to learn.',
+      'List one positive action step you can take next.'
+    ],
+    completionCriteria: 'Complete all steps of the guided journal.',
+    time: 8
+  },
+  'resilience-l2': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Optimistic Explanation',
+    goal: 'Practice seeing challenges as temporary and specific',
+    instructions: [
+      'Write down a recent negative event that occurred.',
+      'Audit your internal explanation of why it happened.',
+      'Rewrite the event as temporary (not permanent) and specific (not pervasive).',
+      'Acknowledge your capability to move past it.'
+    ],
+    completionCriteria: 'Complete all steps of the guided journal.',
+    time: 8
+  },
+  'resilience-l3': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Locus of Control Audit',
+    goal: 'Distinguish between controllable and uncontrollable stressors',
+    instructions: [
+      'Identify a current situation causing you stress or worry.',
+      'List the aspects of the situation that are outside of your control.',
+      'List the aspects of the situation that you *can* control.',
+      'Formulate one action step focusing only on what you can control.'
+    ],
+    completionCriteria: 'Complete all steps of the guided journal.',
+    time: 8
+  },
+  'resilience-l4': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Stress Hardiness Planner',
+    goal: 'Incorporate daily micro-recovery activities to build reserves',
+    instructions: [
+      'Audit your current daily energy levels and stress points.',
+      'Brainstorm three micro-recovery activities that take under 5 minutes.',
+      'Schedule these activities into your typical day.',
+      'Commit to preserving this space for your mental health.'
+    ],
+    completionCriteria: 'Complete all steps of the guided journal.',
+    time: 8
+  },
+  'resilience-l5': {
+    type: EXERCISE_TYPE.JOURNALING,
+    title: 'Resilience Playbook Builder',
+    goal: 'Create an emergency playbook for handling future life storms',
+    instructions: [
+      'Reflect on the key tools of resilience you have learned.',
+      'Write down your primary grounding thought for times of stress.',
+      'Outline your immediate action steps when a setback occurs.',
+      'List the people or resources you can reach out to for support.'
+    ],
+    completionCriteria: 'Complete all steps of the guided journal.',
+    time: 8
   },
 
   // Mindfulness Basics
@@ -1069,34 +1575,35 @@ const CUSTOM_EXERCISES: Record<string, CustomExerciseInput> = {
   }
 };
 
-export const DEFAULT_EXERCISES: Exercise[] = DEFAULT_LESSONS.map((lesson) => {
-  // Let's determine exercise type and properties from our custom map
-  const custom = CUSTOM_EXERCISES[lesson.id];
+export const DEFAULT_EXERCISES: Exercise[] = DEFAULT_LESSONS.flatMap((lesson) => {
+  return lesson.exerciseIds.map((exId) => {
+    const custom = CUSTOM_EXERCISES[exId] || CUSTOM_EXERCISES[lesson.id];
 
-  const type = custom?.type || EXERCISE_TYPE.JOURNALING;
-  const title = custom?.title || lesson.title;
-  const goal = custom?.goal || 'Track automatic thoughts and emotional responses';
-  const instructions = custom?.instructions || [
-    'Take a moment to close your eyes and check in with yourself.',
-    'Write down the situation you were in when you noticed a shift in your mood.',
-    'Identify the exact thought passing through your mind.',
-    'Rate the intensity of the emotion associated with that thought from 1-10.'
-  ];
-  const completionCriteria = custom?.completionCriteria || 'Save your reflection entry to progress.';
-  const time = custom?.time || lesson.duration || 5;
+    const type = custom?.type || EXERCISE_TYPE.JOURNALING;
+    const title = custom?.title || lesson.title;
+    const goal = custom?.goal || 'Track automatic thoughts and emotional responses';
+    const instructions = custom?.instructions || [
+      'Take a moment to close your eyes and check in with yourself.',
+      'Write down the situation you were in when you noticed a shift in your mood.',
+      'Identify the exact thought passing through your mind.',
+      'Rate the intensity of the emotion associated with that thought from 1-10.'
+    ];
+    const completionCriteria = custom?.completionCriteria || 'Save your reflection entry to progress.';
+    const time = custom?.time || lesson.duration || 5;
 
-  return {
-    id: lesson.exerciseIds[0],
-    lessonId: lesson.id,
-    type,
-    title,
-    description: lesson.description,
-    estimatedTime: time,
-    content: {},
-    sortOrder: 0,
-    goal,
-    instructions,
-    completionCriteria
-  };
+    return {
+      id: exId,
+      lessonId: lesson.id,
+      type,
+      title,
+      description: lesson.description,
+      estimatedTime: time,
+      content: {},
+      sortOrder: 0,
+      goal,
+      instructions,
+      completionCriteria
+    };
+  });
 });
 

@@ -1,28 +1,45 @@
-import { useMemo } from 'react';
+import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRealtimeDocument } from '@/hooks/useRealtimeSubscription';
-import { userProgressDocRef } from '@/lib/firestore';
-import { isFirestoreReady } from '@/lib/firestore';
+import { supabase } from 'backend/client';
 import { journeyRepository } from '@/repositories/JourneyRepository';
+import { uniqueChannelName } from './channelName';
 import type { UserProgress } from '@/features/journey/models/Progress';
 
 export function useRealtimeUserProgress(uid: string | null) {
   const queryClient = useQueryClient();
-  const enabled = !!(uid && isFirestoreReady());
+  const queryKey = ['journey', 'user-progress', uid];
+  const enabled = !!uid;
 
-  const docRef = useMemo(
-    () => (uid && isFirestoreReady() ? userProgressDocRef(uid) : null),
-    [uid],
-  );
+  useEffect(() => {
+    if (!uid) return;
 
-  useRealtimeDocument<UserProgress>(docRef, ['journey', 'user-progress', uid], enabled);
+    const channel = supabase
+      .channel(uniqueChannelName(`user-progress-changes-${uid}`))
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'progress',
+          filter: `user_id=eq.${uid}`,
+        },
+        () => {
+          void queryClient.invalidateQueries({ queryKey });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [uid, queryClient]);
 
   return useQuery({
-    queryKey: ['journey', 'user-progress', uid],
+    queryKey,
     queryFn: async (): Promise<UserProgress | null> => {
       if (!uid) return null;
 
-      const cached = queryClient.getQueryData<UserProgress | null>(['journey', 'user-progress', uid]);
+      const cached = queryClient.getQueryData<UserProgress | null>(queryKey);
       if (cached) return cached;
 
       return journeyRepository.loadUserProgress(uid);

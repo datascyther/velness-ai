@@ -8,6 +8,8 @@ export interface Lesson {
   exerciseIds: string[];
   introduction?: string;
   learningObjective?: string;
+  preparation?: string;
   reflectionPrompt?: string;
+  takeaway?: string;
   completionSummary?: string;
 }

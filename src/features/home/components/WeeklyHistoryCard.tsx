@@ -1,21 +1,13 @@
 import React, { useMemo, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-} from 'react-native';
-import Animated, {
-  FadeInDown,
-  ZoomIn,
-  FadeIn,
-} from 'react-native-reanimated';
-import { Lock, CalendarDays } from 'lucide-react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import Animated, { FadeInDown, ZoomIn, FadeIn } from 'react-native-reanimated';
+import { Calendar, CalendarDays } from 'lucide-react-native';
 import { useTheme } from '@/hooks/useTheme';
-import { spacing, borderRadius } from '@/core/theme';
+import { spacing, borderRadius, shadows } from '@/core/theme';
 import { type Mood, type MoodRating, MOOD_MAP } from '@/shared/types';
 import { WeeklyHistoryHeader } from './WeeklyHistoryHeader';
 import { EmptyState } from './EmptyState';
+import { DayLabel } from './DayLabel';
 
 interface WeeklyHistoryCardProps {
   moodEntries: Mood[];
@@ -33,13 +25,14 @@ const MOOD_COLORS: Record<number, string> = {
   5: '#30D158',
 };
 
+const withAlpha = (hex: string, alpha: string) => `${hex}${alpha}`;
+
 export const WeeklyHistoryCard = React.memo(({
   moodEntries,
   isLoading = false,
   onCheckIn,
 }: WeeklyHistoryCardProps) => {
-  const { colors, theme } = useTheme();
-  const isDark = theme === 'dark';
+  const { colors } = useTheme();
   const [activeTab, setActiveTab] = useState<'7days' | '30days'>('7days');
 
   const timelineData = useMemo(() => {
@@ -91,31 +84,71 @@ export const WeeklyHistoryCard = React.memo(({
       <View style={[styles.card, { backgroundColor: colors.surface.primary, borderColor: colors.border.default }]}>
         <WeeklyHistoryHeader />
 
-        {/* Tab Row */}
-        <View style={[styles.tabContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)', borderColor: colors.border.default }]}>
-          <View style={styles.tabRow}>
-            <Pressable
-              style={[styles.tabButton, activeTab === '7days' && { backgroundColor: colors.surface.primary, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 3, elevation: 2 }]}
-              onPress={() => setActiveTab('7days')}
+        <View
+          style={[
+            styles.segment,
+            { backgroundColor: colors.surface.secondary, borderColor: colors.border.default },
+          ]}
+        >
+          <Pressable
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeTab === '7days' }}
+            style={({ pressed }) => [
+              styles.segmentTab,
+              activeTab === '7days' && { backgroundColor: colors.surface.primary },
+              activeTab === '7days' && shadows.sm,
+              pressed && activeTab === '7days' && styles.segmentPressed,
+            ]}
+            onPress={() => setActiveTab('7days')}
+          >
+            <Calendar
+              size={14}
+              color={activeTab === '7days' ? colors.brand.primary : colors.text.secondary}
+              style={styles.segmentIcon}
+            />
+            <Text
+              style={[
+                styles.segmentText,
+                { color: activeTab === '7days' ? colors.brand.primary : colors.text.secondary },
+              ]}
             >
-              <Text style={[styles.tabText, { color: activeTab === '7days' ? colors.text.primary : colors.text.secondary }]}>Week</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.tabButton, activeTab === '30days' && { backgroundColor: colors.surface.primary, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 3, elevation: 2 }]}
-              onPress={() => setActiveTab('30days')}
+              Week
+            </Text>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeTab === '30days' }}
+            style={({ pressed }) => [
+              styles.segmentTab,
+              activeTab === '30days' && { backgroundColor: colors.surface.primary },
+              activeTab === '30days' && shadows.sm,
+              pressed && activeTab === '30days' && styles.segmentPressed,
+            ]}
+            onPress={() => setActiveTab('30days')}
+          >
+            <CalendarDays
+              size={14}
+              color={activeTab === '30days' ? colors.brand.primary : colors.text.secondary}
+              style={styles.segmentIcon}
+            />
+            <Text
+              style={[
+                styles.segmentText,
+                { color: activeTab === '30days' ? colors.brand.primary : colors.text.secondary },
+              ]}
             >
-              <CalendarDays size={12} color={activeTab === '30days' ? colors.text.primary : colors.text.secondary} style={styles.tabIcon} />
-              <Text style={[styles.tabText, { color: activeTab === '30days' ? colors.text.primary : colors.text.secondary }]}>Month</Text>
-            </Pressable>
-          </View>
+              Month
+            </Text>
+          </Pressable>
         </View>
 
         {!hasData ? (
           <EmptyState onCheckIn={onCheckIn} />
         ) : activeTab === '7days' ? (
-          <SevenDayTimeline data={timelineData} isDark={isDark} />
+          <SevenDayTimeline data={timelineData} />
         ) : (
-          <ThirtyDayTimeline data={timelineData} isDark={isDark} />
+          <ThirtyDayTimeline data={timelineData} />
         )}
       </View>
     </Animated.View>
@@ -124,84 +157,106 @@ export const WeeklyHistoryCard = React.memo(({
 
 WeeklyHistoryCard.displayName = 'WeeklyHistoryCard';
 
-/* ─── 7-Day Instagram-Style Timeline ─── */
+function SevenDayTimeline({ data }: { data: { moodLevel: number | null; date: Date }[] }) {
+  const { colors } = useTheme();
 
-function SevenDayTimeline({ data, isDark }: { data: { moodLevel: number | null; date: Date }[]; isDark: boolean }) {
   return (
-    <Animated.View entering={FadeIn.duration(300)} style={styles.timeline}>
-      {data.map((item, i) => {
-        const rating = item.moodLevel as MoodRating | null;
-        const moodInfo = rating ? MOOD_MAP[rating] : null;
-        const color = rating ? MOOD_COLORS[rating] : null;
-        const isToday = i === data.length - 1;
+    <View style={styles.weekWrap}>
+      {/* subtle engineered baseline */}
+      <View style={[styles.weekBaseline, { backgroundColor: colors.surface.secondary }]} />
+      <Animated.View entering={FadeIn.duration(300)} style={styles.timeline}>
+        {data.map((item, i) => {
+          const rating = item.moodLevel as MoodRating | null;
+          const moodInfo = rating ? MOOD_MAP[rating] : null;
+          const color = rating ? MOOD_COLORS[rating] : null;
+          const isToday = i === data.length - 1;
 
-        return (
-          <React.Fragment key={i}>
+          return (
             <Animated.View
+              key={i}
               entering={ZoomIn.delay(i * 50).duration(350).springify().damping(14).stiffness(120)}
-              style={styles.dayFrame}
+              style={styles.dayColumn}
             >
-              <Text style={[styles.dayLabel, { color: isToday ? undefined : undefined, opacity: isToday ? 1 : 0.6 }]}>
-                {isToday ? 'Now' : DAY_NAMES[item.date.getDay()]}
-              </Text>
+              <DayLabel label={isToday ? 'Now' : DAY_NAMES[item.date.getDay()]} isToday={isToday} />
               {rating ? (
-                <View style={[
-                  styles.moodPhoto,
-                  { backgroundColor: color + '20', borderColor: color + '35' },
-                  isToday && { borderColor: color },
-                ]}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${moodInfo?.label} mood`}
+                  style={({ pressed }) => [
+                    styles.moodCircle,
+                    { backgroundColor: withAlpha(color, '18'), borderColor: withAlpha(color, '30') },
+                    isToday && { borderColor: color, ...shadows.sm },
+                    pressed && styles.moodPressed,
+                  ]}
+                >
                   <Text style={styles.moodEmoji}>{moodInfo?.emoji}</Text>
-                </View>
+                </Pressable>
               ) : (
-                <View style={[styles.moodPhoto, styles.moodPhotoEmpty, { borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
-                  <View style={[styles.emptyDot, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]} />
-                </View>
+                <View
+                  style={[
+                    styles.moodCircle,
+                    styles.moodEmpty,
+                    { borderColor: colors.border.default, backgroundColor: 'transparent' },
+                  ]}
+                />
               )}
             </Animated.View>
-            {i < data.length - 1 && (
-              <View style={[styles.connector, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }]} />
-            )}
-          </React.Fragment>
-        );
-      })}
-    </Animated.View>
+          );
+        })}
+      </Animated.View>
+    </View>
   );
 }
 
-/* ─── 30-Day Grid Timeline ─── */
-
-function ThirtyDayTimeline({ data, isDark }: { data: { moodLevel: number | null; date: Date }[]; isDark: boolean }) {
+function ThirtyDayTimeline({ data }: { data: { moodLevel: number | null; date: Date }[] }) {
+  const { colors } = useTheme();
   const COLUMNS = 7;
-  const rows: { moodLevel: number | null; date: Date }[][] = [];
-  for (let i = 0; i < data.length; i += COLUMNS) {
-    rows.push(data.slice(i, i + COLUMNS));
-  }
+  const TOTAL_CELLS = 35;
 
   return (
-    <Animated.View entering={FadeIn.duration(300)} style={styles.gridContainer}>
-      {rows.map((row, ri) => (
-        <View key={ri} style={styles.gridRow}>
-          {row.map((item, ci) => {
-            const rating = item.moodLevel;
-            const color = rating ? MOOD_COLORS[rating] : null;
+    <View style={styles.monthWrap}>
+      <Animated.View entering={FadeIn.duration(300)} style={styles.gridContainer}>
+        {Array.from({ length: Math.ceil(TOTAL_CELLS / COLUMNS) }).map((_, ri) => (
+          <View key={ri} style={styles.gridRow}>
+            {Array.from({ length: COLUMNS }).map((_, ci) => {
+              const globalIndex = ri * COLUMNS + ci;
+              const item = globalIndex < data.length ? data[globalIndex] : null;
+              const rating = item?.moodLevel ?? null;
+              const color = rating ? MOOD_COLORS[rating] : null;
+              const isEmpty = item === null;
 
-            return (
-              <Animated.View
-                key={ci}
-                entering={ZoomIn.delay((ri * COLUMNS + ci) * 15).duration(250).springify().damping(16)}
-                style={styles.gridCell}
-              >
-                {rating ? (
-                  <View style={[styles.gridDot, { backgroundColor: color }]} />
-                ) : (
-                  <View style={[styles.gridDotEmpty, { borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]} />
-                )}
-              </Animated.View>
-            );
-          })}
-        </View>
-      ))}
-    </Animated.View>
+              return (
+                <Animated.View
+                  key={ci}
+                  entering={
+                    globalIndex < data.length
+                      ? ZoomIn.delay(globalIndex * 15).duration(250).springify().damping(16)
+                      : undefined
+                  }
+                  style={styles.gridCell}
+                >
+                  {!isEmpty ? (
+                    rating ? (
+                      <View
+                        style={[
+                          styles.gridDot,
+                          { backgroundColor: color },
+                          { shadowColor: color, ...shadows.sm },
+                        ]}
+                      />
+                    ) : (
+                      <View style={[styles.gridDotEmpty, { borderColor: colors.border.default }]} />
+                    )
+                  ) : (
+                    <View style={styles.gridCellSpacer} />
+                  )}
+                </Animated.View>
+              );
+            })}
+          </View>
+        ))}
+      </Animated.View>
+    </View>
   );
 }
 
@@ -210,120 +265,116 @@ const styles = StyleSheet.create({
     marginVertical: spacing.sm,
   },
   card: {
-    borderRadius: borderRadius['2xl'] + 2,
+    borderRadius: borderRadius['2xl'],
     borderWidth: 1,
-    padding: spacing.lg + 2,
+    padding: spacing.lg,
     overflow: 'hidden',
   },
 
-  /* ─── Tabs ─── */
-  tabContainer: {
-    borderRadius: borderRadius.md + 2,
+  segment: {
+    borderRadius: borderRadius.md,
     borderWidth: 1,
     padding: 3,
     marginBottom: spacing.lg,
-  },
-  tabRow: {
     flexDirection: 'row',
+    gap: 3,
   },
-  tabButton: {
+  segmentTab: {
     flex: 1,
     flexDirection: 'row',
-    paddingVertical: spacing.xs + 2,
+    paddingVertical: spacing.xs,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: borderRadius.sm + 2,
+    borderRadius: borderRadius.sm,
     gap: 4,
   },
-  tabText: {
+  segmentPressed: {
+    opacity: 0.85,
+  },
+  segmentIcon: {
+    marginRight: 2,
+  },
+  segmentText: {
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.2,
   },
-  tabIcon: {
-    marginRight: 2,
+
+  weekWrap: {
+    position: 'relative',
+  },
+  weekBaseline: {
+    height: 1,
+    marginHorizontal: 8,
+    marginBottom: spacing.sm,
+    opacity: 1,
   },
 
-  /* ─── 7-Day Timeline ─── */
   timeline: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     paddingVertical: spacing.sm,
   },
-  dayFrame: {
+  dayColumn: {
     alignItems: 'center',
-    gap: 6,
+    gap: spacing.sm,
     flex: 1,
+    minWidth: 28,
   },
-  dayLabel: {
-    fontSize: 9,
-    fontWeight: '600',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-  },
-  moodPhoto: {
+  moodCircle: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: borderRadius.full,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  moodPhotoEmpty: {
+  moodEmpty: {
     borderStyle: 'dashed',
-    shadowOpacity: 0,
-    elevation: 0,
+  },
+  moodPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.95 }],
   },
   moodEmoji: {
     fontSize: 18,
   },
-  emptyDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  connector: {
-    width: 1,
-    height: 12,
-    marginBottom: 20,
-    alignSelf: 'flex-end',
-    flexShrink: 0,
+
+  monthWrap: {
+    paddingBottom: spacing.xs,
   },
 
-  /* ─── 30-Day Grid ─── */
   gridContainer: {
     paddingVertical: spacing.xs,
   },
   gridRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 6,
+    marginBottom: spacing.sm,
   },
   gridCell: {
-    width: 32,
-    height: 20,
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  gridCellSpacer: {
+    width: 12,
+    height: 12,
   },
   gridDot: {
     width: 12,
     height: 12,
-    borderRadius: 6,
+    borderRadius: borderRadius.full,
   },
   gridDotEmpty: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: borderRadius.full,
     borderWidth: 1,
   },
 
-  /* ─── Skeleton ─── */
   skeletonBody: {
     paddingVertical: spacing.md,
   },

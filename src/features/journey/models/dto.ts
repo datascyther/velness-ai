@@ -1,4 +1,3 @@
-import { Timestamp } from 'firebase/firestore';
 import type { ExerciseProgress } from '@/repositories/JourneyRepository';
 import type { Exercise, ExerciseWithProgress } from './Exercise';
 import type { Program } from './Program';
@@ -10,8 +9,8 @@ import { COMPLETION_STATUS } from '../constants';
 
 function toDate(value: unknown): Date | undefined {
   if (!value) return undefined;
-  if (value instanceof Timestamp) return value.toDate();
   if (value instanceof Date) return value;
+  if (typeof value === 'string') return new Date(value);
   if (typeof value === 'object' && value !== null && 'toDate' in value) {
     return (value as { toDate: () => Date }).toDate();
   }
@@ -22,16 +21,16 @@ function dateOrNull(value: unknown): Date | null {
   return toDate(value) ?? null;
 }
 
-function serializeDate(d: Date | null | undefined): Timestamp | null {
+function serializeDate(d: Date | null | undefined): string | null {
   if (!d) return null;
-  return Timestamp.fromDate(d);
+  return d.toISOString();
 }
 
 export interface ExerciseProgressDoc {
   id: string;
   completed: boolean;
   streak: number;
-  lastCompletedAt?: { toDate: () => Date } | Date | null;
+  lastCompletedAt?: { toDate: () => Date } | Date | string | null;
 }
 
 export function exerciseProgressFromDoc(
@@ -53,7 +52,7 @@ export function exerciseProgressToDoc(
     id: exerciseId,
     completed: true,
     streak,
-    lastCompletedAt: Timestamp.now(),
+    lastCompletedAt: new Date().toISOString(),
   };
 }
 
@@ -272,6 +271,6 @@ export function userProgressToDoc(progress: UserProgress): Record<string, unknow
     programProgress: progress.programProgress,
     achievements: progress.achievements ?? {},
     favorites: progress.favorites ?? [],
-    updatedAt: Timestamp.now(),
+    updatedAt: new Date().toISOString(),
   };
 }

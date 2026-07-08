@@ -33,6 +33,8 @@ WeeklyHistoryHeader.displayName = 'WeeklyHistoryHeader';
 const styles = StyleSheet.create({
   header: {
     marginBottom: spacing.lg,
+    // Reserve vertical space to keep the card layout feeling aligned/polished
+    minHeight: 40,
   },
   title: {
     fontSize: 17,
@@ -41,9 +43,10 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
     marginTop: 2,
-    opacity: 0.6,
+    opacity: 0.55,
     letterSpacing: 0.1,
+    lineHeight: 16,
   },
 });

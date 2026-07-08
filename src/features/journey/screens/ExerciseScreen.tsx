@@ -12,6 +12,9 @@ import { journeyRepository } from '@/repositories/JourneyRepository';
 import { spacing, borderRadius } from '@/core/theme';
 import { EXERCISE_TYPE } from '@/features/journey/constants';
 import type { ExerciseWithProgress } from '@/features/journey/models';
+import { GuidedExerciseEngine } from '../components/GuidedExerciseEngine';
+import { GUIDED_STEPS_CONFIG } from '../data/guidedSteps';
+import { DEFAULT_LESSONS } from '@/features/journey/data/programs';
 
 type LifecycleStage = 'introduction' | 'preparation' | 'exercise' | 'pause' | 'completion' | 'reflection' | 'saving';
 
@@ -415,6 +418,35 @@ export function ExerciseScreen() {
         <View style={styles.errorContainer}>
           <Text style={[styles.errorText, { color: colors.text.secondary }]}>Exercise not found.</Text>
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  const lesson = useMemo(() => {
+    if (!exercise) return null;
+    return DEFAULT_LESSONS.find((l) => l.id === exercise.lessonId) || null;
+  }, [exercise]);
+
+  const isGuided = useMemo(() => {
+    if (!exercise) return false;
+    return !!GUIDED_STEPS_CONFIG[exercise.id] || !!GUIDED_STEPS_CONFIG[exercise.lessonId];
+  }, [exercise]);
+
+  if (isGuided) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background.primary }]} edges={['top', 'bottom']}>
+        <GuidedExerciseEngine
+          exerciseId={exercise.id}
+          uid={uid || ''}
+          programId={lesson?.programId || ''}
+          lessonId={exercise.lessonId}
+          onComplete={async () => {
+            await queryClient.invalidateQueries({ queryKey: ['journey', 'exercises', uid] });
+            await queryClient.invalidateQueries({ queryKey: ['journey', 'user-progress', uid] });
+            await queryClient.invalidateQueries({ queryKey: ['journey', 'legacy', uid] });
+            router.replace('/(tabs)/journey');
+          }}
+        />
       </SafeAreaView>
     );
   }

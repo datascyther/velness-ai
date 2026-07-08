@@ -21,26 +21,26 @@ on conflict (id) do update set public = excluded.public;
 drop policy if exists avatars_owner on storage.objects;
 create policy avatars_owner on storage.objects
   for all to authenticated
-  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text)
-  with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = (select auth.uid())::text)
+  with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
 -- journal ----------------------------------------------------------------------
 drop policy if exists journal_owner on storage.objects;
 create policy journal_owner on storage.objects
   for all to authenticated
-  using (bucket_id = 'journal' and (storage.foldername(name))[1] = auth.uid()::text)
-  with check (bucket_id = 'journal' and (storage.foldername(name))[1] = auth.uid()::text);
+  using (bucket_id = 'journal' and (storage.foldername(name))[1] = (select auth.uid())::text)
+  with check (bucket_id = 'journal' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
 -- media ------------------------------------------------------------------------
 drop policy if exists media_owner on storage.objects;
 create policy media_owner on storage.objects
   for all to authenticated
-  using (bucket_id = 'media' and (storage.foldername(name))[1] = auth.uid()::text)
-  with check (bucket_id = 'media' and (storage.foldername(name))[1] = auth.uid()::text);
+  using (bucket_id = 'media' and (storage.foldername(name))[1] = (select auth.uid())::text)
+  with check (bucket_id = 'media' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
 -- exports ----------------------------------------------------------------------
 drop policy if exists exports_owner on storage.objects;
 create policy exports_owner on storage.objects
   for all to authenticated
-  using (bucket_id = 'exports' and (storage.foldername(name))[1] = auth.uid()::text)
-  with check (bucket_id = 'exports' and (storage.foldername(name))[1] = auth.uid()::text);
+  using (bucket_id = 'exports' and (storage.foldername(name))[1] = (select auth.uid())::text)
+  with check (bucket_id = 'exports' and (storage.foldername(name))[1] = (select auth.uid())::text);

@@ -7,7 +7,7 @@
  * events (RLS `analytics_events_select` => `user_id = auth.uid()`).
  */
 
-import { BaseRepository, toRepositoryError } from './baseRepository';
+import { BaseRepository, toRepositoryError, GUEST_UID } from './baseRepository';
 import type { Database } from '../database.types';
 
 type AnalyticsRow = Database['public']['Tables']['analytics_events']['Row'];
@@ -21,10 +21,12 @@ export class AnalyticsRepository extends BaseRepository<'analytics_events'> {
   }
 
   /** Record an event. `user_id` may be omitted for anonymous telemetry. */
-  async track(input: AnalyticsEventInput): Promise<AnalyticsRow> {
+  async track(input: AnalyticsEventInput): Promise<AnalyticsRow | null> {
+    const uid = input.user_id || (await this.getCurrentUserId());
+    if (uid === GUEST_UID) return null;
     const { data, error } = await this.client
       .from('analytics_events')
-      .insert(input)
+      .insert({ ...input, user_id: uid })
       .select('*')
       .single();
     if (error) throw toRepositoryError(error, 'AnalyticsRepository.track');

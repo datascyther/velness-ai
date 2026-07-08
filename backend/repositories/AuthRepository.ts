@@ -15,6 +15,8 @@ import {
   type AuthSubscription,
   type AuthUser,
 } from './baseRepository';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '../database.types';
 
 type AuthResponse = {
   user: AuthUser | null;
@@ -192,21 +194,21 @@ export class AuthRepository extends BaseRepository<'profiles'> {
   /**
    * Delete the current user's account.
    *
-   * NOTE: Supabase only allows account deletion through the admin API, which
-   * requires the service role. With the anon client we surface the registered
-   * user id and rely on a server/edge function to perform the actual deletion;
-   * if the admin client happens to be available it is used directly.
+   * Supabase only allows account deletion through the admin API, which
+   * requires the service_role key. The caller must provide a service-role
+   * client; this method does NOT work with the anon (RLS-scoped) client.
+   * In production this should be called from a server/edge function.
    */
-  async deleteAccount(): Promise<void> {
+  async deleteAccount(adminClient?: SupabaseClient<Database>): Promise<void> {
     const userId = await this.getCurrentUserId();
-    const admin = (
-      this.client.auth as unknown as {
-        admin?: { deleteUser: (id: string) => Promise<{ error: AuthErrorType }> };
-      }
-    ).admin;
+    const client = adminClient ?? this.client;
+    const admin = (client.auth as unknown as {
+      admin?: { deleteUser: (id: string) => Promise<{ error: AuthErrorType }> };
+    }).admin;
     if (!admin) {
       throw new RepositoryError(
-        'deleteAccount requires a service-role admin client (server/edge function).',
+        'deleteAccount requires a service-role admin client. ' +
+        'Call `createServiceRoleClient()` from backend/client and pass the result.',
         { code: 'admin_required' },
       );
     }

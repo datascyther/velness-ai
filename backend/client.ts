@@ -65,7 +65,7 @@ export const supabase: SupabaseClient<Database> = createClient<Database>(
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: false,
+      detectSessionInUrl: true,
       ...(rnStorage ? { _reactNativeAsyncStorage: rnStorage } : {}),
     },
   },
@@ -73,19 +73,25 @@ export const supabase: SupabaseClient<Database> = createClient<Database>(
 
 /**
  * SERVER-ONLY client using the service_role key (bypasses RLS).
- * Never import this from UI code. Pass the key explicitly or rely on the
- * SUPABASE_PROD_SERVICE_ROLE_KEY / SUPABASE_DEV_SERVICE_ROLE_KEY env vars.
+ * Never import this from UI code. Only export in non-browser environments
+ * so RN/web bundlers tree-shake it out of the client bundle.
  */
-export function createServiceRoleClient(roleKey?: string): SupabaseClient<Database> {
-  const key =
-    roleKey ||
-    readEnv('SUPABASE_PROD_SERVICE_ROLE_KEY', 'SUPABASE_DEV_SERVICE_ROLE_KEY');
-  if (!key) {
-    throw new Error(
-      'createServiceRoleClient: no service role key provided (server only).',
-    );
-  }
-  return createClient<Database>(url || 'http://localhost:54321', key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-}
+export const createServiceRoleClient =
+  typeof window === 'undefined'
+    ? (roleKey?: string): SupabaseClient<Database> => {
+        const key =
+          roleKey ||
+          readEnv(
+            'SUPABASE_PROD_SERVICE_ROLE_KEY',
+            'SUPABASE_DEV_SERVICE_ROLE_KEY',
+          );
+        if (!key) {
+          throw new Error(
+            'createServiceRoleClient: no service role key provided (server only).',
+          );
+        }
+        return createClient<Database>(url || 'http://localhost:54321', key, {
+          auth: { autoRefreshToken: false, persistSession: false },
+        });
+      }
+    : undefined;

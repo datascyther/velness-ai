@@ -1,23 +1,7 @@
-/**
- * Onboarding Repository
- *
- * Manages onboarding data in Firestore.
- * Isolates data source access from business logic.
- */
-
-import {
-  doc,
-  getDoc,
-  updateDoc,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { profileRepository } from '../../backend/repositories/ProfileRepository';
 import type { UserProfile } from '@/services/auth/types';
 
 export class OnboardingRepository {
-  /**
-   * Save onboarding profile data to Firestore.
-   */
   async saveProfile(
     uid: string,
     data: {
@@ -28,18 +12,10 @@ export class OnboardingRepository {
       notificationsEnabled: boolean;
     }
   ): Promise<void> {
-    if (!db) return;
-
     try {
-      const userDocRef = doc(db, 'users', uid);
-      await updateDoc(userDocRef, {
-        displayName: data.displayName.trim(),
-        primaryGoals: data.primaryGoals,
-        initialMood: data.initialMood,
-        reminderPreference: data.reminderPreference,
-        notificationsEnabled: data.notificationsEnabled,
-        onboardingCompleted: true,
-        updatedAt: serverTimestamp(),
+      await profileRepository.update(uid, {
+        display_name: data.displayName.trim(),
+        onboarding_completed: true,
       });
     } catch (error) {
       console.error('Error saving onboarding profile:', error);
@@ -47,25 +23,16 @@ export class OnboardingRepository {
     }
   }
 
-  /**
-   * Load onboarding profile data from Firestore.
-   */
   async loadProfile(uid: string): Promise<Partial<UserProfile> | null> {
-    if (!db || !uid) return null;
+    if (!uid) return null;
 
     try {
-      const userDocRef = doc(db, 'users', uid);
-      const docSnap = await getDoc(userDocRef);
+      const row = await profileRepository.getById(uid);
+      if (!row) return null;
 
-      if (!docSnap.exists()) return null;
-
-      const data = docSnap.data();
       return {
-        displayName: data.displayName as string | undefined,
-        primaryGoals: data.primaryGoals as string[] | undefined,
-        initialMood: data.initialMood as string | undefined,
-        reminderPreference: data.reminderPreference as string | undefined,
-        notificationsEnabled: data.notificationsEnabled as boolean | undefined,
+        displayName: row.display_name || undefined,
+        onboardingCompleted: row.onboarding_completed || false,
       };
     } catch (error) {
       console.error('Error loading onboarding profile:', error);
@@ -73,17 +40,10 @@ export class OnboardingRepository {
     }
   }
 
-  /**
-   * Mark onboarding as completed in Firestore.
-   */
   async completeOnboarding(uid: string): Promise<void> {
-    if (!db || !uid) return;
-
     try {
-      const userDocRef = doc(db, 'users', uid);
-      await updateDoc(userDocRef, {
-        onboardingCompleted: true,
-        updatedAt: serverTimestamp(),
+      await profileRepository.update(uid, {
+        onboarding_completed: true,
       });
     } catch (error) {
       console.error('Error marking onboarding complete:', error);

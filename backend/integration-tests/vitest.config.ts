@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
+const rootDir = path.resolve(dir, '../..');
 
 /**
  * Dedicated config for the backend integration tests (Sprint S0.9).
@@ -23,5 +24,10 @@ export default defineConfig({
     hookTimeout: 30000,
     // Keep prod clean: do not retry; each run uses fresh throwaway identities.
     retry: 0,
+    alias: {
+      'backend': path.resolve(rootDir, 'backend'),
+      '@': path.resolve(rootDir, 'src'),
+    },
   },
 });
+

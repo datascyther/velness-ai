@@ -88,6 +88,34 @@ export const DEFAULT_PROGRAMS: Program[] = [
     benefits: ['Habit loop awareness', 'Small behavior shifts', 'Consistent daily practice'],
     estimatedTime: '5 days'
   },
+  {
+    id: 'self-compassion',
+    title: 'Self Compassion',
+    description: 'Cultivate friendliness and acceptance toward yourself, particularly in moments of struggle.',
+    difficulty: DIFFICULTY.BEGINNER,
+    duration: 30,
+    thumbnail: '',
+    categoryId: CATEGORY_ID.CBT,
+    lessonCount: 5,
+    status: PROGRAM_STATUS.NOT_STARTED,
+    sortOrder: 6,
+    benefits: ['Develop kind self-talk', 'Accept vulnerabilities', 'Empathy building'],
+    estimatedTime: '5 days'
+  },
+  {
+    id: 'resilience',
+    title: 'Resilience',
+    description: 'Build mental toughness, adopt a growth mindset, and learn to bounce back from life challenges.',
+    difficulty: DIFFICULTY.INTERMEDIATE,
+    duration: 35,
+    thumbnail: '',
+    categoryId: CATEGORY_ID.CBT,
+    lessonCount: 5,
+    status: PROGRAM_STATUS.NOT_STARTED,
+    sortOrder: 7,
+    benefits: ['Growth mindset adoption', 'Optimistic reframing', 'Locus of control focus'],
+    estimatedTime: '5 days'
+  },
 
   // ─── Breathing ─────────────────────────────────────────────────────
   {
@@ -233,20 +261,6 @@ export const DEFAULT_PROGRAMS: Program[] = [
     estimatedTime: '3 days'
   },
   {
-    id: 'self-compassion',
-    title: 'Self Compassion',
-    description: 'Cultivate friendliness and acceptance toward yourself, particularly in moments of struggle.',
-    difficulty: DIFFICULTY.BEGINNER,
-    duration: 20,
-    thumbnail: '',
-    categoryId: CATEGORY_ID.MEDITATION,
-    lessonCount: 3,
-    status: PROGRAM_STATUS.NOT_STARTED,
-    sortOrder: 4,
-    benefits: ['Develop kind self-talk', 'Accept vulnerabilities', 'Empathy building'],
-    estimatedTime: '3 days'
-  },
-  {
     id: 'mindfulness-basics',
     title: 'Mindfulness Basics',
     description: 'Learn the primary pillars of mindfulness: breathing, body awareness, and sensory connection.',
@@ -256,7 +270,7 @@ export const DEFAULT_PROGRAMS: Program[] = [
     categoryId: CATEGORY_ID.MEDITATION,
     lessonCount: 3,
     status: PROGRAM_STATUS.NOT_STARTED,
-    sortOrder: 5,
+    sortOrder: 4,
     benefits: ['Understand mindfulness principles', 'Observe without judging', 'Sensory anchoring'],
     estimatedTime: '3 days'
   },
@@ -354,10 +368,194 @@ interface LessonContentInput {
   description: string;
   introduction: string;
   learningObjective: string;
+  preparation: string;
   reflectionPrompt: string;
+  takeaway: string;
   completionSummary: string;
   duration?: number;
 }
+
+// ─── Lesson Blueprint Engineering (Sprint 7 — CBT Therapeutic Content Layer) ───
+// Per-lesson Preparation (setup before practice) and Takeaway (closing insight)
+// for the eight CBT programs. Keyed by program id, ordered by lesson position.
+const LESSON_BLUEPRINT: Record<string, Array<{ preparation: string; takeaway: string }>> = {
+  'understanding-thoughts': [
+    {
+      preparation: 'Find a quiet spot where you won’t be interrupted for about 8 minutes. Keep a pen and paper or this device nearby so you can capture your first observation.',
+      takeaway: 'You’ve taken the first step in cognitive awareness: noticing that thoughts are mental events you can observe, not commands you must obey.'
+    },
+    {
+      preparation: 'Think of one recent moment when your mood shifted suddenly. Keep that situation in mind—you’ll map it step by step.',
+      takeaway: 'Mapping the thought–feeling–behavior loop shows you exactly where a small mental shift can change the whole chain.'
+    },
+    {
+      preparation: 'Recall a moment today when your mind told you a stressful story. You’ll separate what actually happened from the meaning your mind added.',
+      takeaway: 'When you strip a thought down to the camera-recorded facts, its emotional grip usually loosens—this becomes your new baseline.'
+    },
+    {
+      preparation: 'Scan your day for a repeating cue—a time, place, person, or body sensation—that tends to launch stressful thinking.',
+      takeaway: 'Naming your triggers turns them from invisible ambushes into predictable signals you can prepare for.'
+    },
+    {
+      preparation: 'Before you begin, pick one stressful situation from this week that you’d like to process one final time.',
+      takeaway: 'You now have a complete daily toolkit—notice, map, separate fact from story, and spot triggers—to meet any thought with curiosity.'
+    }
+  ],
+  'challenging-negative-thinking': [
+    {
+      preparation: 'Bring to mind a recent moment of self-doubt or irritation. You’ll catch the automatic negative thought (ANT) running in the background.',
+      takeaway: 'Catching an ANT the instant it appears immediately reduces its power—you’ve named it instead of believing it.'
+    },
+    {
+      preparation: 'Recall a worry that keeps resurfacing. You’ll hold it up to the light and name the distortion behind it.',
+      takeaway: 'Labeling a distortion—catastrophizing, mind reading—breaks the illusion that the thought is simply “the truth.”'
+    },
+    {
+      preparation: 'Choose one negative belief about yourself that feels heavy. You’ll act as a fair judge weighing the evidence for and against it.',
+      takeaway: 'When you put a thought on trial, the verdict is almost always kinder and far more accurate than the accusation.'
+    },
+    {
+      preparation: 'Recall a time someone’s action upset you and your mind jumped to a negative conclusion. You’ll generate other possible meanings.',
+      takeaway: 'Every situation has more than one story; practicing alternatives trains your mind away from its harsh default.'
+    },
+    {
+      preparation: 'Pick one persistent negative belief you’d like to reshape into a balanced, supportive statement.',
+      takeaway: 'Daily reframing is a habit, not a one-time fix—each balanced thought weakens the old negative groove.'
+    }
+  ],
+  'managing-anxiety': [
+    {
+      preparation: 'Find a comfortable seat and take a slow breath. You’ll learn to recognize anxiety triggers and physical alerts.',
+      takeaway: 'Recognizing anxiety as a safety alert rather than a danger reduces the power of the alarm.'
+    },
+    {
+      preparation: 'Sit quietly and scan your body from head to toe, noting where tension resides.',
+      takeaway: 'Somatic awareness helps you locate and sit with physical sensations without panic.'
+    },
+    {
+      preparation: 'Identify one common safety behavior or avoidance habit you use to escape discomfort.',
+      takeaway: 'Delaying safety behaviors teaches your nervous system that anxiety decreases on its own.'
+    },
+    {
+      preparation: 'Think of a minor fear you wish to face. You’ll break it down into manageable sub-steps.',
+      takeaway: 'Graded exposure planning helps you safely habituate and build courage in small steps.'
+    },
+    {
+      preparation: 'Identify your most helpful somatic, cognitive, and exposure tools.',
+      takeaway: 'A personalized recovery playbook transforms anxiety panic into a structured, calm routine.'
+    }
+  ],
+  'emotional-regulation': [
+    {
+      preparation: 'Take a moment to sit quietly. We will begin by learning to pinpoint exactly what emotion you are experiencing right now.',
+      takeaway: 'Identifying your primary emotion objectively brings clarity and prevents you from feeling swept away by vague distress.'
+    },
+    {
+      preparation: 'Recall a difficult or uncomfortable feeling you experienced recently. You will practice letting it exist without resisting.',
+      takeaway: 'Allowing your emotions to exist without judgment or resistance removes their power to control you.'
+    },
+    {
+      preparation: 'Think of a vague mood or "bad day" feeling. We will use precision labeling to unpack its specific layers.',
+      takeaway: 'Naming your emotions with high specificity acts as a natural neurological dimmer switch on their intensity.'
+    },
+    {
+      preparation: 'Recall a moment you reacted impulsively. We will practice the STOP pause and somatic cooling tools.',
+      takeaway: 'Using physical resets and mindful pauses lengthens the gap between stimulus and your reaction.'
+    },
+    {
+      preparation: 'Bring to mind a current challenge. We will combine identifying, accepting, labeling, and regulating into a daily strategy.',
+      takeaway: 'Resilience isn\'t about never feeling down—it is about accepting the feeling while still choosing your actions.'
+    }
+  ],
+  'building-confidence': [
+    {
+      preparation: 'Reflect on the recurring critical voice in your head. You’ll audit the beliefs it repeats about you.',
+      takeaway: 'Naming the inner critic is the first move in withdrawing the power you’ve handed it.'
+    },
+    {
+      preparation: 'Recall a recent self-critical moment. You’ll answer it with the same warmth you’d give a friend.',
+      takeaway: 'You deserve the exact kindness you offer others—speaking to yourself that way rewires self-worth.'
+    },
+    {
+      preparation: 'List three things you’ve done well recently. You’ll name the strengths those moments reveal.',
+      takeaway: 'Anchoring in real strengths builds a stable foundation for confidence that criticism can’t easily shake.'
+    },
+    {
+      preparation: 'Identify one value that matters deeply to you. You’ll connect your worth to that value, not to performance.',
+      takeaway: 'When self-worth rests on values instead of approval, outside criticism loses its bite.'
+    },
+    {
+      preparation: 'Choose one small, value-aligned risk you could take tomorrow. You’ll commit to it here.',
+      takeaway: 'Confidence is built by action—each small step proves to yourself that you can move forward.'
+    }
+  ],
+  'healthy-habits': [
+    {
+      preparation: 'Pick one habit you do almost automatically. You’ll map its cue, routine, and reward.',
+      takeaway: 'Seeing the loop reveals the exact lever you can pull to redesign the behavior.'
+    },
+    {
+      preparation: 'Choose a habit you keep avoiding. You’ll shrink it to a version that takes two minutes or less.',
+      takeaway: 'Starting small makes it impossible to say no—consistency matters more than intensity.'
+    },
+    {
+      preparation: 'Note one routine you already do every day without fail. You’ll anchor a new habit onto it.',
+      takeaway: 'Linking behaviors creates a natural daily flow that automates consistency.'
+    },
+    {
+      preparation: 'Recall your last habit setback. You’ll plan a kind, immediate recovery so you never miss twice.',
+      takeaway: 'Resilience, not perfection, is what sustains habits over the long run.'
+    },
+    {
+      preparation: 'Think of how your new habits align with the person you want to become.',
+      takeaway: 'Habits are the physical manifestation of your identity—real change is lifestyle integration.'
+    }
+  ],
+  'self-compassion': [
+    {
+      preparation: 'Place a hand over your heart and soften your posture. You’ll offer yourself simple, warm wishes.',
+      takeaway: 'Extending kindness to yourself is a trainable skill, not a personality trait—you’ve just begun.'
+    },
+    {
+      preparation: 'Recall a recent mistake you criticized yourself for. You’ll meet it with empathy instead of harshness.',
+      takeaway: 'Softening self-talk replaces the critic with a supportive companion you carry everywhere.'
+    },
+    {
+      preparation: 'Name one flaw or mistake that triggers shame. You’ll practice accepting it as shared, human experience.',
+      takeaway: 'Imperfection is not a defect to hide—it’s the common ground that connects you to others.'
+    },
+    {
+      preparation: 'Bring to mind a struggle you feel alone in. You’ll connect it to the wider human experience.',
+      takeaway: 'Knowing others struggle exactly as you do dissolves the isolation that shame depends on.'
+    },
+    {
+      preparation: 'Choose a recurring daily stressor. You’ll assemble a short self-compassion break to use when it arises.',
+      takeaway: 'A go-to self-compassion ritual lets you meet stress with warmth instead of self-attack.'
+    }
+  ],
+  'resilience': [
+    {
+      preparation: 'Recall a recent setback. You’ll reframe it as feedback rather than proof of failure.',
+      takeaway: 'Resilience starts with viewing setbacks as data your brain can learn and adapt from.'
+    },
+    {
+      preparation: 'Bring a recent negative event to mind. You’ll rewrite the story as temporary and specific.',
+      takeaway: 'Explanatory style is trainable—storms pass when you stop labeling them as permanent.'
+    },
+    {
+      preparation: 'List a current stressor. You’ll sort what’s inside your control from what isn’t.',
+      takeaway: 'Investing energy only where it works is the core habit that protects resilience.'
+    },
+    {
+      preparation: 'Scan your week for energy dips. You’ll schedule two micro-recoveries under five minutes.',
+      takeaway: 'Proactively recharging builds the reserve that lets you absorb life’s heavier hits.'
+    },
+    {
+      preparation: 'Reflect on the tools you’ve gathered this program. You’ll build one emergency playbook for hard times.',
+      takeaway: 'With a written playbook, the next storm meets a prepared, adaptable you—not a surprised one.'
+    }
+  ]
+};
 
 const LESSON_CONTENT: Record<string, LessonContentInput[]> = {
   // CBT Programs
@@ -447,7 +645,7 @@ const LESSON_CONTENT: Record<string, LessonContentInput[]> = {
   ],
   'managing-anxiety': [
     {
-      title: 'Understanding Anxiety',
+      title: 'Recognizing Anxiety',
       description: 'Learn how anxiety functions in the brain and body as a protective mechanism.',
       introduction: 'Anxiety is a physical alarm system. Today we learn how **fight-or-flight** works and why your body reacts the way it does.',
       learningObjective: 'Understand the biological basis of anxiety and recognize it as a safety signal rather than a danger.',
@@ -455,7 +653,7 @@ const LESSON_CONTENT: Record<string, LessonContentInput[]> = {
       completionSummary: 'Great work. Demystifying anxiety reduces the fear of the feeling itself. 😌'
     },
     {
-      title: 'Physical Sensations',
+      title: 'Body Awareness',
       description: 'Recognize somatic anxiety symptoms and learn to observe them without fear.',
       introduction: 'Anxiety speaks through the body. Today we focus on **observing somatic signals**—like a racing heart or tight chest—without panic.',
       learningObjective: 'Locate and sit with physical sensations of anxiety, describing them objectively without judgment.',
@@ -463,70 +661,70 @@ const LESSON_CONTENT: Record<string, LessonContentInput[]> = {
       completionSummary: 'Amazing bravery. Sitting with physical sensations helps your nervous system realize it is safe. 💜'
     },
     {
-      title: 'Grounding Somatic Panic',
-      description: 'Master somatic grounding techniques to stabilize your nervous system in high-stress moments.',
-      introduction: 'When anxiety surges, we need to anchor ourselves. Today we practice **somatic grounding** to bring attention back to the present.',
-      learningObjective: 'Apply the 5-4-3-2-1 sensory grounding technique to anchor your focus in the physical environment.',
-      reflectionPrompt: 'Which of the five senses helped ground you the most during today\'s practice?',
-      completionSummary: 'Grounded and steady. You can return to this anchor whenever the mental storm gets too loud. 🌙'
+      title: 'Safety Behaviors',
+      description: 'Identify and challenge safety behaviors that prolong and reinforce anxiety loops.',
+      introduction: 'Safety behaviors are actions we take to avoid anxiety. Today we identify **unhelpful coping patterns** and practice delaying them.',
+      learningObjective: 'Identify your common safety behaviors and practice delaying them to build tolerance.',
+      reflectionPrompt: 'What safety behaviors did you identify today? How did it feel to delay them?',
+      completionSummary: 'Steady work. Stepping away from safety behaviors is how you reclaim control. 🌟'
     },
     {
-      title: 'Cognitive Restructuring',
-      description: 'Apply cognitive restructuring to catastrophic thoughts and worst-case scenarios.',
-      introduction: 'Anxiety loves the worst-case scenario. Today we challenge **catastrophic thinking** by analyzing probability and coping capability.',
-      learningObjective: 'Reframe "what-if" catastrophic thoughts by assessing realistic outcomes and your ability to cope.',
-      reflectionPrompt: 'What is the actual, realistic probability of your worst-case scenario occurring? How would you cope?',
-      completionSummary: 'Excellent reframing. Shifting from panic to preparation builds lasting confidence. ✨'
+      title: 'Exposure Planning',
+      description: 'Create a graded exposure plan to face anxiety-provoking situations systematically.',
+      introduction: 'Exposure is facing fears gradually. Today we design an **exposure ladder** to systematically tackle anxious situations.',
+      learningObjective: 'Create a structured exposure plan with graded steps to face a minor anxiety target.',
+      reflectionPrompt: 'What exposure task did you choose for your first step? How ready do you feel to take it?',
+      completionSummary: 'Superb planning. Breaking fears down makes them manageable and conquerable. 🚀'
     },
     {
-      title: 'Daily Coping Plan',
-      description: 'Create a personalized anxiety response plan for stressful triggers.',
-      introduction: 'We finish by building your **personal anxiety playbook**. We will outline exact actions to take when you feel anxiety rising.',
-      learningObjective: 'Design a step-by-step coping plan combining somatic grounding, breathing, and cognitive reframing.',
-      reflectionPrompt: 'What are the first three steps you will take the next time you feel anxiety taking over?',
-      completionSummary: 'Congratulations on completing this program! You are now fully equipped to guide yourself back to calm. 🌟'
+      title: 'Recovery Toolkit',
+      description: 'Establish a comprehensive recovery protocol for future anxiety management.',
+      introduction: 'We close the program by assembling your **recovery toolkit**, consolidating somatic, cognitive, and exposure strategies.',
+      learningObjective: 'Design a comprehensive daily and emergency protocol to manage anxiety spikes.',
+      reflectionPrompt: 'Which tool in your recovery toolkit do you find most helpful, and how will you practice it daily?',
+      completionSummary: 'Congratulations on completing this program! You are now fully equipped to manage anxiety with confidence. 🏆'
     }
   ],
   'emotional-regulation': [
     {
-      title: 'Emotional Awareness',
-      description: 'Learn to identify and accept primary emotions as temporary signals.',
-      introduction: 'Emotions are raw data, not directives. Today we learn to **welcome and observe** primary emotional waves.',
-      learningObjective: 'Identify your current primary emotion and observe its rise and fall without trying to change it.',
-      reflectionPrompt: 'What primary emotion did you notice today? Where did you feel it in your body?',
-      completionSummary: 'Beautiful awareness. Allowing emotions to exist without fighting them is the key to regulation. 🌱'
+      title: 'Identify Emotion',
+      description: 'Identify your primary emotions to establish a clear foundation for self-understanding.',
+      introduction: 'Emotional awareness starts with identification. Today we learn to **locate and name** your primary feelings.',
+      learningObjective: 'Recognize and name your primary emotions as they arise in real time.',
+      reflectionPrompt: 'What primary emotion did you identify today? How easily did you recognize it?',
+      completionSummary: 'Great start. Recognizing the exact feeling is the vital first step of emotional regulation. 🔍'
     },
     {
-      title: 'Naming Complex Emotions',
-      description: 'Expand your emotional vocabulary to increase self-understanding and control.',
-      introduction: 'Vague feelings are hard to regulate. Today we **label complex emotions** with specificity to reduce their intense grip.',
-      learningObjective: 'Translate general "bad" or "stressed" feelings into specific, nuanced emotional terms.',
-      reflectionPrompt: 'What specific, secondary emotions (e.g. feeling unseen, disappointed, overwhelmed) did you uncover today?',
-      completionSummary: 'Highly precise! Naming an emotion accurately acts as a natural neurological dimmer switch. 💜'
+      title: 'Accept Emotion',
+      description: 'Practice accepting your emotional waves without judgment or resistance.',
+      introduction: 'We often fight our feelings, which only makes them stronger. Today we learn to **welcome and observe** emotional waves.',
+      learningObjective: 'Observe your emotional sensations objectively and practice accepting them as temporary waves.',
+      reflectionPrompt: 'How does it feel to say "it is okay to feel this" instead of trying to force the feeling away?',
+      completionSummary: 'Beautiful practice. Acceptance creates the space needed for healthy regulation to occur. 🌊'
     },
     {
-      title: 'Creating a Pause',
-      description: 'Learn the STOP technique to create space between stimulus and response.',
-      introduction: 'Between stimulus and response, there is a space. Today we master the **STOP technique** to lengthen that space.',
-      learningObjective: 'Practice pausing (Stop, Take a breath, Observe, Proceed) before reacting to emotional triggers.',
-      reflectionPrompt: 'In what daily situation could you apply the STOP technique to prevent impulsive reactions?',
-      completionSummary: 'A powerful pause. This small gap is where your freedom to choose a response lives. ✨'
+      title: 'Label Emotion',
+      description: 'Expand your emotional vocabulary to describe complex and layered feelings with precision.',
+      introduction: 'Vague feelings are hard to manage. Today we **label complex feelings** to break down their intensity.',
+      learningObjective: 'Unpack general distress states into specific, nuanced secondary emotions.',
+      reflectionPrompt: 'What secondary emotions (like feeling unheard or disappointed) did you uncover today?',
+      completionSummary: 'Exceptional work. Precision labeling gives you the clarity needed to address your needs. 🏷️'
     },
     {
-      title: 'De-escalating Intensity',
-      description: 'Discover somatic and cognitive strategies to lower emotional arousal.',
-      introduction: 'When emotional intensity is high, logic goes offline. Today we practice **de-escalation tools** to cool down your nervous system.',
-      learningObjective: 'Use physical resets and paced respiration to lower high emotional arousal in real-time.',
-      reflectionPrompt: 'Which de-escalation tool (e.g., cold water, paced breathing, changing environment) works best for you?',
-      completionSummary: 'Cooled down and centered. You\'ve learned to de-escalate the fire before it spreads. 😌'
+      title: 'Regulate Emotion',
+      description: 'Master the STOP technique and somatic resets to manage intense emotional arousal.',
+      introduction: 'When emotion spikes, our logic goes offline. Today we practice **pausing and cooling** your physiology.',
+      learningObjective: 'Apply the STOP technique and physical resets to de-escalate emotional intensity.',
+      reflectionPrompt: 'Which reset tool (e.g., box breathing, somatic cooling) did you find most effective today?',
+      completionSummary: 'Superb control. You are learning to cool the fire before reacting. ❄️'
     },
     {
-      title: 'Emotional Balance',
-      description: 'Synthesize your regulation skills to maintain stability through life\'s ups and downs.',
-      introduction: 'We conclude by integrating all tools to foster **emotional balance** and dialectical thinking—accepting emotions while taking action.',
-      learningObjective: 'Integrate emotional labeling, pausing, and physical resets into a unified daily regulation strategy.',
-      reflectionPrompt: 'How will you combine awareness and action to stay balanced during stressful weeks?',
-      completionSummary: 'Congratulations! You have completed the Emotional Regulation program. You are the steady anchor in your own storm. 🌟'
+      title: 'Build Emotional Resilience',
+      description: 'Integrate emotional regulation tools into a unified daily strategy for long-term resilience.',
+      introduction: 'We close the program by building **emotional resilience**—synthesizing acceptance and values-aligned action.',
+      learningObjective: 'Integrate identifying, accepting, labeling, and regulating into a unified daily playbook.',
+      reflectionPrompt: 'How will you use your emotional regulation playbook to stay steady during challenging weeks?',
+      completionSummary: 'Congratulations on completing the program! You now have a solid foundation for emotional resilience. 🏆'
     }
   ],
   'building-confidence': [
@@ -573,7 +771,7 @@ const LESSON_CONTENT: Record<string, LessonContentInput[]> = {
   ],
   'healthy-habits': [
     {
-      title: 'Habit Cycles',
+      title: 'Habit Awareness',
       description: 'Understand the neurological cue-routine-reward habit loop.',
       introduction: 'Habits shape our lives. Today we explore the **habit loop** (Cue -> Routine -> Reward) and map your existing routines.',
       learningObjective: 'Map the neurological loop of one positive habit and one negative habit in your life.',
@@ -581,15 +779,7 @@ const LESSON_CONTENT: Record<string, LessonContentInput[]> = {
       completionSummary: 'Brilliant analysis. Understanding the loop is key to redesigning your behavior. 🌱'
     },
     {
-      title: 'Trigger Hacking',
-      description: 'Optimize your environment to make good habits easy and bad habits difficult.',
-      introduction: 'Environment dictates behavior. Today we look at **trigger hacking**—changing your environment to support your goals.',
-      learningObjective: 'Modify your physical or digital surroundings to reduce triggers for bad habits and make good cues visible.',
-      reflectionPrompt: 'What changes did you make to your environment today to make your positive habit easier?',
-      completionSummary: 'Environment optimized! Designing your space removes friction and supports consistency. ✨'
-    },
-    {
-      title: 'Micro-Commitments',
+      title: 'Tiny Habits',
       description: 'Use the 2-minute rule to start new habits without resistance.',
       introduction: 'Starting is the hardest part. Today we practice **micro-commitments**—scaling habits down to a 2-minute version.',
       learningObjective: 'Define a 2-minute version of your target habit to eliminate friction and build initial momentum.',
@@ -605,12 +795,20 @@ const LESSON_CONTENT: Record<string, LessonContentInput[]> = {
       completionSummary: 'Perfect stack. Linking behaviors creates a natural flow in your day. ✨'
     },
     {
-      title: 'Consistency Mindset',
+      title: 'Consistency',
       description: 'Learn to bounce back from setbacks and maintain long-term habit systems.',
       introduction: 'Consistency is not about perfection; it\'s about resilience. Today we learn how to **never miss twice**.',
       learningObjective: 'Develop a recovery plan for when you inevitably miss a day, ensuring long-term consistency.',
       reflectionPrompt: 'How will you respond to your next habit setback with compassion and immediate action?',
-      completionSummary: 'Congratulations! You have completed the Healthy Habits program. Systemized habits build your wellness future. 🌟'
+      completionSummary: 'Steady work. Resilience, not perfection, is what sustains habits over the long run. 🌟'
+    },
+    {
+      title: 'Lifestyle Integration',
+      description: 'Align your daily habits with your core identity and values.',
+      introduction: 'Real change is identity change. Today we focus on **lifestyle integration**—aligning your habits with the person you want to become.',
+      learningObjective: 'Design an identity-based habit plan that integrates your routines into a cohesive lifestyle.',
+      reflectionPrompt: 'What does your daily habit say about the person you are becoming? How will you maintain this alignment?',
+      completionSummary: 'Congratulations! You have completed the Healthy Habits program. Systemized habits build your wellness future. 🏆'
     }
   ],
 
@@ -900,7 +1098,65 @@ const LESSON_CONTENT: Record<string, LessonContentInput[]> = {
       introduction: 'To err is human. Today we practice **embracing imperfections** and realizing we are not alone in struggling.',
       learningObjective: 'Integrate self-kindness and common humanity to accept personal limitations without shame.',
       reflectionPrompt: 'What imperfection did you sit with today? How can you show it some kindness?',
-      completionSummary: 'Congratulations! You have completed the Self Compassion program. Walk in peace. 🌟'
+      completionSummary: 'Imperfections embraced. Accepting flaws is a vital key to personal growth. 💜'
+    },
+    {
+      title: 'Common Humanity',
+      description: 'Recognize that suffering and inadequacy are part of the shared human experience.',
+      introduction: 'We often feel isolated in our failures. Today we focus on **common humanity**—knowing that everyone experiences struggle.',
+      learningObjective: 'Write down a personal struggle and connect it to the broader human experience to reduce isolation.',
+      reflectionPrompt: 'How does knowing others struggle with the exact same doubts make you feel less isolated?',
+      completionSummary: 'You are not alone. Sharing in the human experience makes us stronger together. 💜'
+    },
+    {
+      title: 'Integration Break',
+      description: 'Integrate self-kindness, common humanity, and mindfulness into a daily practice.',
+      introduction: 'In our final lesson, we bring together all elements of **self-compassion** to handle daily struggles with grace.',
+      learningObjective: 'Formulate a go-to self-compassion break ritual for moments of sudden stress.',
+      reflectionPrompt: 'What is your personal self-compassion formula for the next time you feel overwhelmed?',
+      completionSummary: 'Congratulations! You have completed the Self Compassion program. Continue to treat yourself with the warmth you deserve. 🌟'
+    }
+  ],
+  'resilience': [
+    {
+      title: 'Understanding Resilience',
+      description: 'Learn the cognitive foundation of resilience and how to view setbacks as opportunities.',
+      introduction: 'Resilience is not about avoiding difficulty; it is the ability to **bounce back**. Today we learn how the brain adapts to stress.',
+      learningObjective: 'Shift from a fixed mindset to a growth mindset when evaluating a recent challenge.',
+      reflectionPrompt: 'What is one setback you faced recently? How can you view it as feedback instead of failure?',
+      completionSummary: 'Brilliant mindset shift. Viewing setbacks as data is the core of resilience. 🌱'
+    },
+    {
+      title: 'Optimistic Reframing',
+      description: 'Practice explanatory style reframing to see difficulties as temporary and specific.',
+      introduction: 'How we explain events to ourselves matters. Today we learn **optimistic reframing**—disrupting the belief that bad events are permanent.',
+      learningObjective: 'Rewrite a negative explanation into a temporary, specific, and externalized format.',
+      reflectionPrompt: 'Reframe a struggle as temporary and specific. How does it change your outlook?',
+      completionSummary: 'Fantastic. Remember: storms pass, and setbacks do not define your entire life. ✨'
+    },
+    {
+      title: 'Locus of Control',
+      description: 'Distinguish between things you can control and things you cannot, focusing energy on what matters.',
+      introduction: 'Worrying about things we cannot change drains our resilience. Today we map your **locus of control** to focus on active responses.',
+      learningObjective: 'Sort a list of current stressors into can-control and cannot-control, and identify one actionable step.',
+      reflectionPrompt: 'What is one stressor you are letting go of because it is outside your control?',
+      completionSummary: 'Genuinely liberating. Channeling energy into what you can control is a true resilience habit. 💜'
+    },
+    {
+      title: 'Stress Hardiness',
+      description: 'Build daily habits that buffer against chronic stress and enhance mental endurance.',
+      introduction: 'Resilience requires physical and mental reserves. Today we focus on **stress hardiness**—designing daily micro-recoveries.',
+      learningObjective: 'Identify two daily micro-recovery activities that recharge your energy.',
+      reflectionPrompt: 'What micro-recovery activity will you prioritize tomorrow to protect your energy?',
+      completionSummary: 'Excellent. Proactively recharge your battery to handle life\'s challenges. 😌'
+    },
+    {
+      title: 'Resilience Playbook',
+      description: 'Synthesize your resilience strategies into a unified, actionable emergency playbook.',
+      introduction: 'In this final lesson, we build your **resilience playbook** to keep you grounded and strong when the unexpected happens.',
+      learningObjective: 'Create a step-by-step response plan for major challenges, identifying key thoughts, actions, and resources.',
+      reflectionPrompt: 'What is your primary takeaway from this program that will guide you through your next major storm?',
+      completionSummary: 'Congratulations! You have completed the Resilience program. You are strong, adaptable, and ready for whatever comes next. 🌟'
     }
   ],
   'mindfulness-basics': [
@@ -1099,7 +1355,9 @@ const cbtPrograms = [
   'managing-anxiety',
   'emotional-regulation',
   'building-confidence',
-  'healthy-habits'
+  'healthy-habits',
+  'self-compassion',
+  'resilience'
 ];
 
 cbtPrograms.forEach((progId) => {
@@ -1108,6 +1366,17 @@ cbtPrograms.forEach((progId) => {
     customLessons.forEach((custom, idx) => {
       const order = idx + 1;
       const id = `${progId}-l${order}`;
+      const blueprint = LESSON_BLUEPRINT[progId]?.[idx];
+      let exerciseIds = [`${id}-ex1`];
+      if (progId === 'building-confidence') {
+        exerciseIds = [`${id}-ex1`, `${id}-ex2`, `${id}-ex3`];
+      } else if (progId === 'understanding-thoughts') {
+        if (idx < 4) {
+          exerciseIds = [`${id}-ex1`, `${id}-ex2`, `${id}-ex3`];
+        }
+      } else if (progId === 'managing-anxiety') {
+        exerciseIds = [`${id}-ex1`, `${id}-ex2`, `${id}-ex3`, `${id}-ex4`, `${id}-ex5`];
+      }
       lessons.push({
         id,
         programId: progId,
@@ -1115,10 +1384,12 @@ cbtPrograms.forEach((progId) => {
         description: custom.description,
         order,
         duration: custom.duration || 8,
-        exerciseIds: [`${id}-ex1`],
+        exerciseIds,
         introduction: custom.introduction,
         learningObjective: custom.learningObjective,
+        preparation: blueprint?.preparation,
         reflectionPrompt: custom.reflectionPrompt,
+        takeaway: blueprint?.takeaway,
         completionSummary: custom.completionSummary
       });
     });
@@ -1139,7 +1410,6 @@ const otherProgramsList = [
   'anxiety-relief-meditation',
   'better-sleep',
   'focus-training',
-  'self-compassion',
   'mindfulness-basics',
   // Wellness Studio
   'guided-journaling',

@@ -1,32 +1,31 @@
-/**
- * Profile Repository
- *
- * Manages user profile data in Firestore.
- */
-
-import {
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { profileRepository as backendProfileRepo } from '../../backend/repositories/ProfileRepository';
+import type { AuthUser } from '../../backend/repositories/baseRepository';
 import type { UserProfile } from '@/services/auth/types';
-import type { User as FirebaseUser } from 'firebase/auth';
 
-const COLLECTION = 'users';
+type ProfileRow = {
+  avatar_url: string | null;
+  bio: string | null;
+  created_at: string;
+  display_name: string;
+  id: string;
+  is_private: boolean;
+  last_login_at: string | null;
+  locale: string | null;
+  onboarding_completed: boolean;
+  timezone: string | null;
+  updated_at: string;
+  username: string | null;
+};
 
-function createDefaultProfile(user: FirebaseUser, name?: string): UserProfile {
+function mapRowToProfile(row: ProfileRow, uid: string): UserProfile {
   return {
-    uid: user.uid,
-    name: name || user.displayName || 'User',
-    email: user.email || '',
-    phoneNumber: user.phoneNumber || undefined,
-    photoURL: user.photoURL || undefined,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    lastLoginAt: new Date(),
+    uid,
+    name: row.display_name || 'User',
+    email: '',
+    photoURL: row.avatar_url || undefined,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+    lastLoginAt: row.last_login_at ? new Date(row.last_login_at) : new Date(),
     preferences: {
       theme: 'dark',
       notifications: true,
@@ -39,67 +38,54 @@ function createDefaultProfile(user: FirebaseUser, name?: string): UserProfile {
       streakDays: 0,
       lastActivityDate: new Date(),
     },
+    onboardingCompleted: row.onboarding_completed || false,
+    displayName: row.display_name,
   };
 }
 
 export class ProfileRepository {
-  async loadProfile(user: FirebaseUser): Promise<UserProfile | null> {
-    if (!db) return null;
-
+  async loadProfile(user: AuthUser): Promise<UserProfile | null> {
     try {
-      const userDocRef = doc(db, COLLECTION, user.uid);
-      const docSnap = await getDoc(userDocRef);
-
-      if (docSnap.exists()) {
-        const data = docSnap.data() as any;
-        return {
-          ...data,
-          createdAt: data.createdAt?.toDate?.() ?? new Date(),
-          updatedAt: data.updatedAt?.toDate?.() ?? new Date(),
-          lastLoginAt: data.lastLoginAt?.toDate?.() ?? new Date(),
-          stats: {
-            ...data.stats,
-            lastActivityDate: data.stats?.lastActivityDate?.toDate?.() ?? new Date(),
-          },
-        } as UserProfile;
-      }
-
-      return null;
-    } catch (error) {
-      console.error('Error loading profile:', error);
+      const row = await backendProfileRepo.getById(user.id);
+      if (!row) return null;
+      return mapRowToProfile(row, user.id);
+    } catch {
       return null;
     }
   }
 
-  async createProfile(user: FirebaseUser, name?: string): Promise<UserProfile> {
-    const profile = createDefaultProfile(user, name);
-    if (!db) return profile;
-
-    try {
-      const userDocRef = doc(db, COLLECTION, user.uid);
-      await setDoc(userDocRef, profile);
-    } catch (error) {
-      console.warn('Could not save profile to Firestore:', error);
-    }
-    return profile;
+  async createProfile(user: AuthUser, name?: string): Promise<UserProfile> {
+    return {
+      uid: user.id,
+      name: name || user.email?.split('@')[0] || 'User',
+      email: user.email || '',
+      photoURL: user.user_metadata?.avatar_url || undefined,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastLoginAt: new Date(),
+      preferences: { theme: 'dark', notifications: true, language: 'en', tone: 'auto' },
+      stats: { totalSessions: 0, totalMinutes: 0, streakDays: 0, lastActivityDate: new Date() },
+      onboardingCompleted: false,
+    };
   }
 
   async updateProfile(
     uid: string,
     updates: Partial<UserProfile>,
-    currentProfile: UserProfile
+    currentProfile: UserProfile,
   ): Promise<UserProfile> {
-    const cleanUpdates: Record<string, unknown> = {};
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value !== undefined) cleanUpdates[key] = value;
-    });
+    const dbUpdates: Record<string, unknown> = {};
+    if (updates.name !== undefined) dbUpdates.display_name = updates.name;
+    if (updates.displayName !== undefined) dbUpdates.display_name = updates.displayName;
+    if (updates.photoURL !== undefined) dbUpdates.avatar_url = updates.photoURL;
+    if (updates.onboardingCompleted !== undefined) dbUpdates.onboarding_completed = updates.onboardingCompleted;
+    if (updates.lastLoginAt !== undefined) dbUpdates.last_login_at = updates.lastLoginAt.toISOString();
 
-    if (db) {
+    if (Object.keys(dbUpdates).length > 0) {
       try {
-        const userDocRef = doc(db, COLLECTION, uid);
-        await updateDoc(userDocRef, { ...cleanUpdates, updatedAt: serverTimestamp() });
-      } catch (error) {
-        console.warn('Could not update profile in Firestore:', error);
+        await backendProfileRepo.update(uid, dbUpdates as any);
+      } catch {
+        // non-critical
       }
     }
 
@@ -107,20 +93,10 @@ export class ProfileRepository {
   }
 
   async getProfileById(uid: string): Promise<UserProfile | null> {
-    if (!db) return null;
-
     try {
-      const userDocRef = doc(db, COLLECTION, uid);
-      const docSnap = await getDoc(userDocRef);
-      if (!docSnap.exists()) return null;
-
-      const data = docSnap.data() as any;
-      return {
-        ...data,
-        createdAt: data.createdAt?.toDate?.() ?? new Date(),
-        updatedAt: data.updatedAt?.toDate?.() ?? new Date(),
-        lastLoginAt: data.lastLoginAt?.toDate?.() ?? new Date(),
-      } as UserProfile;
+      const row = await backendProfileRepo.getById(uid);
+      if (!row) return null;
+      return mapRowToProfile(row, uid);
     } catch {
       return null;
     }

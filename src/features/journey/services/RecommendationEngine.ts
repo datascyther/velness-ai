@@ -122,8 +122,88 @@ export function getTodaysRecommendations(inputs: RecommendationInputs): Recommen
   const recentIds = new Set(recentExercises ?? []);
   const completedIds = new Set(completedLessons ?? []);
 
-  // ─── Rule 1: Mood-based match ──────────────────────────────────────
+  // ─── Phase 6.4 Rule 1: High anxiety moods ───────────────────────────
+  const latestMood = moodHistory.length > 0 ? [...moodHistory].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0] : null;
+  const isAnxious = latestMood && (
+    (latestMood.label && (latestMood.label.toLowerCase().includes('anxious') || latestMood.label.toLowerCase().includes('anxiety'))) ||
+    (latestMood.note && (latestMood.note.toLowerCase().includes('anxious') || latestMood.note.toLowerCase().includes('anxiety'))) ||
+    latestMood.rating <= 2
+  );
 
+  if (isAnxious) {
+    const boxBreathing = allExercises.find((ex) => ex.id === 'box-breathing-l1');
+    if (boxBreathing) {
+      const cat = categories.find((c) => c.id === CATEGORY_ID.BREATHING) || categories[0];
+      return [{
+        id: `rec-anxiety-${boxBreathing.id}-${Date.now()}`,
+        exerciseId: boxBreathing.id,
+        title: 'Box Breathing',
+        description: 'Breathe to ease your anxious mind and restore calm.',
+        categoryId: cat.id,
+        exerciseType: boxBreathing.type,
+        durationMinutes: boxBreathing.estimatedTime,
+        reason: 'Recommended for anxiety relief',
+      }];
+    }
+  }
+
+  // ─── Phase 6.4 Rule 2: Completed "Building Confidence" program ────────
+  const confidenceProg = userProgress.programProgress['building-confidence'];
+  if (confidenceProg && confidenceProg.status === 'completed') {
+    // Recommend "Understanding Thoughts"
+    const nextProgramEx = allExercises.find((ex) => {
+      const l = DEFAULT_LESSONS.find((les) => les.id === ex.lessonId);
+      return l && l.programId === 'understanding-thoughts';
+    });
+    if (nextProgramEx) {
+      const cat = categories.find((c) => c.id === CATEGORY_ID.CBT) || categories[0];
+      return [{
+        id: `rec-confidence-comp-${nextProgramEx.id}-${Date.now()}`,
+        exerciseId: nextProgramEx.id,
+        title: nextProgramEx.title,
+        description: 'Build on your confidence with Understanding Thoughts.',
+        categoryId: cat.id,
+        exerciseType: nextProgramEx.type,
+        durationMinutes: nextProgramEx.estimatedTime,
+        reason: 'Recommended after completing Building Confidence',
+      }];
+    }
+  }
+
+  // ─── Phase 6.4 Rule 3: Multiple unfinished CBT lessons ─────────────
+  const activeCbtPrograms = Object.values(userProgress.programProgress).filter((prog) => {
+    const defaultP = DEFAULT_PROGRAMS.find((p) => p.id === prog.programId);
+    return defaultP && defaultP.categoryId === CATEGORY_ID.CBT && prog.status === 'active';
+  });
+
+  if (activeCbtPrograms.length > 1) {
+    // Recommend Continuing Current Program
+    const sorted = [...activeCbtPrograms].sort((a, b) => {
+      const timeA = a.lastOpenedAt ? new Date(a.lastOpenedAt).getTime() : 0;
+      const timeB = b.lastOpenedAt ? new Date(b.lastOpenedAt).getTime() : 0;
+      return timeB - timeA;
+    });
+    const latestActive = sorted[0];
+    const resumeEx = allExercises.find((ex) => {
+      const l = DEFAULT_LESSONS.find((les) => les.id === ex.lessonId);
+      return l && l.programId === latestActive.programId && !completedIds.has(l.id);
+    });
+    if (resumeEx) {
+      const cat = categories.find((c) => c.id === CATEGORY_ID.CBT) || categories[0];
+      return [{
+        id: `rec-continue-cbt-${resumeEx.id}-${Date.now()}`,
+        exerciseId: resumeEx.id,
+        title: resumeEx.title,
+        description: 'Pick up exactly where you left off in your CBT program.',
+        categoryId: cat.id,
+        exerciseType: resumeEx.type,
+        durationMinutes: resumeEx.estimatedTime,
+        reason: 'Continue Current Program',
+      }];
+    }
+  }
+
+  // ─── Default scoring/variety matching ──────────────────────────────
   const moodCategory = getLatestMoodCategory(moodHistory);
   if (moodCategory && MOOD_CATEGORY_MAP[moodCategory]) {
     const targetCategory = MOOD_CATEGORY_MAP[moodCategory];
@@ -145,8 +225,6 @@ export function getTodaysRecommendations(inputs: RecommendationInputs): Recommen
     }
   }
 
-  // ─── Rule 2: Continue active program ───────────────────────────────
-
   if (hasProgress) {
     const activePrograms = Object.values(userProgress.programProgress)
       .filter((p) => p.status === 'active')
@@ -158,14 +236,12 @@ export function getTodaysRecommendations(inputs: RecommendationInputs): Recommen
         const catExercises = findCategoryExercises(category.id, categories, allExercises);
         for (const { exercise, category: cat } of catExercises) {
           if (recentIds.has(exercise.id)) continue;
-          if (completedIds.has(exercise.lessonId)) continue; // Prioritize unfinished lessons
+          if (completedIds.has(exercise.lessonId)) continue;
           candidates.push({ exercise, category: cat, score: 80, reason: REASONS.continue_program });
         }
       }
     }
   }
-
-  // ─── Rule 3: Least practiced category ──────────────────────────────
 
   if (hasProgress) {
     const categoryCount: Record<string, number> = {};
@@ -190,14 +266,12 @@ export function getTodaysRecommendations(inputs: RecommendationInputs): Recommen
       const catExercises = findCategoryExercises(leastPracticed.id, categories, allExercises);
       for (const { exercise, category } of catExercises) {
         if (recentIds.has(exercise.id)) continue;
-        if (completedIds.has(exercise.lessonId)) continue; // Prioritize unfinished lessons
+        if (completedIds.has(exercise.lessonId)) continue;
         if (candidates.some((c) => c.exercise.id === exercise.id)) continue;
         candidates.push({ exercise, category, score: 60, reason: REASONS.least_practiced });
       }
     }
   }
-
-  // ─── Rule 4: Variety (when streak > 3) ────────────────────────────
 
   if (userProgress.streakDays > 3) {
     const usedCategories = new Set(candidates.map((c) => c.category.id));
@@ -213,8 +287,6 @@ export function getTodaysRecommendations(inputs: RecommendationInputs): Recommen
     }
   }
 
-  // ─── Sort by score descending, deduplicate ─────────────────────────
-
   const seen = new Set<string>();
   const deduped: ScoredCandidate[] = [];
 
@@ -223,8 +295,6 @@ export function getTodaysRecommendations(inputs: RecommendationInputs): Recommen
     seen.add(c.exercise.id);
     deduped.push(c);
   }
-
-  // ─── Convert to Recommendation model ───────────────────────────────
 
   return deduped.slice(0, 3).map((c, i) => ({
     id: `rec-${c.exercise.id}-${Date.now()}`,

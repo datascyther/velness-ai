@@ -10,7 +10,7 @@
  * guarantees for integration testing. See the final report / FREEZE.md.
  */
 import { authRepository } from '../repositories/AuthRepository';
-import { createServiceRoleClient } from '../client';
+import { createServiceRoleClient } from 'backend/client';
 
 export const TEST_PASSWORD = 'Velness!Test123';
 

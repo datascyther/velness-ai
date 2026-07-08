@@ -1,26 +1,40 @@
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { collection, query, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useRealtimeCollection } from '@/hooks/useRealtimeSubscription';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from 'backend/client';
 import { chatRepository } from '@/repositories/ChatRepository';
-import type { ChatMessage } from '@/shared/types';
+import { uniqueChannelName } from './channelName';
 
 export function useRealtimeChatHistory(uid: string | null) {
-  const enabled = !!(uid && db);
+  const queryClient = useQueryClient();
+  const queryKey = ['chats', uid];
+  const enabled = !!uid;
 
-  const chatsQuery = useMemo(
-    () =>
-      uid && db
-        ? query(collection(db, 'users', uid, 'chats'), orderBy('timestamp', 'asc'))
-        : null,
-    [uid],
-  );
+  useEffect(() => {
+    if (!uid) return;
 
-  useRealtimeCollection<ChatMessage>(chatsQuery, ['chats', uid], enabled);
+    const channel = supabase
+      .channel(uniqueChannelName(`chat-history-${uid}`))
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `user_id=eq.${uid}`,
+        },
+        () => {
+          void queryClient.invalidateQueries({ queryKey });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [uid, queryClient]);
 
   return useQuery({
-    queryKey: ['chats', uid],
+    queryKey,
     queryFn: async () => {
       if (!uid) return [];
       return chatRepository.loadChatHistory(uid);

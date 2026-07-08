@@ -1,8 +1,4 @@
-/**
- * Auth Service — Type Definitions
- */
-
-export type Theme = 'dark' | 'light' | 'auto';
+export type Theme = 'dark' | 'light' | 'auto' | 'system';
 export type Tone = 'warm' | 'motivational' | 'soothing' | 'auto';
 export type Language = 'en';
 

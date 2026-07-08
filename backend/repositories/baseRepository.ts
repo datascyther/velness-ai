@@ -13,7 +13,7 @@
  * except the `supabase` client and the re-exported `SupabaseClient` type.
  */
 
-import { supabase } from '../client';
+import { supabase } from 'backend/client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../database.types';
 
@@ -30,6 +30,13 @@ export type AuthSubscription = ReturnType<
 export type AuthErrorType = Awaited<
   ReturnType<Client['auth']['signInWithPassword']>
 >['error'];
+
+/**
+ * Sentinel UUID returned by `getCurrentUserId()` when there is no active
+ * session. PostgREST accepts it as a valid UUID value that won't match any
+ * real row, avoiding `invalid input syntax for type uuid: "null"` errors.
+ */
+export const GUEST_UID = '00000000-0000-0000-0000-000000000000';
 
 /** All public tables in the Velness schema. */
 export type AppTables = Database['public']['Tables'];
@@ -92,14 +99,14 @@ export class BaseRepository<TTable extends TableName> {
   }
 
   /**
-   * Return the id of the currently authenticated user, or throw if there is
-   * none. Used to stamp `user_id` on inserts (defence-in-depth alongside RLS).
+   * Return the id of the currently authenticated user, or the sentinel
+   * GUEST_UID when there is no active session. This avoids PostgREST UUID
+   * parse errors when callers pass the result to `.eq('user_id', ...)`.
    */
   protected async getCurrentUserId(): Promise<string> {
     const { data, error } = await this.client.auth.getUser();
-    if (error) throw toRepositoryError(error, 'getCurrentUserId');
-    if (!data.user) {
-      throw new RepositoryError('No authenticated user found.');
+    if (error || !data.user) {
+      return GUEST_UID;
     }
     return data.user.id;
   }

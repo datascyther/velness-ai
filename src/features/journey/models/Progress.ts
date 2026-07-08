@@ -12,6 +12,16 @@ export interface ProgramProgress {
   lastOpenedAt: Date | null;
   status: ProgramStatus;
   resumeTarget: ResumeTarget | null;
+  // Dynamic CBT Program Intelligence fields (Phase 6.1)
+  totalLessons?: number;
+  completedLessons?: number;
+  lockedLessons?: number;
+  completionPercentage?: number;
+  currentLesson?: number;
+  estimatedRemainingTime?: number;
+  lastOpenedLesson?: string | null;
+  startedAt?: Date | null;
+  completedAt?: Date | null;
 }
 
 export interface UserProgress {

@@ -44,6 +44,8 @@ import { usePersonalization } from '@/services/ai/personalization/usePersonaliza
 
 import type { Category } from '@/features/journey/models';
 import { CATEGORY_ID } from '@/features/journey/constants';
+import { DEFAULT_LESSONS } from '@/features/journey/data/programs';
+import { DEFAULT_EXERCISES } from '@/features/journey/data/exercises';
 
 // ── Practice categories data ───────────────────────────────────────────────
 
@@ -105,6 +107,8 @@ export function JourneyScreen() {
     startExercise,
     favorites,
     programs,
+    activeGuidedProgress,
+    userProgress,
   } = useJourney();
 
   const { data: personalization, isLoading: personalizationLoading } = usePersonalization();
@@ -118,6 +122,32 @@ export function JourneyScreen() {
     if (!activeProg) return 8;
     return Math.max(Math.round(activeProg.duration * (1 - (journey?.completionPercent || 0) / 100)), 5);
   }, [activeProg, journey?.completionPercent]);
+
+  const continueSubtitle = useMemo(() => {
+    if (!journey) return undefined;
+    if (activeGuidedProgress && activeGuidedProgress.status === 'in_progress') {
+      const activeEx = DEFAULT_EXERCISES.find((ex) => ex.id === activeGuidedProgress.exercise_id);
+      const activeLes = DEFAULT_LESSONS.find((l) => l.id === activeEx?.lessonId);
+      if (activeEx && activeLes) {
+        return `Lesson ${activeLes.order}, ${activeEx.title} (Step ${activeGuidedProgress.current_step + 1} of 11)`;
+      }
+    }
+    return undefined;
+  }, [journey, activeGuidedProgress]);
+
+  const timelineData = useMemo(() => {
+    if (!journey || !userProgress) return null;
+    const progProg = userProgress.programProgress[journey.programId];
+    if (!progProg) return null;
+    
+    return {
+      programTitle: journey.title,
+      currentLesson: progProg.currentLesson || 1,
+      estimatedRemainingTime: progProg.estimatedRemainingTime ?? 8,
+      completionPercentage: progProg.completionPercentage || 0,
+      activeGuidedProgress: activeGuidedProgress && activeGuidedProgress.status === 'in_progress' ? activeGuidedProgress : null,
+    };
+  }, [journey, userProgress, activeGuidedProgress]);
 
   const categoryLabels: Record<string, string> = {
     cbt: 'CBT Program',
@@ -242,7 +272,63 @@ export function JourneyScreen() {
               minutesRemaining={minutesRemaining}
               category={categoryLabel.toUpperCase()}
               onContinue={handleContinue}
+              subtitle={continueSubtitle}
             />
+
+            {timelineData && (
+              <View
+                style={{
+                  marginTop: spacing.md,
+                  padding: spacing.lg,
+                  borderRadius: 16,
+                  backgroundColor: 'rgba(26, 20, 40, 0.6)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255, 255, 255, 0.08)',
+                  gap: spacing.sm,
+                }}
+              >
+                <Text style={{ fontSize: 11, fontWeight: '700', color: 'rgba(255, 255, 255, 0.4)', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                  Active Timeline
+                </Text>
+                
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>
+                    {timelineData.programTitle}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.5)' }}>
+                    ({timelineData.completionPercentage}% complete)
+                  </Text>
+                </View>
+
+                {/* Progress Visual Sequence */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginVertical: 4 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#A78BFA' }}>
+                    Lesson {timelineData.currentLesson}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.3)' }}>→</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#06B6D4' }}>
+                    Exercise 1
+                  </Text>
+                  {timelineData.activeGuidedProgress && (
+                    <>
+                      <Text style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.3)' }}>→</Text>
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: '#34D399' }}>
+                        Step {timelineData.activeGuidedProgress.current_step + 1}
+                      </Text>
+                    </>
+                  )}
+                </View>
+
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: 'rgba(255, 255, 255, 0.4)', letterSpacing: 0.5 }}>
+                    ESTIMATED TIME LEFT:
+                  </Text>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#F59E0B' }}>
+                    {timelineData.estimatedRemainingTime} min
+                  </Text>
+                </View>
+              </View>
+            )}
           </View>
         </View>
 

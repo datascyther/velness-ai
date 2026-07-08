@@ -1,33 +1,70 @@
 import {
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  getDoc,
-  getDocs,
-  serverTimestamp,
-  Timestamp,
-  writeBatch,
-} from 'firebase/firestore';
-import {
-  db,
-} from '@/lib/firebase';
-import {
-  conversationsRef,
-  conversationDocRef,
-  conversationParticipantsRef,
-  conversationParticipantDocRef,
-  userConversationsRef,
-  userConversationDocRef,
-} from '@/lib/firestore';
+  backendConversationRepository,
+  conversationParticipantRepository,
+  userConversationRepository,
+} from '../../backend/repositories';
 import type { Conversation, ConversationParticipant, UserConversation } from '@/shared/types';
 
-function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+function mapRowToConversation(row: {
+  id: string;
+  type: string;
+  name: string;
+  description: string | null;
+  image_url: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  member_count: number;
+  metadata: any;
+  last_message: any;
+}): Conversation {
+  const lastMsg = row.last_message as {
+    content?: string;
+    senderId?: string;
+    senderName?: string;
+    timestamp?: string;
+  } | null;
+  return {
+    id: row.id,
+    type: row.type as Conversation['type'],
+    name: row.name,
+    description: row.description ?? undefined,
+    imageURL: row.image_url ?? undefined,
+    createdBy: row.created_by,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+    participantIds: [],
+    memberCount: row.member_count,
+    lastMessage: lastMsg
+      ? {
+          content: lastMsg.content ?? '',
+          senderId: lastMsg.senderId ?? '',
+          senderName: lastMsg.senderName ?? '',
+          timestamp: lastMsg.timestamp ? new Date(lastMsg.timestamp) : new Date(),
+        }
+      : undefined,
+    metadata: row.metadata && typeof row.metadata === 'object' && 'isSupportGroup' in row.metadata
+      ? row.metadata as Conversation['metadata']
+      : undefined,
+  };
 }
 
-function ensureRef<T>(ref: T | null, name: string): T {
-  if (!ref) throw new Error(`Firestore not initialized (${name})`);
-  return ref;
+function mapRowToUserConv(row: {
+  conversation_id: string;
+  last_read_at: string;
+  last_message_at: string;
+  last_message_preview: string;
+  is_pinned: boolean;
+  is_muted: boolean;
+}): UserConversation {
+  return {
+    id: row.conversation_id,
+    lastReadAt: new Date(row.last_read_at),
+    lastMessageAt: new Date(row.last_message_at),
+    isPinned: row.is_pinned,
+    isMuted: row.is_muted,
+    lastMessagePreview: row.last_message_preview,
+  };
 }
 
 export interface CreateGroupData {
@@ -40,56 +77,48 @@ export interface CreateGroupData {
   category?: string;
 }
 
+function generateId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
+
 export class ConversationRepository {
   async createGroup(data: CreateGroupData): Promise<string> {
     const conversationId = generateId();
     const now = new Date();
-    const allParticipantIds = [
-      ...new Set([data.createdBy, ...data.participantIds]),
-    ];
+    const allParticipantIds = [...new Set([data.createdBy, ...data.participantIds])];
 
-    const conversation: Conversation = {
+    await backendConversationRepository.create({
       id: conversationId,
       type: 'group',
       name: data.name,
-      description: data.description,
-      imageURL: data.imageURL,
-      createdBy: data.createdBy,
-      createdAt: now,
-      updatedAt: now,
-      participantIds: allParticipantIds,
-      memberCount: allParticipantIds.length,
+      description: data.description ?? null,
+      image_url: data.imageURL ?? null,
+      created_by: data.createdBy,
+      member_count: allParticipantIds.length,
       metadata: data.isSupportGroup != null
         ? { isSupportGroup: data.isSupportGroup, category: data.category }
-        : undefined,
-    };
-
-    const convRef = conversationDocRef(conversationId);
-    if (!convRef) throw new Error('Firestore not initialized');
-    await setDoc(convRef, conversation);
+        : {},
+      last_message: null,
+    });
 
     const batch = allParticipantIds.map(async (uid) => {
-      const participant: ConversationParticipant = {
-        id: uid,
+      await conversationParticipantRepository.create({
+        conversation_id: conversationId,
+        user_id: uid,
         role: uid === data.createdBy ? 'admin' : 'member',
-        joinedAt: now,
-        lastReadAt: now,
-      };
-      const partRef = conversationParticipantDocRef(conversationId, uid);
-      if (!partRef) throw new Error('Firestore not initialized');
-      await setDoc(partRef, participant);
+        joined_at: now.toISOString(),
+        last_read_at: now.toISOString(),
+      });
 
-      const ucRef = userConversationDocRef(uid, conversationId);
-      if (!ucRef) throw new Error('Firestore not initialized');
-      const userConv: UserConversation = {
-        id: conversationId,
-        lastReadAt: now,
-        lastMessageAt: now,
-        isPinned: false,
-        isMuted: false,
-        lastMessagePreview: 'Group created',
-      };
-      await setDoc(ucRef, userConv);
+      await userConversationRepository.create({
+        conversation_id: conversationId,
+        user_id: uid,
+        last_read_at: now.toISOString(),
+        last_message_at: now.toISOString(),
+        last_message_preview: 'Group created',
+        is_pinned: false,
+        is_muted: false,
+      });
     });
 
     await Promise.all(batch);
@@ -97,124 +126,98 @@ export class ConversationRepository {
   }
 
   async getConversation(conversationId: string): Promise<Conversation | null> {
-    const snap = await getDoc(ensureRef(conversationDocRef(conversationId), 'conversationDocRef'));
-    if (!snap.exists()) return null;
-    const raw = snap.data() as Record<string, any>;
-    return {
-      ...raw,
-      createdAt: raw.createdAt?.toDate?.() ?? new Date(),
-      updatedAt: raw.updatedAt?.toDate?.() ?? new Date(),
-      lastMessage: raw.lastMessage
-        ? {
-            ...raw.lastMessage,
-            timestamp: raw.lastMessage.timestamp?.toDate?.() ?? new Date(),
-          }
-        : undefined,
-    } as Conversation;
+    try {
+      const row = await backendConversationRepository.get(conversationId);
+      if (!row) return null;
+      return mapRowToConversation(row);
+    } catch (error) {
+      console.error('Error getting conversation:', error);
+      return null;
+    }
   }
 
   async getUserConversations(uid: string): Promise<UserConversation[]> {
-    const snap = await getDocs(ensureRef(userConversationsRef(uid), 'userConversationsRef'));
-    return snap.docs.map((doc) => {
-      const raw = doc.data() as Record<string, any>;
-      return {
-        ...raw,
-        lastReadAt: raw.lastReadAt?.toDate?.() ?? new Date(),
-        lastMessageAt: raw.lastMessageAt?.toDate?.() ?? new Date(),
-      } as UserConversation;
-    });
+    try {
+      const rows = await userConversationRepository.listByUser();
+      return rows.map(mapRowToUserConv);
+    } catch (error) {
+      console.error('Error getting user conversations:', error);
+      return [];
+    }
   }
 
   async addParticipant(conversationId: string, uid: string): Promise<void> {
-    const convSnap = await getDoc(ensureRef(conversationDocRef(conversationId), 'conversationDocRef'));
-    if (!convSnap.exists()) throw new Error('Conversation not found');
-
     const now = new Date();
-    const participant: ConversationParticipant = {
-      id: uid,
+
+    await conversationParticipantRepository.create({
+      conversation_id: conversationId,
+      user_id: uid,
       role: 'member',
-      joinedAt: now,
-      lastReadAt: now,
-    };
-    await setDoc(ensureRef(conversationParticipantDocRef(conversationId, uid), 'conversationParticipantDocRef'), participant);
-
-    const ucRef = ensureRef(userConversationDocRef(uid, conversationId), 'userConversationDocRef');
-    const userConv: UserConversation = {
-      id: conversationId,
-      lastReadAt: now,
-      lastMessageAt: now,
-      isPinned: false,
-      isMuted: false,
-      lastMessagePreview: 'You joined the group',
-    };
-    await setDoc(ucRef, userConv);
-
-    const currentParticipants = convSnap.data().participantIds ?? [];
-    await updateDoc(ensureRef(conversationDocRef(conversationId), 'conversationDocRef'), {
-      participantIds: [...currentParticipants, uid],
-      memberCount: (currentParticipants.length ?? 0) + 1,
-      updatedAt: serverTimestamp(),
+      joined_at: now.toISOString(),
+      last_read_at: now.toISOString(),
     });
+
+    await userConversationRepository.create({
+      conversation_id: conversationId,
+      user_id: uid,
+      last_read_at: now.toISOString(),
+      last_message_at: now.toISOString(),
+      last_message_preview: 'You joined the group',
+      is_pinned: false,
+      is_muted: false,
+    });
+
+    await backendConversationRepository.addParticipantCount(conversationId, 1);
   }
 
   async removeParticipant(conversationId: string, uid: string): Promise<void> {
-    const convSnap = await getDoc(ensureRef(conversationDocRef(conversationId), 'conversationDocRef'));
-    if (!convSnap.exists()) throw new Error('Conversation not found');
-
-    await deleteDoc(ensureRef(conversationParticipantDocRef(conversationId, uid), 'conversationParticipantDocRef'));
-    await deleteDoc(ensureRef(userConversationDocRef(uid, conversationId), 'userConversationDocRef'));
-
-    const currentParticipants: string[] = convSnap.data().participantIds ?? [];
-    await updateDoc(ensureRef(conversationDocRef(conversationId), 'conversationDocRef'), {
-      participantIds: currentParticipants.filter((p: string) => p !== uid),
-      memberCount: Math.max(0, (currentParticipants.length ?? 0) - 1),
-      updatedAt: serverTimestamp(),
-    });
+    await conversationParticipantRepository.remove(conversationId, uid);
+    await userConversationRepository.remove(uid, conversationId);
+    await backendConversationRepository.addParticipantCount(conversationId, -1);
   }
 
   async deleteConversation(conversationId: string): Promise<void> {
-    const convSnap = await getDoc(ensureRef(conversationDocRef(conversationId), 'conversationDocRef'));
-    if (!convSnap.exists()) return;
+    const conv = await backendConversationRepository.get(conversationId);
+    if (!conv) return;
 
-    const participantIds: string[] = convSnap.data().participantIds ?? [];
+    const participants = await conversationParticipantRepository.listByConversation(conversationId);
 
-    const cleanup = participantIds.map(async (uid) => {
-      await deleteDoc(ensureRef(userConversationDocRef(uid, conversationId), 'userConversationDocRef'));
-      await deleteDoc(ensureRef(conversationParticipantDocRef(conversationId, uid), 'conversationParticipantDocRef'));
-    });
-
+    const cleanup = participants.map((p) =>
+      userConversationRepository.remove(p.user_id, conversationId),
+    );
     await Promise.all(cleanup);
-    await deleteDoc(ensureRef(conversationDocRef(conversationId), 'conversationDocRef'));
+
+    for (const p of participants) {
+      await conversationParticipantRepository.remove(conversationId, p.user_id);
+    }
+
+    await backendConversationRepository.remove(conversationId);
   }
 
   async updateLastMessage(
     conversationId: string,
     message: { content: string; senderId: string; senderName: string; timestamp: Date },
   ): Promise<void> {
-    const convSnap = await getDoc(ensureRef(conversationDocRef(conversationId), 'conversationDocRef'));
-    if (!convSnap.exists()) return;
+    const conv = await backendConversationRepository.get(conversationId);
+    if (!conv) return;
 
-    const participantIds: string[] = convSnap.data().participantIds ?? [];
-
-    const batch = writeBatch(db);
-    batch.update(ensureRef(conversationDocRef(conversationId), 'conversationDocRef'), {
-      lastMessage: {
+    await backendConversationRepository.update(conversationId, {
+      last_message: {
         content: message.content,
         senderId: message.senderId,
         senderName: message.senderName,
-        timestamp: Timestamp.fromDate(message.timestamp),
+        timestamp: message.timestamp.toISOString(),
       },
-      updatedAt: serverTimestamp(),
     });
 
-    for (const uid of participantIds) {
-      batch.update(ensureRef(userConversationDocRef(uid, conversationId), 'userConversationDocRef'), {
-        lastMessagePreview: message.content,
-        lastMessageAt: Timestamp.fromDate(message.timestamp),
-      });
-    }
-
-    await batch.commit();
+    const participants = await conversationParticipantRepository.listByConversation(conversationId);
+    const updates = participants.map((p) =>
+      userConversationRepository.update(p.user_id, conversationId, {
+        last_message_preview: message.content,
+        last_message_at: message.timestamp.toISOString(),
+      }),
+    );
+    await Promise.all(updates);
   }
 }
 

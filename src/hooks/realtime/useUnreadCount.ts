@@ -1,27 +1,41 @@
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useRealtimeCollection } from '@/hooks/useRealtimeSubscription';
-import { userConversationsRef } from '@/lib/firestore';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from 'backend/client';
 import { conversationRepository } from '@/repositories/ConversationRepository';
-import type { UserConversation } from '@/shared/types';
+import { uniqueChannelName } from './channelName';
 import { useAppStore } from '@/core/store/useAppStore';
 
 export function useUnreadCount(): number {
   const uid = useAppStore((state) => state.session.user?.uid ?? null);
+  const queryClient = useQueryClient();
+  const queryKey = ['userConversations', uid];
 
-  const conversationsQuery = useMemo(
-    () => (uid ? userConversationsRef(uid) : null),
-    [uid],
-  );
+  useEffect(() => {
+    if (!uid) return;
 
-  useRealtimeCollection<UserConversation>(
-    conversationsQuery,
-    ['userConversations', uid],
-    !!uid,
-  );
+    const channel = supabase
+      .channel(uniqueChannelName(`unread-count-${uid}`))
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_conversations',
+          filter: `user_id=eq.${uid}`,
+        },
+        () => {
+          void queryClient.invalidateQueries({ queryKey });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [uid, queryClient]);
 
   const { data: conversations } = useQuery({
-    queryKey: ['userConversations', uid],
+    queryKey,
     queryFn: async () => {
       if (!uid) return [];
       return conversationRepository.getUserConversations(uid);

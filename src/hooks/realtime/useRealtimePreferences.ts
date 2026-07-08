@@ -1,35 +1,50 @@
-import { useMemo, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { doc } from 'firebase/firestore';
-import { db, isFirebaseConfigured } from '@/lib/firebase';
-import { useRealtimeDocument } from '@/hooks/useRealtimeSubscription';
+import { supabase } from 'backend/client';
+import { userPreferencesService } from '../../../backend/services/UserPreferencesService';
+import { uniqueChannelName } from './channelName';
 import type { UserPreferences } from '@/shared/types';
 
 export function useRealtimePreferences(uid: string | null) {
   const queryClient = useQueryClient();
-  const enabled = !!(uid && isFirebaseConfigured());
+  const queryKey = ['userPreferences', uid];
+  const enabled = !!uid;
 
-  const docRef = useMemo(
-    () => (uid && isFirebaseConfigured() ? doc(db!, 'users', uid) : null),
-    [uid],
-  );
+  useEffect(() => {
+    if (!uid) return;
 
-  useRealtimeDocument<{ preferences: UserPreferences }>(
-    docRef,
-    ['profile', uid],
-    enabled,
-  );
+    const channel = supabase
+      .channel(uniqueChannelName(`preferences-changes-${uid}`))
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_preferences',
+          filter: `user_id=eq.${uid}`,
+        },
+        () => {
+          void queryClient.invalidateQueries({ queryKey });
+        },
+      )
+      .subscribe();
 
-  const queryFn = useCallback(
-    () => queryClient.getQueryData<{ preferences: UserPreferences } | null>(['profile', uid]) ?? null,
-    [queryClient, uid],
-  );
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [uid, queryClient]);
 
   return useQuery({
-    queryKey: ['profile', uid],
-    queryFn,
+    queryKey,
+    queryFn: async () => {
+      if (!uid) return null;
+      try {
+        return await userPreferencesService.get() as unknown as UserPreferences;
+      } catch {
+        return null;
+      }
+    },
     enabled,
     staleTime: Infinity,
-    select: (data) => data?.preferences as UserPreferences | undefined,
   });
 }

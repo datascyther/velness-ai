@@ -21,6 +21,15 @@ export class ProgramRepository extends BaseRepository<'programs'> {
     super('programs');
   }
 
+  async list(): Promise<ProgramRow[]> {
+    const { data, error } = await this.client
+      .from('programs')
+      .select('*')
+      .order('position', { ascending: true });
+    if (error) throw toRepositoryError(error, 'ProgramRepository.list');
+    return data ?? [];
+  }
+
   async listByJourney(journeyId: string): Promise<ProgramRow[]> {
     const { data, error } = await this.client
       .from('programs')

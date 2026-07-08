@@ -145,6 +145,21 @@ export function useJourney() {
     enabled: true,
   });
 
+  const activeExerciseId = journeyQuery.data?.resumeTarget?.exerciseId;
+  const guidedProgressQuery = useQuery({
+    queryKey: ['journey', 'active-guided-progress', activeExerciseId, uid],
+    queryFn: async () => {
+      if (!uid || !activeExerciseId) return null;
+      try {
+        const { guidedProgressRepository } = await import('../../../backend/repositories/GuidedProgressRepository');
+        return guidedProgressRepository.get(activeExerciseId);
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!uid && !!activeExerciseId,
+  });
+
   useEffect(() => {
     if (journeyQuery.data) {
       setCachedJourney(journeyQuery.data);
@@ -269,6 +284,7 @@ export function useJourney() {
     recommendationsQuery,
     userProgressQuery,
     journeyQuery,
+    guidedProgressQuery,
   ];
 
   const isLoading = allQueries.every((q) => q.isLoading) && !journey && !cachedExercises;
@@ -311,6 +327,7 @@ export function useJourney() {
     queryClient.invalidateQueries({ queryKey: ['journey', 'exercises', uid] });
     queryClient.invalidateQueries({ queryKey: ['journey', 'user-progress', uid] });
     queryClient.invalidateQueries({ queryKey: ['journey', 'legacy', uid] });
+    queryClient.invalidateQueries({ queryKey: ['journey', 'active-guided-progress'] });
   }, [uid, queryClient]);
 
   return {
@@ -323,6 +340,7 @@ export function useJourney() {
     weeklyProgress,
     exercisesCompleted,
     journey,
+    activeGuidedProgress: guidedProgressQuery.data || null,
     journeyLoading: isLoading,
     journeyError: error,
     isLoading,

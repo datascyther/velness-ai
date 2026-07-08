@@ -1,9 +1,4 @@
-import {
-  analytics,
-  logEvent as fbLogEvent,
-  setUserId as fbSetUserId,
-  setUserProperties as fbSetUserProperties,
-} from '@/lib/firebase';
+import { analyticsRepository } from '../../../backend/repositories/AnalyticsRepository';
 
 export type AnalyticsEvent =
   | 'daily_checkin'
@@ -52,9 +47,11 @@ class AnalyticsService {
       console.log(`[Analytics] ${event}`, properties ?? '');
     }
 
-    if (!analytics) return;
     try {
-      fbLogEvent(analytics, event, properties);
+      void analyticsRepository.track({
+        event_name: event,
+        properties: (properties ?? {}) as Record<string, unknown>,
+      });
     } catch {
       // analytics failures never crash the app
     }
@@ -68,20 +65,10 @@ class AnalyticsService {
     if (__DEV__) {
       console.log(`[Analytics] Identify: ${userId}`, traits ?? '');
     }
-
-    if (!analytics) return;
-    try {
-      fbSetUserId(analytics, userId);
-      if (traits) {
-        fbSetUserProperties(analytics, traits as Record<string, string>);
-      }
-    } catch {
-      // analytics failures never crash the app
-    }
   }
 
   reset(): void {
-    this.identifyUser('');
+    // no-op
   }
 }
 
