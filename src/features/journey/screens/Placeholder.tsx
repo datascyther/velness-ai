@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
+import { BrainIcon } from '@/shared/components/SymbolIcons';
 
 export function JourneyPlaceholderScreen() {
   const { colors } = useTheme();
@@ -10,7 +11,7 @@ export function JourneyPlaceholderScreen() {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background.primary }]} edges={['top']}>
       <View style={styles.container}>
-        <Text style={styles.icon}>🧠</Text>
+        <BrainIcon size={48} />
         <Text style={[styles.title, { color: colors.text.primary }]}>
           Journey In Progress
         </Text>
@@ -42,10 +43,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
-  },
-  icon: {
-    fontSize: 48,
-    marginBottom: 16,
   },
   title: {
     fontSize: 22,

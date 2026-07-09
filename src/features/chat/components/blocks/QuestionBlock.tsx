@@ -3,7 +3,7 @@
  *
  * ❓ A question — Cyan accent
  *
- * Used when Neeva asks the user a therapeutic or reflective question.
+ * Used when Velness asks the user a therapeutic or reflective question.
  * Prominent question styling with cyan accent to signal engagement.
  */
 

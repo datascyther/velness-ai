@@ -1,7 +1,7 @@
 /**
- * Neeva AI Design System — Color Palette
+ * Velness Design System — Color Palette
  *
- * Dark theme is the default for Neeva.
+ * Dark theme is the default for Velness.
  * Light theme tokens are included for future use.
  */
 

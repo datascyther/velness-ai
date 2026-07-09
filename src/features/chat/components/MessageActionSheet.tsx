@@ -61,7 +61,7 @@ export function MessageActionSheet({ visible, onClose, actions }: MessageActionS
       animationType="fade"
       onRequestClose={onClose}
     >
-      <Pressable style={styles.backdrop} onPress={onClose}>
+      <Pressable style={[styles.backdrop, { backgroundColor: colors.overlay }]} onPress={onClose}>
         <Pressable
           style={[styles.sheet, { backgroundColor: colors.surface.primary }]}
           onPress={() => {}}
@@ -112,7 +112,6 @@ export function MessageActionSheet({ visible, onClose, actions }: MessageActionS
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-end',
   },
   sheet: {

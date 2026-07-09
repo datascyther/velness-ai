@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
-import { ArrowUp } from 'lucide-react-native';
+import { SendHorizontal } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/hooks/useTheme';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
@@ -13,23 +13,9 @@ interface SendButtonProps {
 export function SendButton({ onPress, disabled = false }: SendButtonProps) {
   const { colors } = useTheme();
   const scale = useSharedValue(1);
-  const disabledProgress = useSharedValue(disabled ? 1 : 0);
 
-  useEffect(() => {
-    disabledProgress.value = withSpring(disabled ? 1 : 0, { damping: 18, stiffness: 250 });
-  }, [disabled]);
-
-  const animatedStyle = useAnimatedStyle(() => {
-    const p = disabledProgress.value;
-    return {
-      opacity: 1 - p * 0.5,
-      transform: [{ scale: scale.value * (1 - p * 0.1) }],
-    };
-  });
-
-  const animatedShadow = useAnimatedStyle(() => ({
-    shadowOpacity: (1 - disabledProgress.value) * 0.35,
-    shadowRadius: (1 - disabledProgress.value) * 12,
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
   }));
 
   const handlePress = () => {
@@ -41,29 +27,35 @@ export function SendButton({ onPress, disabled = false }: SendButtonProps) {
     onPress();
   };
 
+  const isDisabled = disabled;
+  const brand = (colors.brand ?? {}) as Record<string, string>;
+  const primary = brand.primary ?? '#7E60CD';
+  const subtle = brand.subtle ?? 'rgba(126, 96, 205, 0.16)';
+  const border = brand.border ?? 'rgba(126, 96, 205, 0.45)';
+  const secondary = brand.secondary ?? '#9F8BE6';
+  const contrastText = brand.contrastText ?? '#FFFFFF';
+
   return (
-    <Animated.View style={[animatedStyle, animatedShadow]}>
+    <Animated.View style={[styles.sendWrapper, animatedStyle]}>
       <Pressable
         onPress={handlePress}
-        disabled={disabled}
+        disabled={isDisabled}
         style={({ pressed }) => [
           styles.sendButton,
           {
-            backgroundColor: disabled
-              ? colors.surface.secondary
-              : colors.brand.primary,
-            borderWidth: disabled ? 1 : 0,
-            borderColor: disabled ? colors.border.default : 'transparent',
-            shadowColor: disabled ? 'transparent' : colors.brand.primary,
-            opacity: pressed && !disabled ? 0.85 : 1,
+            backgroundColor: isDisabled ? subtle : primary,
+            borderWidth: isDisabled ? 1 : 0,
+            borderColor: isDisabled ? border : 'transparent',
+            shadowColor: isDisabled ? 'transparent' : primary,
+            opacity: isDisabled ? (pressed ? 0.75 : 0.7) : pressed ? 0.85 : 1,
           },
         ]}
         accessibilityRole="button"
         accessibilityLabel="Send message"
       >
-        <ArrowUp
+        <SendHorizontal
           size={20}
-          color={disabled ? colors.text.secondary : colors.brand.contrastText}
+          color={isDisabled ? secondary : contrastText}
           strokeWidth={2.5}
         />
       </Pressable>
@@ -72,13 +64,19 @@ export function SendButton({ onPress, disabled = false }: SendButtonProps) {
 }
 
 const styles = StyleSheet.create({
+  sendWrapper: {
+    marginLeft: 18,
+  },
   sendButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
   },
 });
 

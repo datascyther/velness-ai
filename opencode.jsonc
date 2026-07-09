@@ -1,0 +1,78 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // Project-specific settings for Velness. Merged with the global opencode config.
+  // See AGENTS.md for architecture/constraints this file encodes.
+
+  // Load AGENTS.md as standing instructions for every session.
+  "instructions": ["AGENTS.md"],
+
+  // Auto-enable editor/language services.
+  "lsp": true,
+  "formatter": true,
+
+  // Keep noisy build/artifact dirs out of file watching.
+  "watcher": {
+    "ignore": [
+      "node_modules/**",
+      "dist/**",
+      ".expo/**",
+      "android/**",
+      "ios/**",
+      ".kilo/worktrees/**",
+      "*.log"
+    ]
+  },
+
+  // Compact aggressively for long agent sessions; prune old tool output.
+  "compaction": { "auto": true, "prune": true, "reserved": 12000 },
+
+  // Permission allowlist: auto-approve safe project commands so they don't prompt.
+  // Destructive ops stay denied/ask.
+  "permission": {
+    "bash": {
+      "npm run *": "allow",
+      "npx vitest *": "allow",
+      "npx expo *": "allow",
+      "vitest *": "allow",
+      "expo *": "allow",
+      "supabase *": "allow",
+      "npx tsc *": "allow",
+      "tsc *": "allow",
+      "node *": "allow",
+      "git *": "allow",
+      "rm -rf *": "deny",
+      "sudo *": "deny",
+      "*": "ask"
+    }
+  },
+
+  // Reusable slash commands tuned to this repo's workflows.
+  "command": {
+    "test": {
+      "description": "Run unit tests (vitest, src only)",
+      "template": "Run the Velness unit test suite with `npm run test` (vitest run, src/**/*.test.ts, node env). Report pass/fail and fix any failures with minimal changes."
+    },
+    "integration": {
+      "description": "Run LIVE prod Supabase integration tests",
+      "template": "Run `npm run test:integration` (vitest with backend/integration-tests config). WARNING: this hits the LIVE production Supabase project (whjdjxtbyoojrwvbearg) and creates/deletes throwaway anonymous users. Requires .env.development. Only do this when explicitly asked."
+    },
+    "build": {
+      "description": "Production web build via Vite",
+      "template": "Run `npm run build` (Vite) and report any build errors."
+    },
+    "dev": {
+      "description": "Start the Vite web dev server",
+      "template": "Start the web dev server with `npm run dev` (Vite, port 5173). The /api/ai/chat edge function is mounted via the vite dev plugin; /api/nvidia is proxied to NVIDIA."
+    }
+  },
+
+  // Project agent variant that enforces the integration-test guardrail.
+  "agent": {
+    "tester": {
+      "description": "Run Velness vitest suites and diagnose failures",
+      "prompt": "You are a test engineer for the Velness Expo / React Native Web app. Use `npm run test` for unit tests (vitest, node env, src/**/*.test.ts). Do NOT run `npm run test:integration` unless the user explicitly asks — it hits the LIVE production Supabase project. Diagnose failures with minimal, targeted changes and report pass/fail clearly.",
+      "permission": { "bash": { "npm run *": "allow", "npx *": "allow", "*": "ask" } }
+    }
+  }
+}

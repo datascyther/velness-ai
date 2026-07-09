@@ -204,7 +204,7 @@ export function useChatStream({ uid, contextEngine }: UseChatStreamOptions): Use
           content: '',
           createdAt: new Date(),
           status: 'failed',
-          metadata: { errorMessage: 'Sign in required to chat with Neeva.' },
+          metadata: { errorMessage: 'Sign in required to chat with Velness.' },
         };
         setMessages((prev) => [...prev, errorMsg]);
         return;

@@ -1,10 +1,25 @@
-import React from 'react';
+// src/features/home/components/ContinueJourneyCard.tsx
+//
+// The primary "continue" card — medium size, gradient accent border.
+// Progress bar animates from 0 → current value on mount.
+
+import React, { useEffect, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { ProgressBar } from '@/shared/components/ProgressBar';
+import Animated, {
+  FadeInUp,
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
+import { Play } from 'lucide-react-native';
+import { useTheme } from '@/hooks/useTheme';
+import { shadows } from '@/core/theme';
 
 interface ContinueJourneyCardProps {
   title: string;
+  status?: 'not_started' | 'active' | 'completed';
+  lastActivity?: string | null;
   currentStep: number;
   totalSteps: number;
   percent: number;
@@ -14,120 +29,180 @@ interface ContinueJourneyCardProps {
 
 export const ContinueJourneyCard = React.memo(({
   title,
+  status = 'active',
+  lastActivity = null,
   currentStep,
   totalSteps,
   percent,
   onContinue,
   disabled = false,
 }: ContinueJourneyCardProps) => {
+  const { colors } = useTheme();
+
+  // Progress bar animates from 0 → percent on mount
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    progress.value = withTiming(Math.min(100, Math.max(0, percent)), {
+      duration: 900,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [percent, progress]);
+
+  const progressStyle = useAnimatedStyle(() => ({
+    width: `${progress.value}%`,
+  }));
+
+  const { eyebrowText, pausedText } = useMemo(() => {
+    if (status === 'completed' || percent === 100) {
+      return { eyebrowText: 'Next Recommendation', pausedText: null };
+    }
+    if (status === 'not_started' || percent === 0) {
+      return { eyebrowText: 'Begin Journey', pausedText: null };
+    }
+    
+    // Active or Paused
+    let isPaused = false;
+    let daysStr = '';
+    if (lastActivity) {
+      const diffMs = Date.now() - new Date(lastActivity).getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      if (diffDays >= 2) {
+        isPaused = true;
+        daysStr = diffDays === 1 ? '1 day ago' : `${diffDays} days ago`;
+      }
+    }
+
+    if (isPaused) {
+      return { eyebrowText: 'Resume', pausedText: daysStr };
+    }
+
+    return { eyebrowText: `Continue Lesson ${currentStep}`, pausedText: null };
+  }, [status, percent, lastActivity, currentStep]);
+
   return (
     <Animated.View
-      entering={FadeInDown.delay(100).duration(600).springify()}
+      entering={FadeInUp.delay(100).duration(500)}
+      style={styles.container}
     >
       <Pressable
         onPress={onContinue}
         disabled={disabled}
-        style={styles.card}
+        style={({ pressed }) => [
+          styles.card,
+          {
+            backgroundColor: colors.surface.primary,
+            borderColor: colors.border.default,
+          },
+          shadows.sm,
+          pressed && { opacity: 0.88 },
+        ]}
         accessibilityRole="button"
-        accessibilityLabel={`${title}, Lesson ${currentStep} of ${totalSteps}, ${percent} percent complete`}
+        accessibilityLabel={`Continue ${title}. Lesson ${currentStep} of ${totalSteps}. ${percent}% complete.`}
       >
-        <View style={styles.topRow}>
-          <View style={styles.thumbnail}>
-            <Text style={styles.thumbnailText}>🧠</Text>
-          </View>
-          <View style={styles.content}>
-            <Text style={styles.title}>{title}</Text>
-            <Text style={styles.lesson}>
-              Lesson {currentStep} of {totalSteps}
+        {/* Icon */}
+        <View style={[styles.iconRow, { backgroundColor: `${colors.brand.primary}18` }]}>
+          <Play size={18} color={colors.brand.primary} fill={colors.brand.primary} />
+        </View>
+
+        <View style={styles.eyebrowRow}>
+          <Text style={[styles.eyebrow, { color: colors.brand.primary }]}>
+            {eyebrowText}
+          </Text>
+          {pausedText && (
+            <Text style={[styles.pausedBadge, { color: colors.text.secondary }]}>
+              {pausedText}
             </Text>
-          </View>
-          <View style={styles.chevron}>
-            <Text style={styles.chevronText}>›</Text>
-          </View>
+          )}
         </View>
 
-        <View style={styles.progressRow}>
-          <ProgressBar percent={percent} height={6} style={styles.progress} />
-          <Text style={styles.percentText}>{percent}% Complete</Text>
+        <Text style={[styles.title, { color: colors.text.primary }]} numberOfLines={2}>
+          {title}
+        </Text>
+
+        <Text style={[styles.lesson, { color: colors.text.secondary }]}>
+          Lesson {currentStep} of {totalSteps}
+        </Text>
+
+        {/* Animated progress track */}
+        <View style={[styles.progressTrack, { backgroundColor: colors.surface.secondary }]}>
+          <Animated.View
+            style={[
+              styles.progressFill,
+              { backgroundColor: colors.brand.primary },
+              progressStyle,
+            ]}
+          />
         </View>
 
-        <View style={styles.button}>
-          <Text style={styles.buttonText}>Continue</Text>
-        </View>
+        <Text style={[styles.percentText, { color: colors.brand.primary }]}>
+          {percent}% complete
+        </Text>
       </Pressable>
     </Animated.View>
   );
 });
 
+ContinueJourneyCard.displayName = 'ContinueJourneyCard';
+
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    flex: 1,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    padding: 16,
+    padding: 14,
+    gap: 5,
   },
-  topRow: {
+  eyebrowRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 14,
+    justifyContent: 'space-between',
   },
-  thumbnail: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: 'rgba(149, 0, 255, 0.1)',
+  pausedBadge: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  iconRow: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
+    marginBottom: 2,
   },
-  thumbnailText: {
-    fontSize: 24,
-  },
-  content: {
-    flex: 1,
+  eyebrow: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   title: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 2,
+    fontWeight: '700',
+    lineHeight: 20,
+    letterSpacing: -0.2,
   },
   lesson: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.5)',
+    lineHeight: 17,
   },
-  chevron: {
-    marginLeft: 8,
+  progressTrack: {
+    height: 4,
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginTop: 6,
   },
-  chevronText: {
-    fontSize: 24,
-    color: 'rgba(255,255,255,0.3)',
-  },
-  progressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  progress: {
-    flex: 1,
-    marginRight: 12,
+  progressFill: {
+    height: '100%',
+    borderRadius: 2,
   },
   percentText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#6C4CF1',
-  },
-  button: {
-    backgroundColor: '#6C4CF1',
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: '600',
+    marginTop: 2,
   },
 });
 

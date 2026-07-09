@@ -1,4 +1,3 @@
-import { Timestamp } from 'firebase/firestore';
 import type { ExerciseProgress } from '@/repositories/JourneyRepository';
 import type { Exercise, ExerciseWithProgress } from './Exercise';
 import type { Program } from './Program';
@@ -10,8 +9,8 @@ import { COMPLETION_STATUS } from '../constants';
 
 function toDate(value: unknown): Date | undefined {
   if (!value) return undefined;
-  if (value instanceof Timestamp) return value.toDate();
   if (value instanceof Date) return value;
+  if (typeof value === 'string') return new Date(value);
   if (typeof value === 'object' && value !== null && 'toDate' in value) {
     return (value as { toDate: () => Date }).toDate();
   }
@@ -22,16 +21,16 @@ function dateOrNull(value: unknown): Date | null {
   return toDate(value) ?? null;
 }
 
-function serializeDate(d: Date | null | undefined): Timestamp | null {
+function serializeDate(d: Date | null | undefined): string | null {
   if (!d) return null;
-  return Timestamp.fromDate(d);
+  return d.toISOString();
 }
 
 export interface ExerciseProgressDoc {
   id: string;
   completed: boolean;
   streak: number;
-  lastCompletedAt?: { toDate: () => Date } | Date | null;
+  lastCompletedAt?: { toDate: () => Date } | Date | string | null;
 }
 
 export function exerciseProgressFromDoc(
@@ -53,7 +52,7 @@ export function exerciseProgressToDoc(
     id: exerciseId,
     completed: true,
     streak,
-    lastCompletedAt: Timestamp.now(),
+    lastCompletedAt: new Date().toISOString(),
   };
 }
 
@@ -109,6 +108,8 @@ export function programFromDoc(doc: { id: string; data: () => Record<string, unk
     lessonCount: (d.lessonCount as number) ?? 0,
     status: (d.status as Program['status']) ?? 'not_started',
     sortOrder: (d.sortOrder as number) ?? 0,
+    benefits: (d.benefits as string[]) ?? [],
+    estimatedTime: (d.estimatedTime as string) ?? '',
   };
 }
 
@@ -124,6 +125,8 @@ export function programToDoc(program: Program): Record<string, unknown> {
     lessonCount: program.lessonCount,
     status: program.status,
     sortOrder: program.sortOrder,
+    benefits: program.benefits ?? [],
+    estimatedTime: program.estimatedTime ?? '',
   };
 }
 
@@ -137,6 +140,10 @@ export function lessonFromDoc(doc: { id: string; data: () => Record<string, unkn
     order: (d.order as number) ?? 0,
     duration: (d.duration as number) ?? 0,
     exerciseIds: (d.exerciseIds as string[]) ?? [],
+    introduction: (d.introduction as string) ?? '',
+    learningObjective: (d.learningObjective as string) ?? '',
+    reflectionPrompt: (d.reflectionPrompt as string) ?? '',
+    completionSummary: (d.completionSummary as string) ?? '',
   };
 }
 
@@ -149,6 +156,10 @@ export function lessonToDoc(lesson: Lesson): Record<string, unknown> {
     order: lesson.order,
     duration: lesson.duration,
     exerciseIds: lesson.exerciseIds,
+    introduction: lesson.introduction ?? '',
+    learningObjective: lesson.learningObjective ?? '',
+    reflectionPrompt: lesson.reflectionPrompt ?? '',
+    completionSummary: lesson.completionSummary ?? '',
   };
 }
 
@@ -163,6 +174,9 @@ export function exerciseFromDoc(doc: { id: string; data: () => Record<string, un
     estimatedTime: (d.estimatedTime as number) ?? 0,
     content: (d.content as Record<string, unknown>) ?? {},
     sortOrder: (d.sortOrder as number) ?? 0,
+    goal: (d.goal as string) ?? '',
+    instructions: (d.instructions as string[]) ?? [],
+    completionCriteria: (d.completionCriteria as string) ?? '',
   };
 }
 
@@ -176,6 +190,9 @@ export function exerciseToDoc(exercise: Exercise): Record<string, unknown> {
     estimatedTime: exercise.estimatedTime,
     content: exercise.content,
     sortOrder: exercise.sortOrder,
+    goal: exercise.goal ?? '',
+    instructions: exercise.instructions ?? [],
+    completionCriteria: exercise.completionCriteria ?? '',
   };
 }
 
@@ -240,6 +257,8 @@ export function userProgressFromDoc(doc: { id: string; data: () => Record<string
     streakDays: (d.streakDays as number) ?? 0,
     lastActivityAt: dateOrNull(d.lastActivityAt),
     programProgress: (d.programProgress as Record<string, ProgramProgress>) ?? {},
+    achievements: (d.achievements as Record<string, string>) ?? {},
+    favorites: (d.favorites as string[]) ?? [],
   };
 }
 
@@ -250,6 +269,8 @@ export function userProgressToDoc(progress: UserProgress): Record<string, unknow
     streakDays: progress.streakDays,
     lastActivityAt: serializeDate(progress.lastActivityAt),
     programProgress: progress.programProgress,
-    updatedAt: Timestamp.now(),
+    achievements: progress.achievements ?? {},
+    favorites: progress.favorites ?? [],
+    updatedAt: new Date().toISOString(),
   };
 }

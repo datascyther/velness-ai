@@ -1,9 +1,3 @@
-/**
- * Auth Provider
- *
- * Keeps Firebase auth state in sync with the Zustand store for all screens.
- */
-
 import { useEffect } from 'react';
 import { useAppStore } from '@/core/store/useAppStore';
 import { authService } from '@/services/auth';
@@ -19,7 +13,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const setAuthInitialized = useAppStore((state) => state.setAuthInitialized);
   const initialize = useAppStore((state) => state.initialize);
 
-  // Subscribe to real-time profile updates and sync to Zustand
   useProfileSync(uid);
 
   useEffect(() => {
@@ -27,9 +20,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [initialize]);
 
   useEffect(() => {
-    const unsubscribe = authService.onAuthStateChanged(async (firebaseUser) => {
-      if (firebaseUser) {
-        setUser(firebaseUser);
+    const unsubscribe = authService.onAuthStateChanged(async (profile) => {
+      if (profile) {
+        setUser(profile);
         setEmailVerified(authService.isEmailVerified());
         const onboardingCompleted = await authService.isOnboardingCompleted();
         setOnboardingCompleted(onboardingCompleted);

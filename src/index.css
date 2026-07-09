@@ -271,16 +271,16 @@ html.preload *::after {
 
 
 
-/* Neeva Orb Mascot */
-.neeva-orb {
+/* Velness Orb Mascot */
+.velness-orb {
     border-radius: 50%;
     background: radial-gradient(circle at 30% 30%, #ec4899, #8b5cf6 50%, #3b82f6);
     position: relative;
     flex-shrink: 0;
 }
 
-.neeva-orb::before,
-.neeva-orb::after {
+.velness-orb::before,
+.velness-orb::after {
     content: "";
     position: absolute;
     top: 32%;
@@ -291,11 +291,11 @@ html.preload *::after {
     filter: blur(0.5px);
 }
 
-.neeva-orb::before {
+.velness-orb::before {
     left: 28%;
 }
 
-.neeva-orb::after {
+.velness-orb::after {
     right: 28%;
 }
 

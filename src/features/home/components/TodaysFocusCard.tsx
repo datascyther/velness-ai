@@ -80,7 +80,7 @@ export function TodaysFocusCard({
         {/* Section header */}
         <View className="flex-row items-center mb-4">
           <Sparkles size={16} color="#A78BFA" />
-          <Text className="text-neeva-purple-300 text-label font-semibold ml-1.5 uppercase tracking-wide">
+          <Text className="text-velness-purple-300 text-label font-semibold ml-1.5 uppercase tracking-wide">
             Today's Focus
           </Text>
         </View>
@@ -113,8 +113,8 @@ export function TodaysFocusCard({
                     {activity.durationMinutes} min
                   </Text>
                 </View>
-                <View className="bg-neeva-purple-600/20 px-2.5 py-0.5 rounded-full">
-                  <Text className="text-neeva-purple-300 text-caption font-medium">
+                <View className="bg-velness-purple-600/20 px-2.5 py-0.5 rounded-full">
+                  <Text className="text-velness-purple-300 text-caption font-medium">
                     {activity.category}
                   </Text>
                 </View>
@@ -128,7 +128,7 @@ export function TodaysFocusCard({
               onPress={onStartPress}
               onPressIn={handleCtaPressIn}
               onPressOut={handleCtaPressOut}
-              className="flex-row items-center justify-center bg-neeva-purple-600 rounded-glass py-3 active:opacity-80"
+              className="flex-row items-center justify-center bg-velness-purple-600 rounded-glass py-3 active:opacity-80"
               accessibilityLabel={`Start ${activity.title}`}
               accessibilityRole="button"
             >

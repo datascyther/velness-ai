@@ -1,12 +1,12 @@
 /**
- * Neeva AI — Auth Feature Constants
+ * Velness — Auth Feature Constants
  *
  * Feature-specific constants for auth screens and flows.
  */
 
 export const AUTH_STRINGS = {
   // Splash
-  SPLASH_TITLE: 'Neeva AI',
+  SPLASH_TITLE: 'Velness',
   SPLASH_SUBTITLE: 'Your personal wellness companion',
 
   // Login
@@ -24,7 +24,7 @@ export const AUTH_STRINGS = {
 
   // Signup
   SIGNUP_TITLE: 'Create Account',
-  SIGNUP_SUBTITLE: 'Start your wellness journey with Neeva',
+  SIGNUP_SUBTITLE: 'Start your wellness journey with Velness',
   SIGNUP_NAME_LABEL: 'Full Name',
   SIGNUP_NAME_PLACEHOLDER: 'Enter your full name',
   SIGNUP_EMAIL_LABEL: 'Email',
@@ -61,7 +61,7 @@ export const AUTH_STRINGS = {
   VERIFICATION_RESENT: 'Verification email resent!',
 
   // Onboarding
-  ONBOARDING_TITLE: 'Welcome to Neeva',
+  ONBOARDING_TITLE: 'Welcome to Velness',
   ONBOARDING_SUBTITLE: "Let's personalize your experience",
   ONBOARDING_NAME_LABEL: 'What should we call you?',
   ONBOARDING_NAME_PLACEHOLDER: 'Your first name',

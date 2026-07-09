@@ -1,5 +1,5 @@
 /**
- * Neeva AI — Route Constants
+ * Velness — Route Constants
  *
  * Centralised route names for Expo Router navigation.
  * Prevents hardcoded strings across the codebase.
@@ -33,6 +33,7 @@ export const ROUTES = {
     SESSION: '/journey/session/[sessionId]',
     COMPLETION: '/journey/completion',
     PROGRESS: '/journey/progress',
+    MOOD_TIMELINE: '/journey/mood-timeline',
   } as const,
 } as const;
 

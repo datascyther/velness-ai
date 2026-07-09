@@ -1,5 +1,5 @@
 /**
- * Neeva AI — Onboarding Validation Schemas
+ * Velness — Onboarding Validation Schemas
  *
  * Zod schemas for onboarding steps. Validation rules live here — never in components.
  */

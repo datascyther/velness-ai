@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, Image } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -10,15 +10,15 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
-import { Sparkles } from 'lucide-react-native';
 import { useTheme } from '@/hooks/useTheme';
-import { spacing, borderRadius, typography, colors } from '@/theme/tokens';
+import { spacing, typography } from '@/theme/tokens';
 
 interface SplashScreenProps {
   onComplete: (destination: 'auth' | 'home') => void;
 }
 
 export function SplashScreen({ onComplete }: SplashScreenProps) {
+  const { colors } = useTheme();
   const { initialized, isAuthenticated, initialize } = useAuth();
   const logoScale = useSharedValue(0.3);
   const logoOpacity = useSharedValue(0);
@@ -75,25 +75,20 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     >
       {/* Animated Logo */}
       <Animated.View style={{ ...logoAnimatedStyle, marginBottom: spacing.lg }}>
-        <View
+        <Image
+          source={require('@/shared/assets/velness-logo.jpg')}
           style={{
-            width: 64,
-            height: 64,
-            borderRadius: borderRadius.md,
-            backgroundColor: colors.surface.primary,
-            borderWidth: 1,
-            borderColor: colors.border.default,
-            justifyContent: 'center',
-            alignItems: 'center',
+            width: 120,
+            height: 120,
+            resizeMode: 'contain',
+            borderRadius: 24,
           }}
-        >
-          <Sparkles size={48} color="#8B5CF6" />
-        </View>
+        />
       </Animated.View>
 
       {/* Title */}
       <Text style={{ ...typography.titleLarge, color: colors.text.primary, marginBottom: spacing.sm }}>
-        Neeva
+        Velness
       </Text>
 
       {/* Subtitle */}

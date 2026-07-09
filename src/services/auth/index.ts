@@ -1,147 +1,154 @@
-/**
- * Auth Service
- *
- * Wraps Firebase Authentication behind a clean interface.
- * Screens never call Firebase directly — always through this service.
- */
-
 import { Platform } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import {
-  signInWithPopup,
-  signInWithRedirect,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  onAuthStateChanged,
-  GoogleAuthProvider,
-  updateProfile,
-  sendPasswordResetEmail,
-  sendEmailVerification,
-  User as FirebaseUser,
-  Auth,
-} from 'firebase/auth';
-import { auth, isFirebaseConfigured } from '@/lib/firebase';
-import { profileRepository } from '@/repositories/ProfileRepository';
+  authService as backendAuthService,
+  type AuthUser,
+  RepositoryError,
+} from '../../../backend/services/AuthService';
+import { profileRepository } from '../../../backend/repositories/ProfileRepository';
+import { userPreferencesService } from '../../../backend/services/UserPreferencesService';
 import { storageService } from '@/services/storage';
 import { analyticsService } from '@/services/analytics';
 import type { UserProfile, AuthCredentials, SignUpData } from './types';
+import { supabase } from 'backend/client';
 
 const STORAGE_KEYS = {
-  SESSION_TOKEN: 'auth_session_token',
-  REFRESH_TOKEN: 'auth_refresh_token',
   ONBOARDING_COMPLETED: 'onboarding_completed',
 } as const;
 
-// ─── Firebase error code mapping ─────────────────────────────────────────
-
-const FIREBASE_ERROR_MAP: Record<string, string> = {
-  'auth/invalid-credential': 'Invalid email or password.',
-  'auth/invalid-email': 'Please enter a valid email address.',
-  'auth/user-disabled': 'This account has been disabled.',
-  'auth/user-not-found': 'No account found with this email.',
-  'auth/wrong-password': 'Incorrect password. Please try again.',
-  'auth/email-already-in-use': 'An account with this email already exists.',
-  'auth/weak-password': 'Password is too weak. Please choose a stronger password.',
-  'auth/too-many-requests': 'Too many attempts. Please try again later.',
-  'auth/network-request-failed': 'Network error. Please check your connection.',
-  'auth/popup-closed-by-user': 'Sign in was cancelled.',
-  'auth/requires-recent-login': 'Please sign in again to continue.',
+const SUPABASE_ERROR_MAP: Record<string, string> = {
+  'invalid_credentials': 'Invalid email or password.',
+  'email_not_confirmed': 'Please verify your email before signing in.',
+  'user_not_found': 'No account found with this email.',
+  'email_taken': 'An account with this email already exists.',
+  'weak_password': 'Password is too weak. Please choose a stronger password.',
+  'too_many_requests': 'Too many attempts. Please try again later.',
+  'provider_disabled': 'This sign-in method is not available.',
+  'OTPExpired': 'The verification code has expired.',
+  'over_email_send_rate_limit': 'Too many emails sent. Please try again later.',
+  'over_request_rate_limit': 'Too many requests. Please try again later.',
 };
 
-function requireAuth(): Auth {
-  if (!auth) {
-    throw new Error(
-      'Firebase is not configured. Add EXPO_PUBLIC_FIREBASE_API_KEY to .env or run npm run firebase:sync-env.',
-    );
+function mapSupabaseError(error: unknown): string {
+  if (error instanceof RepositoryError) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes('invalid login credentials')) return SUPABASE_ERROR_MAP.invalid_credentials;
+    if (msg.includes('email not confirmed')) return SUPABASE_ERROR_MAP.email_not_confirmed;
+    if (msg.includes('user already registered')) return SUPABASE_ERROR_MAP.email_taken;
+    if (msg.includes('weak password')) return SUPABASE_ERROR_MAP.weak_password;
+    if (msg.includes('rate limit')) return SUPABASE_ERROR_MAP.too_many_requests;
+    if (msg.includes('otp expired')) return SUPABASE_ERROR_MAP.OTPExpired;
+    return 'Something went wrong. Please try again.';
   }
-  return auth;
-}
-
-function mapFirebaseError(error: unknown): string {
   if (error && typeof error === 'object' && 'code' in error) {
     const code = (error as { code: string }).code;
-    return FIREBASE_ERROR_MAP[code] || 'Something went wrong. Please try again.';
+    if (code === 'over_email_send_rate_limit') return SUPABASE_ERROR_MAP.over_email_send_rate_limit;
+    if (code === 'over_request_rate_limit') return SUPABASE_ERROR_MAP.over_request_rate_limit;
   }
-  if (error instanceof Error) {
-    return error.message;
-  }
+  if (error instanceof Error) return error.message;
   return 'Something went wrong. Please try again.';
 }
 
+function mapAuthUserToProfile(
+  authUser: AuthUser,
+  profile: Record<string, any> | null,
+): UserProfile {
+  return {
+    uid: authUser.id,
+    name: profile?.display_name || authUser.email?.split('@')[0] || 'User',
+    email: authUser.email || '',
+    phoneNumber: authUser.phone || undefined,
+    photoURL: profile?.avatar_url || authUser.user_metadata?.avatar_url || undefined,
+    createdAt: new Date(profile?.created_at || authUser.created_at),
+    updatedAt: new Date(profile?.updated_at || authUser.created_at),
+    lastLoginAt: new Date(profile?.last_login_at || authUser.last_sign_in_at || authUser.created_at),
+    preferences: {
+      theme: (profile?.theme as any) || 'dark',
+      notifications: profile?.notifications_enabled !== false,
+      language: (profile?.locale as any) || 'en',
+      tone: 'auto',
+    },
+    stats: {
+      totalSessions: 0,
+      totalMinutes: 0,
+      streakDays: 0,
+      lastActivityDate: new Date(),
+    },
+    onboardingCompleted: profile?.onboarding_completed || false,
+    displayName: profile?.display_name || authUser.email?.split('@')[0] || 'User',
+  };
+}
+
 class AuthService {
-  private currentUser: FirebaseUser | null = null;
+  private currentUser: AuthUser | null = null;
   private userProfile: UserProfile | null = null;
   private listeners: Array<(user: UserProfile | null) => void> = [];
   private initialized = false;
   private initializationPromise: Promise<void> | null = null;
-  private authStateUnsubscribe: (() => void) | null = null;
+  private backendUnsubscribe: (() => void) | null = null;
 
   constructor() {
     this.initializationPromise = this.initialize();
   }
 
-  private async hydrateProfile(user: FirebaseUser): Promise<UserProfile> {
+  private async hydrateProfile(authUser: AuthUser): Promise<UserProfile> {
     try {
-      const profile = await profileRepository.loadProfile(user);
-      if (profile) return profile;
-      return profileRepository.createProfile(user);
+      const profileRow = await profileRepository.getCurrent();
+      let preferences: Record<string, any> = {};
+      try {
+        const prefs = await userPreferencesService.get();
+        if (prefs) preferences = prefs;
+      } catch {
+        // preferences may not exist yet
+      }
+
+      return mapAuthUserToProfile(authUser, {
+        ...profileRow,
+        ...preferences,
+      });
     } catch {
-      return {
-        uid: user.uid,
-        name: user.displayName || 'User',
-        email: user.email || '',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        lastLoginAt: new Date(),
-        preferences: { theme: 'dark', notifications: true, language: 'en', tone: 'auto' },
-        stats: { totalSessions: 1, totalMinutes: 0, streakDays: 0, lastActivityDate: new Date() },
-      };
+      return mapAuthUserToProfile(authUser, null);
     }
   }
 
   private async initialize(): Promise<void> {
-    if (!auth) {
-      this.initialized = true;
-      this.notifyListeners(null);
-      return;
+    try {
+      await backendAuthService.init();
+      this.syncState();
+    } catch {
+      // initialization failed silently
     }
 
-    return new Promise((resolve) => {
-      let ready = false;
-
-      this.authStateUnsubscribe = onAuthStateChanged(
-        auth,
-        async (user) => {
-          this.currentUser = user;
-          if (user) {
-            this.userProfile = await this.hydrateProfile(user);
-          } else {
-            this.userProfile = null;
-          }
-
+    this.backendUnsubscribe = backendAuthService.subscribe((session, user) => {
+      this.currentUser = user;
+      if (user) {
+        void this.hydrateProfile(user).then((profile) => {
+          this.userProfile = profile;
           this.notifyListeners(this.userProfile);
-
-          if (!ready) {
-            ready = true;
-            this.initialized = true;
-            resolve();
-          }
-        },
-        (error) => {
-          console.error('[AuthService] onAuthStateChanged error:', error);
-          if (!ready) {
-            ready = true;
-            this.initialized = true;
-            this.notifyListeners(null);
-            resolve();
-          }
-        },
-      );
+        });
+      } else {
+        this.userProfile = null;
+        this.notifyListeners(null);
+      }
     });
+
+    this.initialized = true;
+  }
+
+  private syncState(): void {
+    const user = backendAuthService.getCurrentUser();
+    this.currentUser = user;
+    if (user) {
+      void this.hydrateProfile(user).then((profile) => {
+        this.userProfile = profile;
+        this.notifyListeners(this.userProfile);
+      });
+    }
   }
 
   isConfigured(): boolean {
-    return isFirebaseConfigured();
+    return true;
   }
 
   async waitForInitialization(): Promise<void> {
@@ -155,21 +162,21 @@ class AuthService {
 
   async signInWithEmail({ email, password }: AuthCredentials): Promise<UserProfile> {
     try {
-      const result = await signInWithEmailAndPassword(requireAuth(), email, password);
-      this.currentUser = result.user;
-      await this.storeTokens(result.user);
+      const { user } = await backendAuthService.signIn(email, password);
+      if (!user) throw new Error('Sign in failed: no user returned.');
 
-      this.userProfile = await profileRepository.loadProfile(result.user);
-      if (!this.userProfile) {
-        this.userProfile = await profileRepository.createProfile(result.user);
-      }
+      this.currentUser = user;
+      this.userProfile = await this.hydrateProfile(user);
 
       if (this.userProfile) {
-        this.userProfile = await profileRepository.updateProfile(
-          result.user.uid,
-          { lastLoginAt: new Date() },
-          this.userProfile
-        );
+        try {
+          await profileRepository.update(user.id, {
+            last_login_at: new Date().toISOString(),
+          });
+          this.userProfile.lastLoginAt = new Date();
+        } catch {
+          // non-critical
+        }
       }
 
       this.notifyListeners(this.userProfile);
@@ -178,68 +185,153 @@ class AuthService {
       if (!this.userProfile) throw new Error('Failed to load profile');
       return this.userProfile;
     } catch (error) {
-      throw new Error(mapFirebaseError(error));
+      throw new Error(mapSupabaseError(error));
     }
   }
 
   async signInWithGoogle(): Promise<UserProfile> {
-    if (Platform.OS !== 'web') {
-      throw new Error('Google sign-in in Expo Go is not configured yet. Use email/password for now.');
+    // Build the post-auth redirect target. On web we use the browser origin; on
+    // native we use the app's deep link (e.g. `velness://auth/callback`).
+    const redirectTo =
+      Platform.OS === 'web' && typeof window !== 'undefined'
+        ? window.location.origin
+        : Linking.createURL('auth/callback');
+
+    if (Platform.OS === 'web') {
+      try {
+        const { url } = await backendAuthService.signInWithGoogle(redirectTo);
+
+        if (url) {
+          window.location.href = url;
+          throw new Error('Redirecting to Google sign-in...');
+        }
+
+        throw new Error('Failed to start Google sign-in.');
+      } catch (error: any) {
+        if (error?.message?.includes('Redirecting')) throw error;
+        throw new Error(mapSupabaseError(error));
+      }
     }
 
-    const provider = new GoogleAuthProvider();
-    provider.addScope('email');
-    provider.setCustomParameters({ prompt: 'select_account', access_type: 'online' });
-
+    // Native (Expo): open the provider URL in an in-app browser and capture the
+    // redirect back to our deep link, then exchange it for a session.
     try {
-      const result = await signInWithPopup(requireAuth(), provider);
-      this.currentUser = result.user;
-      await this.storeTokens(result.user);
+      const { url } = await backendAuthService.signInWithProvider('google', {
+        redirectTo,
+        skipBrowserRedirect: true,
+      });
+      if (!url) throw new Error('Failed to start Google sign-in.');
 
-      this.userProfile = await profileRepository.loadProfile(result.user);
-      if (!this.userProfile) {
-        this.userProfile = await profileRepository.createProfile(result.user);
+      const result = await WebBrowser.openAuthSessionAsync(url, redirectTo);
+      if (result.type === 'cancel' || result.type === 'dismiss') {
+        throw new Error('Google sign-in was cancelled.');
+      }
+      if (result.type !== 'success' || !result.url) {
+        throw new Error('Google sign-in did not complete.');
       }
 
-      if (this.userProfile) {
-        this.userProfile = await profileRepository.updateProfile(
-          result.user.uid,
-          { lastLoginAt: new Date() },
-          this.userProfile
-        );
-      }
+      await backendAuthService.getSessionFromUrl(result.url);
+
+      const { data } = await supabase.auth.getUser();
+      const user = data.user;
+      if (!user) throw new Error('Google sign-in failed: no user returned.');
+
+      this.currentUser = user;
+      this.userProfile = await this.hydrateProfile(user);
 
       this.notifyListeners(this.userProfile);
-      analyticsService.trackEvent('auth_signin', { method: 'google' });
+      analyticsService.trackEvent('auth_signin' as never, { method: 'google' });
 
-      if (!this.userProfile) {
-        throw new Error('Failed to load profile after Google sign-in');
-      }
+      if (!this.userProfile) throw new Error('Failed to load profile');
       return this.userProfile;
-    } catch (popupError: any) {
-      if (popupError.code === 'auth/popup-blocked') {
-        await signInWithRedirect(requireAuth(), provider);
-        throw new Error('Redirecting to Google sign-in...');
-      }
-      throw new Error(mapFirebaseError(popupError));
+    } catch (error: any) {
+      if (error?.message?.includes('cancelled')) throw error;
+      throw new Error(mapSupabaseError(error));
+    }
+  }
+
+  async signInAnonymously(): Promise<UserProfile> {
+    try {
+      const { user } = await backendAuthService.signInAnonymously();
+      if (!user) throw new Error('Anonymous sign-in failed: no user returned.');
+
+      this.currentUser = user;
+      this.userProfile = await this.hydrateProfile(user);
+
+      this.notifyListeners(this.userProfile);
+      analyticsService.trackEvent('auth_guest' as never, { method: 'anonymous' });
+
+      if (!this.userProfile) throw new Error('Failed to load profile');
+      return this.userProfile;
+    } catch (error) {
+      throw new Error(mapSupabaseError(error));
+    }
+  }
+
+  /**
+   * Enter guest mode via Supabase anonymous auth so guest data persists under
+   * RLS (recommendations, progress, ...). If anonymous sign-in is unavailable
+   * (e.g. not enabled in the Supabase project) it falls back to a purely local
+   * guest profile, keeping the app usable with degraded (non-persisted) data.
+   */
+  async signInAsGuest(): Promise<UserProfile> {
+    try {
+      return await this.signInAnonymously();
+    } catch {
+      const fallback: UserProfile = {
+        uid: `guest-${Date.now()}`,
+        name: 'Guest User',
+        email: `guest-${Date.now()}@example.com`,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastLoginAt: new Date(),
+        preferences: { theme: 'light', notifications: false, language: 'en', tone: 'auto' },
+        stats: { totalSessions: 1, totalMinutes: 0, streakDays: 0, lastActivityDate: new Date() },
+        onboardingCompleted: true,
+      };
+      this.currentUser = null;
+      this.userProfile = fallback;
+      this.notifyListeners(this.userProfile);
+      return this.userProfile;
     }
   }
 
   async signUp(data: SignUpData): Promise<UserProfile> {
     try {
-      const result = await createUserWithEmailAndPassword(requireAuth(), data.email, data.password);
-      this.currentUser = result.user;
+      // If the current session is an anonymous (guest) one, promote it in place
+      // so all RLS-scoped guest data (recommendations, progress, ...) is kept
+      // and re-attached to the now-real account. Otherwise create a new account.
+      const isAnon = await backendAuthService.isAnonymous();
+      const result = isAnon
+        ? await backendAuthService.convertAnonymousToEmail(data.email, data.password, {
+            display_name: data.name,
+            name: data.name,
+          })
+        : await backendAuthService.signUp(data.email, data.password, {
+            display_name: data.name,
+            name: data.name,
+          });
 
-      await updateProfile(result.user, { displayName: data.name });
-      await this.storeTokens(result.user);
+      if (result.user) {
+        this.currentUser = result.user;
+      }
 
-      this.userProfile = await profileRepository.createProfile(result.user, data.name);
-
-      // Send verification email
-      try {
-        await sendEmailVerification(result.user);
-      } catch {
-        // Non-critical: verification email may fail silently
+      if (result.session) {
+        this.userProfile = await this.hydrateProfile(result.user!);
+      } else {
+        // Email confirmation required — build a partial profile so the
+        // verification screen can reference the user's email.
+        this.userProfile = {
+          uid: result.user?.id || 'pending',
+          name: data.name,
+          email: data.email,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          lastLoginAt: new Date(),
+          preferences: { theme: 'dark', notifications: true, language: 'en', tone: 'auto' },
+          stats: { totalSessions: 0, totalMinutes: 0, streakDays: 0, lastActivityDate: new Date() },
+          onboardingCompleted: false,
+        };
       }
 
       this.notifyListeners(this.userProfile);
@@ -247,29 +339,31 @@ class AuthService {
 
       return this.userProfile;
     } catch (error) {
-      throw new Error(mapFirebaseError(error));
+      throw new Error(mapSupabaseError(error));
     }
   }
 
   async signOut(): Promise<void> {
     try {
-      await firebaseSignOut(requireAuth());
+      await backendAuthService.signOut();
       this.userProfile = null;
       this.currentUser = null;
-      await this.clearTokens();
       this.notifyListeners(null);
       analyticsService.trackEvent('auth_signout');
     } catch (error) {
-      throw new Error(mapFirebaseError(error));
+      throw new Error(mapSupabaseError(error));
     }
   }
 
   async resetPassword(email: string): Promise<void> {
     try {
-      await sendPasswordResetEmail(requireAuth(), email);
+      const redirectTo = typeof window !== 'undefined'
+        ? `${window.location.origin}/auth/callback`
+        : undefined;
+      await backendAuthService.resetPassword(email, redirectTo);
       analyticsService.trackEvent('password_reset', {});
     } catch (error) {
-      throw new Error(mapFirebaseError(error));
+      throw new Error(mapSupabaseError(error));
     }
   }
 
@@ -277,51 +371,67 @@ class AuthService {
     if (!this.currentUser || !this.userProfile) {
       throw new Error('No user logged in');
     }
-    this.userProfile = await profileRepository.updateProfile(
-      this.currentUser.uid,
-      updates,
-      this.userProfile
-    );
+
+    const dbUpdates: Record<string, any> = {};
+    if (updates.name) dbUpdates.display_name = updates.name;
+    if (updates.photoURL !== undefined) dbUpdates.avatar_url = updates.photoURL;
+    if (updates.onboardingCompleted !== undefined) {
+      dbUpdates.onboarding_completed = updates.onboardingCompleted;
+    }
+
+    if (Object.keys(dbUpdates).length > 0) {
+      try {
+        await profileRepository.update(this.currentUser.id, dbUpdates);
+      } catch {
+        // non-critical
+      }
+    }
+
+    // Update preferences if needed
+    if (updates.preferences) {
+      try {
+        await userPreferencesService.upsert({
+          theme: updates.preferences.theme,
+          notifications_enabled: updates.preferences.notifications,
+          settings: { tone: updates.preferences.tone, language: updates.preferences.language },
+        });
+      } catch {
+        // non-critical
+      }
+    }
+
+    this.userProfile = { ...this.userProfile, ...updates };
     this.notifyListeners(this.userProfile);
   }
 
-  /**
-   * Send email verification to the current user.
-   */
   async sendVerificationEmail(): Promise<void> {
-    if (!this.currentUser) {
-      throw new Error('No user logged in');
-    }
+    if (!this.currentUser) throw new Error('No user logged in');
+    const email = this.currentUser.email;
+    if (!email) throw new Error('No email address on file.');
     try {
-      await sendEmailVerification(this.currentUser);
+      const redirectTo = typeof window !== 'undefined'
+        ? `${window.location.origin}/auth/callback`
+        : undefined;
+      await backendAuthService.resendVerificationEmail(email, redirectTo);
     } catch (error) {
-      throw new Error(mapFirebaseError(error));
+      throw new Error(mapSupabaseError(error));
     }
   }
 
-  /**
-   * Reload the current user and check email verification status.
-   */
   async checkEmailVerified(): Promise<boolean> {
     if (!this.currentUser) return false;
     try {
-      await this.currentUser.reload();
-      return this.currentUser.emailVerified;
+      const { data: { user } } = await supabase.auth.getUser();
+      return user?.email_confirmed_at != null;
     } catch {
       return false;
     }
   }
 
-  /**
-   * Check if the current user's email is verified (cached value).
-   */
   isEmailVerified(): boolean {
-    return this.currentUser?.emailVerified ?? false;
+    return this.currentUser?.email_confirmed_at != null;
   }
 
-  /**
-   * Restore session from Firebase auto-restore.
-   */
   async restoreSession(): Promise<UserProfile | null> {
     if (this.currentUser && this.userProfile) {
       return this.userProfile;
@@ -332,26 +442,33 @@ class AuthService {
     return this.userProfile;
   }
 
-  /**
-   * Check if onboarding has been completed.
-   */
   async isOnboardingCompleted(): Promise<boolean> {
+    if (this.userProfile?.onboardingCompleted) return true;
     const stored = await storageService.get(STORAGE_KEYS.ONBOARDING_COMPLETED);
     return stored === 'true';
   }
 
-  /**
-   * Mark onboarding as completed.
-   */
   async markOnboardingCompleted(): Promise<void> {
     await storageService.set(STORAGE_KEYS.ONBOARDING_COMPLETED, 'true');
+    if (this.currentUser) {
+      try {
+        await profileRepository.update(this.currentUser.id, {
+          onboarding_completed: true,
+        });
+      } catch {
+        // non-critical
+      }
+    }
+    if (this.userProfile) {
+      this.userProfile.onboardingCompleted = true;
+    }
   }
 
   getProfile(): UserProfile | null {
     return this.userProfile;
   }
 
-  getCurrentFirebaseUser(): FirebaseUser | null {
+  getCurrentFirebaseUser(): AuthUser | null {
     return this.currentUser;
   }
 
@@ -364,99 +481,9 @@ class AuthService {
     };
   }
 
-  /**
-   * Migrate guest user data to a permanent account.
-   * Transfers exercise progress, user progress, and mood data
-   * from the guest UID to the new Firebase UID.
-   */
-  async migrateGuestAccount(guestUid: string, newUid: string): Promise<void> {
-    if (!guestUid || !newUid || guestUid === newUid) return;
-
-    try {
-      const { doc, getDoc, setDoc, getDocs, collection, writeBatch } = await import('firebase/firestore');
-      const { db } = await import('@/lib/firebase');
-      if (!db) return;
-
-      const batch = writeBatch(db);
-
-      // Transfer exercise progress
-      const guestExercisesSnap = await getDocs(collection(db, 'users', guestUid, 'exercises'));
-      for (const exerciseDoc of guestExercisesSnap.docs) {
-        const newRef = doc(db, 'users', newUid, 'exercises', exerciseDoc.id);
-        batch.set(newRef, exerciseDoc.data(), { merge: true });
-      }
-
-      // Transfer user progress document
-      const guestProgressSnap = await getDoc(doc(db, 'users', guestUid, 'progress', 'journey'));
-      if (guestProgressSnap.exists()) {
-        const newRef = doc(db, 'users', newUid, 'progress', 'journey');
-        batch.set(newRef, guestProgressSnap.data(), { merge: true });
-      }
-
-      // Transfer recommendations
-      const guestRecSnap = await getDocs(collection(db, 'users', guestUid, 'recommendations'));
-      for (const recDoc of guestRecSnap.docs) {
-        const newRef = doc(db, 'users', newUid, 'recommendations', recDoc.id);
-        batch.set(newRef, recDoc.data(), { merge: true });
-      }
-
-      // Transfer streaks
-      const guestStreakSnap = await getDocs(collection(db, 'users', guestUid, 'streaks'));
-      for (const streakDoc of guestStreakSnap.docs) {
-        const newRef = doc(db, 'users', newUid, 'streaks', streakDoc.id);
-        batch.set(newRef, streakDoc.data(), { merge: true });
-      }
-
-      // Transfer moods
-      const guestMoodsSnap = await getDocs(collection(db, 'users', guestUid, 'moods'));
-      for (const moodDoc of guestMoodsSnap.docs) {
-        const newRef = doc(db, 'users', newUid, 'moods', moodDoc.id);
-        batch.set(newRef, moodDoc.data(), { merge: true });
-      }
-
-      await batch.commit();
-
-      // Clear local cache for guest UID, migrate to new UID
-      const { storageService } = await import('@/services/storage');
-      const guestProgressKey = `journey_progress_${guestUid}`;
-      const guestUserProgressKey = `journey_user_progress_${guestUid}`;
-      const guestData = await storageService.getJSON(guestProgressKey);
-      if (guestData) {
-        await storageService.setJSON(`journey_progress_${newUid}`, guestData);
-        await storageService.delete(guestProgressKey);
-      }
-      const guestUserData = await storageService.getJSON(guestUserProgressKey);
-      if (guestUserData) {
-        await storageService.setJSON(`journey_user_progress_${newUid}`, guestUserData);
-        await storageService.delete(guestUserProgressKey);
-      }
-
-      await import('@/services/logging').then(({ logger }) => {
-        logger.info('auth', 'Guest account migrated', { guestUid, newUid });
-      });
-    } catch (error) {
-      const { logger } = await import('@/services/logging');
-      logger.error('auth', 'Guest migration failed', { guestUid, newUid, error: String(error) });
-    }
-  }
-
-  // ─── Private helpers ──────────────────────────────────────────────────
-
-  private async storeTokens(user: FirebaseUser): Promise<void> {
-    try {
-      const tokenResult = await user.getIdTokenResult();
-      await storageService.setSecure(STORAGE_KEYS.SESSION_TOKEN, tokenResult.token);
-      if (user.refreshToken) {
-        await storageService.setSecure(STORAGE_KEYS.REFRESH_TOKEN, user.refreshToken);
-      }
-    } catch {
-      // Token storage is non-critical
-    }
-  }
-
-  private async clearTokens(): Promise<void> {
-    await storageService.deleteSecure(STORAGE_KEYS.SESSION_TOKEN);
-    await storageService.deleteSecure(STORAGE_KEYS.REFRESH_TOKEN);
+  async migrateGuestAccount(_guestUid: string, _newUid: string): Promise<void> {
+    // Guest accounts are handled directly through Supabase anonymous auth now.
+    // The anonymous session is already linked to the user's data in the database.
   }
 
   private notifyListeners(user: UserProfile | null): void {

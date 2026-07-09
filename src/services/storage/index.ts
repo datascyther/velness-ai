@@ -15,7 +15,8 @@ try {
   // Secure store not available
 }
 
-const STORAGE_PREFIX = 'neeva_';
+const OLD_PREFIX = 'neeva_';
+const STORAGE_PREFIX = 'velness_';
 
 class StorageService {
   private prefix(key: string): string {
@@ -85,14 +86,33 @@ class StorageService {
     }
   }
 
+  async migrateFromOldStorage(): Promise<void> {
+    if (Platform.OS === 'web') return;
+    const keys = await AsyncStorage.getAllKeys();
+    const oldKeys = keys.filter((key) => key.startsWith(OLD_PREFIX));
+    for (const oldKey of oldKeys) {
+      const unprefixed = oldKey.slice(OLD_PREFIX.length);
+      const newKey = `${STORAGE_PREFIX}${unprefixed}`;
+      try {
+        const value = await AsyncStorage.getItem(oldKey);
+        if (value !== null) {
+          await AsyncStorage.setItem(newKey, value);
+          await AsyncStorage.removeItem(oldKey);
+        }
+      } catch {
+        // skip individual key failures
+      }
+    }
+  }
+
   async clear(): Promise<void> {
     if (Platform.OS === 'web') {
       return;
     }
     const keys = await AsyncStorage.getAllKeys();
-    const neevaKeys = keys.filter((key) => key.startsWith(STORAGE_PREFIX));
-    if (neevaKeys.length > 0) {
-      await AsyncStorage.multiRemove(neevaKeys);
+    const velnessKeys = keys.filter((key) => key.startsWith(STORAGE_PREFIX));
+    if (velnessKeys.length > 0) {
+      await AsyncStorage.multiRemove(velnessKeys);
     }
   }
 

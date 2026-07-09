@@ -1,5 +1,5 @@
 /**
- * Neeva AI — Auth Feature Types
+ * Velness — Auth Feature Types
  *
  * Feature-specific auth types extending the shared auth types.
  * Kept separate from shared types to maintain feature isolation.

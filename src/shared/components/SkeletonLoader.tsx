@@ -52,7 +52,7 @@ export function SkeletonLoader({
           borderRadius,
         },
       ]}
-      className={`bg-neeva-glass-highlight ${className}`}
+      className={`bg-velness-glass-highlight ${className}`}
     />
   );
 }
@@ -60,7 +60,7 @@ export function SkeletonLoader({
 // Convenience: SkeletonCard with consistent layout
 export function SkeletonCard({ lines = 3 }: { lines?: number }) {
   return (
-    <View className="bg-neeva-glass-dark/20 rounded-glass-lg p-5 border border-neeva-glass-border">
+    <View className="bg-velness-glass-dark/20 rounded-glass-lg p-5 border border-velness-glass-border">
       <SkeletonLoader width="60%" height={22} borderRadius={6} className="mb-4" />
       {Array.from({ length: lines }).map((_, i) => (
         <SkeletonLoader

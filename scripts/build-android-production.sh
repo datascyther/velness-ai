@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# Neeva AI — Android Production Build Script
+# Velness — Android Production Build Script
 # =============================================================================
 # Prerequisites:
 #   1. Place google-services.json in project root

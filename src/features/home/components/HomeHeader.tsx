@@ -1,4 +1,10 @@
-import React, { useMemo } from 'react';
+// src/features/home/components/HomeHeader.tsx
+//
+// Top navigation bar: brand wordmark + notification + avatar.
+// The greeting/headline has been moved into HeroCard.
+// HomeHeader is now purely a top bar — no greeting copy here.
+
+import React from 'react';
 import { View, Text, Pressable, Image, StyleSheet } from 'react-native';
 import { Bell } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -6,75 +12,50 @@ import { Avatar } from '@/shared/components/Avatar';
 import { useUserDisplayName, useUser } from '@/shared/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
-}
-
 interface HomeHeaderProps {
   onNotificationPress?: () => void;
-  userNameOverride?: string;
+  /** Unread notifications count — controls the badge dot. */
+  unreadCount?: number;
 }
 
-export function HomeHeader({
-  onNotificationPress,
-  userNameOverride,
-}: HomeHeaderProps) {
+export function HomeHeader({ onNotificationPress, unreadCount = 0 }: HomeHeaderProps) {
   const displayName = useUserDisplayName();
   const user = useUser();
-  const greeting = useMemo(() => getGreeting(), []);
   const { colors } = useTheme();
-
-  const firstName = useMemo(() => {
-    if (userNameOverride) return userNameOverride;
-    if (!displayName || displayName === 'User') return '';
-    return displayName.split(' ')[0];
-  }, [displayName, userNameOverride]);
 
   return (
     <Animated.View
-      entering={FadeInDown.duration(600).springify()}
+      entering={FadeInDown.duration(400)}
       style={styles.container}
     >
-      <View style={styles.brandRow}>
-        <View style={styles.brandLeft}>
-          <Image
-            source={require('@/shared/assets/neeva-logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <Text style={[styles.wordmark, { color: colors.text.primary }]}>Neeva</Text>
-        </View>
-
-        <View style={styles.brandRight}>
-          <Pressable
-            onPress={onNotificationPress}
-            hitSlop={12}
-            style={styles.iconButton}
-            accessibilityLabel="View notifications"
-            accessibilityRole="button"
-          >
-            <Bell size={20} color={colors.text.secondary} />
-            <View style={[styles.notificationDot, { backgroundColor: colors.brand.primary }]} />
-          </Pressable>
-
-          <Avatar
-            photoURL={user?.photoURL ?? null}
-            name={displayName}
-            size="sm"
-          />
-        </View>
+      <View style={styles.brandLeft}>
+        <Image
+          source={require('@/shared/assets/velness-logo.jpg')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={[styles.wordmark, { color: colors.text.primary }]}>Velness</Text>
       </View>
 
-      <View style={styles.greetingSection}>
-        <Text style={[styles.greetingTitle, { color: colors.text.primary }]}>
-          {greeting}{firstName ? `, ${firstName}` : ''} 👋
-        </Text>
-        <Text style={[styles.greetingSubtitle, { color: colors.text.secondary }]}>
-          Let's take care of your mind today.
-        </Text>
+      <View style={styles.brandRight}>
+        <Pressable
+          onPress={onNotificationPress}
+          hitSlop={12}
+          style={styles.iconButton}
+          accessibilityLabel="View notifications"
+          accessibilityRole="button"
+        >
+          <Bell size={20} color={colors.text.secondary} />
+          {unreadCount > 0 && (
+            <View style={[styles.notificationDot, { backgroundColor: colors.danger }]} />
+          )}
+        </Pressable>
+
+        <Avatar
+          photoURL={user?.photoURL ?? null}
+          name={displayName}
+          size="sm"
+        />
       </View>
     </Animated.View>
   );
@@ -82,30 +63,30 @@ export function HomeHeader({
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 8,
-  },
-  brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingTop: 8,
   },
   brandLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
   logo: {
-    width: 32,
-    height: 32,
+    width: 30,
+    height: 30,
+    borderRadius: 8,
   },
   wordmark: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '700',
-    marginLeft: 8,
     letterSpacing: -0.3,
   },
   brandRight: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
   iconButton: {
     width: 40,
@@ -113,30 +94,14 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
   },
   notificationDot: {
     position: 'absolute',
     top: 10,
     right: 10,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  greetingSection: {
-    marginTop: 16,
-  },
-  greetingTitle: {
-    fontSize: 36,
-    fontWeight: '700',
-    lineHeight: 44,
-    letterSpacing: -0.6,
-  },
-  greetingSubtitle: {
-    fontSize: 16,
-    fontWeight: '400',
-    lineHeight: 24,
-    marginTop: 4,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
 });
 

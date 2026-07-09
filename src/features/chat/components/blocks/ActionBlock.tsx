@@ -3,7 +3,7 @@
  *
  * 🌱 Small step — Green accent
  *
- * Used when Neeva suggests a small, actionable step the user can take.
+ * Used when Velness suggests a small, actionable step the user can take.
  * Has a primary CTA button to acknowledge or "start" the action.
  */
 

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Text, Pressable, StyleSheet } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -8,9 +8,12 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useTheme } from '@/hooks/useTheme';
+import { EmotionAvatar } from '@/components/emotion/EmotionAvatar';
+import { triggerEmotionHaptic } from '@/constants/emotions';
+import type { EmotionType } from '@/constants/emotions';
 
 export interface MoodOptionProps {
-  emoji: string;
+  emotion: EmotionType;
   label: string;
   isSelected: boolean;
   onPress: () => void;
@@ -19,7 +22,7 @@ export interface MoodOptionProps {
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export const MoodOption = React.memo(({
-  emoji,
+  emotion,
   label,
   isSelected,
   onPress,
@@ -28,14 +31,20 @@ export const MoodOption = React.memo(({
   const { colors } = useTheme();
   const PRIMARY = colors.brand.primary;
 
+  useEffect(() => {
+    if (isSelected) {
+      scale.value = 1.2;
+      scale.value = withSpring(1.08, { damping: 10, stiffness: 200 });
+    } else {
+      scale.value = withSpring(1, { damping: 12, stiffness: 200 });
+    }
+  }, [isSelected]);
+
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
         {
-          scale: withSpring(scale.value * (isSelected ? 1.05 : 1), {
-            damping: 12,
-            stiffness: 250,
-          }),
+          scale: scale.value,
         },
       ],
       borderColor: withSpring(
@@ -50,17 +59,22 @@ export const MoodOption = React.memo(({
   });
 
   const handlePressIn = useCallback(() => {
-    scale.value = 0.95;
+    scale.value = withSpring(0.92, { damping: 8 });
   }, [scale]);
 
   const handlePressOut = useCallback(() => {
-    scale.value = 1;
-  }, [scale]);
+    scale.value = withSpring(isSelected ? 1.08 : 1, { damping: 10 });
+  }, [scale, isSelected]);
+
+  const handlePress = useCallback(() => {
+    void triggerEmotionHaptic();
+    onPress();
+  }, [onPress]);
 
   return (
     <Animated.View entering={FadeInDown.duration(400).springify()}>
       <AnimatedPressable
-        onPress={onPress}
+        onPress={handlePress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         style={[styles.card, { borderColor: colors.border.default, backgroundColor: colors.surface.secondary }, animatedStyle]}
@@ -68,7 +82,13 @@ export const MoodOption = React.memo(({
         accessibilityLabel={`Select mood: ${label}`}
         accessibilityState={{ selected: isSelected }}
       >
-        <Text style={styles.emoji}>{emoji}</Text>
+        <EmotionAvatar
+          emotion={emotion}
+          size={34}
+          animated
+          selected={isSelected}
+          showGlow={false}
+        />
         <Text style={[styles.label, { color: colors.text.secondary }, isSelected && { color: colors.brand.primary, fontWeight: '600' }]}>
           {label}
         </Text>
@@ -81,19 +101,16 @@ const styles = StyleSheet.create({
   card: {
     width: 64,
     height: 80,
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 16,
+    borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  emoji: {
-    fontSize: 28,
-    marginBottom: 4,
   },
   label: {
     fontSize: 11,
     fontWeight: '500',
     textAlign: 'center',
+    marginTop: 6,
   },
 });
 

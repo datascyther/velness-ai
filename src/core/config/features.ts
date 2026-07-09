@@ -1,5 +1,5 @@
 /**
- * Neeva AI — Feature Flags
+ * Velness — Feature Flags
  *
  * Centralised feature toggle configuration.
  * Allows enabling/disabling features during development and migration.

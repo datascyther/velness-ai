@@ -3,7 +3,7 @@
  *
  * 📚 Resource — Indigo accent
  *
- * Used when Neeva shares an educational resource, article, or external link.
+ * Used when Velness shares an educational resource, article, or external link.
  * Shows a title, description, and source attribution row.
  */
 

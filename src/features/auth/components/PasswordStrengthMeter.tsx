@@ -64,7 +64,7 @@ export function PasswordStrengthMeter({ password }: PasswordStrengthMeterProps) 
         </Text>
       </View>
 
-      <View className="h-1.5 bg-neeva-glass-highlight rounded-full overflow-hidden">
+      <View className="h-1.5 bg-velness-glass-highlight rounded-full overflow-hidden">
         <View
           style={{
             width: `${strength.progress * 100}%`,
@@ -75,7 +75,7 @@ export function PasswordStrengthMeter({ password }: PasswordStrengthMeterProps) 
       </View>
 
       {/* Requirements list */}
-      <View className="mt-3 bg-neeva-glass-dark/20 rounded-glass p-3 border border-neeva-glass-border/50">
+      <View className="mt-3 bg-velness-glass-dark/20 rounded-glass p-3 border border-velness-glass-border/50">
         <Text className="text-white/50 text-caption font-medium mb-2">
           Requirements:
         </Text>

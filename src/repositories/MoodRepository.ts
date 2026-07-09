@@ -1,20 +1,5 @@
-/**
- * Mood Repository
- *
- * Manages mood data — single source of truth for all mood operations.
- * Components never own mood state; they only display what this repository provides.
- */
-
-import {
-  collection,
-  doc,
-  getDocs,
-  setDoc,
-  query,
-  orderBy,
-  Timestamp,
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { moodRepository as backendMoodRepo } from '../../backend/repositories/MoodRepository';
+import { NotAuthenticatedError } from '../../backend/repositories/baseRepository';
 import { storageService } from '@/services/storage';
 import type { Mood } from '@/shared/types';
 
@@ -31,7 +16,7 @@ export class MoodRepository {
     const local = await this.loadFromLocal(uid);
     if (local.length > 0) return local;
 
-    const fromCloud = await this.loadFromCloud(uid);
+    const fromCloud = await this.loadFromCloud();
     if (fromCloud.length > 0) {
       await this.persistMoods(uid, fromCloud);
     }
@@ -46,28 +31,24 @@ export class MoodRepository {
   }
 
   async syncToCloud(uid: string, entry: Mood): Promise<void> {
-    if (!uid || !db) return;
+    if (!uid) return;
     try {
-      const docRef = doc(db, COLLECTION, uid, 'moods', entry.id);
-      await setDoc(docRef, {
-        id: entry.id,
+      await backendMoodRepo.create({
         rating: entry.rating,
         note: entry.note,
-        timestamp: Timestamp.fromDate(entry.timestamp),
+        recorded_at: entry.timestamp.toISOString(),
+        ...(entry.label !== undefined ? { label: entry.label } : {}),
       });
     } catch (error) {
+      if (error instanceof NotAuthenticatedError) return;
       console.error('Error syncing mood to cloud:', error);
       throw error;
     }
   }
 
-  /**
-   * Background cloud sync — fetches from Firestore, merges into local cache.
-   * Never blocks UI. Safe to call at any time.
-   */
   async syncFromCloud(uid: string): Promise<Mood[]> {
     if (!uid) return [];
-    const cloudData = await this.loadFromCloud(uid);
+    const cloudData = await this.loadFromCloud();
     if (cloudData.length > 0) {
       await this.persistMoods(uid, cloudData);
     }
@@ -103,21 +84,16 @@ export class MoodRepository {
     }
   }
 
-  private async loadFromCloud(uid: string): Promise<Mood[]> {
-    if (!db) return [];
+  private async loadFromCloud(): Promise<Mood[]> {
     try {
-      const moodsRef = collection(db, COLLECTION, uid, 'moods');
-      const moodsQuery = query(moodsRef, orderBy('timestamp', 'asc'));
-      const snapshot = await getDocs(moodsQuery);
-      return snapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: data.id,
-          rating: data.rating as Mood['rating'],
-          note: data.note || '',
-          timestamp: (data.timestamp as Timestamp).toDate(),
-        } as Mood;
-      });
+      const rows = await backendMoodRepo.list();
+      return rows.map((row) => ({
+        id: row.id,
+        rating: row.rating as Mood['rating'],
+        note: row.note || '',
+        timestamp: new Date(row.recorded_at),
+        ...(row.label ? { label: row.label } : {}),
+      }));
     } catch (error) {
       console.error('Error loading moods from cloud:', error);
       return [];

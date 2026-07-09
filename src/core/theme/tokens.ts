@@ -1,5 +1,5 @@
 /**
- * Neeva AI Design System — Design Tokens
+ * Velness Design System — Design Tokens
  *
  * Centralised design tokens for typography, spacing, radius, shadows, and motion.
  * These values are the source of truth for the design system.
@@ -150,10 +150,10 @@ export const shadows = {
 } as const;
 
 export const gradients = {
-  primary: ['#8B5CF6', '#06B6D4'] as const,
-  purple: ['#7C3AED', '#A78BFA'] as const,
+  primary: ['#7E60CD', '#06B6D4'] as const,
+  purple: ['#6E50BD', '#9F8BE6'] as const,
   cyan: ['#06B6D4', '#22D3EE'] as const,
-  warm: ['#8B5CF6', '#F472B6'] as const,
+  warm: ['#7E60CD', '#F472B6'] as const,
   calm: ['#6366F1', '#06B6D4'] as const,
 } as const;
 

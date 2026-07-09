@@ -15,8 +15,8 @@ const iconButtonVariants = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-neeva-purple-600',
-        secondary: 'bg-neeva-glass-highlight border border-neeva-glass-border',
+        primary: 'bg-velness-purple-600',
+        secondary: 'bg-velness-glass-highlight border border-velness-glass-border',
         ghost: 'bg-transparent',
       },
       size: {

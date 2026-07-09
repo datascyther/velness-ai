@@ -26,7 +26,7 @@ export default {
         'label': ['12px', { lineHeight: '1.4', fontWeight: '500' }],
       },
       colors: {
-        neeva: {
+        velness: {
           purple: {
             50: '#F5F3FF',
             100: '#EDE9FE',

@@ -4,12 +4,13 @@
  * Displays:
  *  - "Your Journey" title
  *  - "Small steps today, stronger tomorrow." subtitle
- *  - Fire emoji + streak counter (right-aligned)
+ *  - Flame icon + streak counter (right-aligned)
  */
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { FlameIcon } from '@/shared/components/SymbolIcons';
 import { useTheme } from '@/hooks/useTheme';
 import { typography, spacing } from '@/core/theme';
 
@@ -37,7 +38,7 @@ export const JourneyHeader = React.memo(({ streak = 0 }: JourneyHeaderProps) => 
 
       {streak > 0 && (
         <View style={styles.streakContainer}>
-          <Text style={styles.fireEmoji}>🔥</Text>
+          <FlameIcon size={24} />
           <View style={styles.streakTextBlock}>
             <Text style={[styles.streakCount, { color: colors.text.primary }]}>
               {streak}

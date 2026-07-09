@@ -1,14 +1,15 @@
 /**
- * Neeva AI — Shared Constants
+ * Velness — Shared Constants
  *
  * Application-wide constants. Never import these directly in components —
  * use the theme system or context providers instead.
  */
 
 export const APP = {
-  NAME: 'Neeva AI',
+  NAME: 'Velness',
   VERSION: '1.0.0',
-  DEEP_LINK_SCHEME: 'neeva',
+  DEEP_LINK_SCHEMES: ['neeva', 'velness'] as const,
+  DEEP_LINK_SCHEME: 'velness',
 } as const;
 
 export const STORAGE_KEYS = {
@@ -39,7 +40,7 @@ export const MESSAGES = {
 
   // Chat
   CHAT_STREAM_ERROR: 'Failed to get response. Please try again.',
-  CHAT_EMPTY: 'Start a conversation with Neeva...',
+  CHAT_EMPTY: 'Start a conversation with Velness...',
 
   // Journey
   EXERCISE_COMPLETE: 'Well done! Exercise completed.',

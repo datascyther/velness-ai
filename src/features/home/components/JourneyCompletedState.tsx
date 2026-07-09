@@ -21,7 +21,13 @@ export const JourneyCompletedState = React.memo(({ onExplore }: JourneyCompleted
       }}
       accessibilityLabel="Program completed"
     >
-      <Text style={{ fontSize: 32, marginBottom: 8 }}>🎉</Text>
+      <Text
+        style={{
+          fontSize: 32, marginBottom: 8, color: colors.brand.primary,
+        }}
+      >
+        ✓
+      </Text>
       <Text
         style={{
           fontSize: 18,

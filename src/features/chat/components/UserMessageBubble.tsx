@@ -58,7 +58,7 @@ export const UserMessageBubble = React.memo(function UserMessageBubble({
   const handleShare = useCallback(async () => {
     if (!message.content) return;
     try {
-      await Share.share({ message: message.content, title: 'Message from Neeva' });
+      await Share.share({ message: message.content, title: 'Message from Velness' });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch {}
   }, [message.content]);

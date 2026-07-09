@@ -9,11 +9,13 @@ import { Button } from '@/shared/components/Button';
 import { GlassCard } from '@/shared/components/GlassCard';
 import { useAppStore } from '@/core/store/useAppStore';
 import { AUTH_STRINGS } from '@/features/auth/constants';
-import { spacing, colors, typography } from '@/theme/tokens';
+import { useTheme } from '@/hooks/useTheme';
+import { spacing, typography } from '@/theme/tokens';
 
 const { width } = Dimensions.get('window');
 
 export function EmailVerificationScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const {
     user,

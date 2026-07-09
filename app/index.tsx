@@ -1,5 +1,5 @@
 /**
- * Neeva AI — App Entry Gateway
+ * Velness — App Entry Gateway
  *
  * Determines the initial screen based on authentication state:
  *   Not authenticated → Login
@@ -70,18 +70,19 @@ export default function AppEntry() {
       <View className="flex-1 bg-app-dark items-center justify-center">
         <Animated.View style={logoAnimatedStyle} className="items-center mb-8">
           <Image
-            source={require('@/shared/assets/neeva-logo.png')}
+            source={require('@/shared/assets/velness-logo.jpg')}
             style={{
               width: width * 0.45,
               height: width * 0.45,
               resizeMode: 'contain',
+              borderRadius: 32,
             }}
           />
         </Animated.View>
 
         <Animated.View style={titleAnimatedStyle} className="items-center">
           <Text className="text-white text-3xl font-bold tracking-tight">
-            Neeva AI
+            Velness
           </Text>
           <Text className="text-white/40 text-sm mt-2 font-medium">
             Your AI wellness companion

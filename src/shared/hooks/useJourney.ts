@@ -145,6 +145,21 @@ export function useJourney() {
     enabled: true,
   });
 
+  const activeExerciseId = journeyQuery.data?.resumeTarget?.exerciseId;
+  const guidedProgressQuery = useQuery({
+    queryKey: ['journey', 'active-guided-progress', activeExerciseId, uid],
+    queryFn: async () => {
+      if (!uid || !activeExerciseId) return null;
+      try {
+        const { guidedProgressRepository } = await import('../../../backend/repositories/GuidedProgressRepository');
+        return guidedProgressRepository.get(activeExerciseId);
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!uid && !!activeExerciseId,
+  });
+
   useEffect(() => {
     if (journeyQuery.data) {
       setCachedJourney(journeyQuery.data);
@@ -223,6 +238,18 @@ export function useJourney() {
   const recommendations = recommendationsQuery.data ?? DEFAULT_RECOMMENDATIONS;
   const userProgress = userProgressQuery.data ?? null;
 
+  const favorites = useMemo(() => {
+    if (!userProgress || !userProgress.favorites || !programs) return [];
+    return programs.filter((p) => userProgress.favorites?.includes(p.id));
+  }, [userProgress, programs]);
+
+  const toggleFavorite = useCallback(async (programId: string) => {
+    if (!uid) return;
+    await journeyRepository.toggleFavorite(uid, programId);
+    await queryClient.invalidateQueries({ queryKey: ['journey', 'user-progress', uid] });
+    await queryClient.invalidateQueries({ queryKey: ['journey', 'legacy', uid] });
+  }, [uid, queryClient]);
+
   const streak = useMemo(() => {
     if (!userProgress) return 0;
     return computeStreak(userProgress);
@@ -257,6 +284,7 @@ export function useJourney() {
     recommendationsQuery,
     userProgressQuery,
     journeyQuery,
+    guidedProgressQuery,
   ];
 
   const isLoading = allQueries.every((q) => q.isLoading) && !journey && !cachedExercises;
@@ -299,6 +327,7 @@ export function useJourney() {
     queryClient.invalidateQueries({ queryKey: ['journey', 'exercises', uid] });
     queryClient.invalidateQueries({ queryKey: ['journey', 'user-progress', uid] });
     queryClient.invalidateQueries({ queryKey: ['journey', 'legacy', uid] });
+    queryClient.invalidateQueries({ queryKey: ['journey', 'active-guided-progress'] });
   }, [uid, queryClient]);
 
   return {
@@ -311,6 +340,7 @@ export function useJourney() {
     weeklyProgress,
     exercisesCompleted,
     journey,
+    activeGuidedProgress: guidedProgressQuery.data || null,
     journeyLoading: isLoading,
     journeyError: error,
     isLoading,
@@ -324,6 +354,8 @@ export function useJourney() {
     refreshRecommendation,
     startExercise,
     completeLesson,
+    favorites,
+    toggleFavorite,
   };
 }
 

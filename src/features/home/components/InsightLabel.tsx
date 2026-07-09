@@ -23,7 +23,7 @@ export const InsightLabel = React.memo(({ text }: InsightLabelProps) => {
         <View style={[styles.iconCircle, { backgroundColor: `${colors.brand.primary}12` }]}>
           <Sparkles size={12} color={colors.brand.primary} />
         </View>
-        <Text style={[styles.headerText, { color: colors.brand.primary }]}>Neeva AI Insight</Text>
+        <Text style={[styles.headerText, { color: colors.brand.primary }]}>Velness Insight</Text>
       </View>
       <Text style={[styles.text, { color: colors.text.secondary }]}>{text}</Text>
     </Animated.View>

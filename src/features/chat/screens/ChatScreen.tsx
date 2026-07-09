@@ -4,6 +4,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChatHeader } from '../components/ChatHeader';
 import { ScreenContainer } from '@/shared/components/ScreenContainer';
@@ -28,6 +29,14 @@ function ChatScreenContent() {
   const [pendingQuickStarter, setPendingQuickStarter] = useState<string | null>(null);
 
   const { state, controller, isRestored } = useConversation();
+
+  // Quick Actions "AI Chat" can pass an opening prompt via the `prefill` route
+  // param (HomeScreen → router.push({ pathname: CHAT, params: { prefill } })).
+  const params = useLocalSearchParams<{ prefill?: string }>();
+  useEffect(() => {
+    const prefill = typeof params.prefill === 'string' ? params.prefill : null;
+    if (prefill) setPendingQuickStarter(prefill);
+  }, [params.prefill]);
 
   const handleQuickStarterSelect = useCallback((text: string) => {
     setPendingQuickStarter(text);
@@ -62,7 +71,7 @@ function ChatScreenContent() {
         keyboardVerticalOffset={keyboardOffset}
       >
         <ChatHeader
-          title="Neeva AI"
+          title="Velness"
           showBackButton={inConversation}
           onBackPress={controller.clear}
           inConversation={inConversation}

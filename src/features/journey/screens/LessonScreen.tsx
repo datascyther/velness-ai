@@ -11,8 +11,12 @@ import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 import { ROUTES, buildRoute } from '@/core/config/routes';
 import { spacing, borderRadius } from '@/core/theme';
 import { COMPLETION_STATUS, EXERCISE_TYPE } from '@/features/journey/constants';
+import { JourneyNavigationGuard } from '../services/JourneyNavigationGuard';
 import { DEFAULT_LESSONS } from '@/features/journey/data/programs';
 import type { ExerciseWithProgress } from '@/features/journey/models';
+import { analyticsService } from '@/services/analytics';
+
+import { useQueryClient } from '@tanstack/react-query';
 
 function getExerciseIcon(type: string, color: string, size = 20) {
   switch (type) {
@@ -31,6 +35,7 @@ export function LessonScreen() {
   const { programId, lessonId } = useLocalSearchParams<{ programId: string; lessonId: string }>();
   const { exercises, completeLesson } = useJourney();
   const setCurrentLesson = useJourneyStore((s) => s.setCurrentLesson);
+  const queryClient = useQueryClient();
 
   const lesson = useMemo(() => DEFAULT_LESSONS.find(l => l.id === lessonId), [lessonId]);
 
@@ -61,11 +66,23 @@ export function LessonScreen() {
     completingRef.current = true;
     try {
       await completeLesson(programId, lessonId);
-      router.push(ROUTES.JOURNEY.COMPLETION as any);
+
+      // Track CBT lesson completion
+      const isCBT = !programId.includes('breathing') && !programId.includes('meditation') && !programId.includes('sleep');
+      if (isCBT) {
+        analyticsService.trackEvent('cbt_lesson_completed' as any, {
+          program_id: programId,
+          lesson_id: lessonId,
+        });
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['homeState'] });
+
+      router.push(`/journey/completion?programId=${programId}&lessonId=${lessonId}` as any);
     } catch {
       completingRef.current = false;
     }
-  }, [uid, programId, lessonId, completeLesson]);
+  }, [uid, programId, lessonId, completeLesson, queryClient]);
 
   useEffect(() => {
     if (allCompleted && uid && !completingRef.current) {
@@ -81,6 +98,11 @@ export function LessonScreen() {
     }
   }, []);
 
+  const { userProgress: fullUserProgress } = useJourney();
+  const guard = useMemo(() => {
+    return JourneyNavigationGuard.checkLessonAccessible(programId || '', lessonId || '', fullUserProgress);
+  }, [programId, lessonId, fullUserProgress]);
+
   if (!lesson) {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background.primary }]} edges={['top']}>
@@ -91,6 +113,23 @@ export function LessonScreen() {
         </View>
         <View style={styles.errorContainer}>
           <Text style={[styles.errorText, { color: colors.text.secondary }]}>Lesson not found.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!guard.allowed) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background.primary }]} edges={['top']}>
+        <View style={styles.header}>
+          <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Go back">
+            <ArrowLeft size={24} color={colors.text.primary} />
+          </Pressable>
+        </View>
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, { color: colors.text.secondary, textAlign: 'center', paddingHorizontal: spacing.xl }]}>
+            {guard.allowed === false ? guard.reason : ''}
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -114,6 +153,57 @@ export function LessonScreen() {
               {completedCount} of {lessonExercises.length} exercises completed
             </Text>
           </View>
+        </View>
+
+        <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Lesson Guide</Text>
+
+        <View style={[styles.guideCard, { backgroundColor: colors.surface.primary, borderColor: colors.border.default }]}>
+          {lesson.learningObjective ? (
+            <View style={[styles.guideItem, { borderBottomColor: colors.border.default }]}>
+              <Text style={[styles.guideLabel, { color: colors.brand.primary }]}>Learning Goal</Text>
+              <Text style={[styles.guideValue, { color: colors.text.secondary }]}>{lesson.learningObjective}</Text>
+            </View>
+          ) : null}
+
+          <View style={[styles.guideItem, { borderBottomColor: colors.border.default }]}>
+            <Text style={[styles.guideLabel, { color: colors.brand.primary }]}>Estimated Time</Text>
+            <Text style={[styles.guideValue, { color: colors.text.secondary }]}>{lesson.duration} min</Text>
+          </View>
+
+          {lesson.preparation ? (
+            <View style={[styles.guideItem, { borderBottomColor: colors.border.default }]}>
+              <Text style={[styles.guideLabel, { color: colors.brand.primary }]}>Preparation</Text>
+              <Text style={[styles.guideValue, { color: colors.text.secondary }]}>{lesson.preparation}</Text>
+            </View>
+          ) : null}
+
+          {lesson.introduction ? (
+            <View style={[styles.guideItem, { borderBottomColor: colors.border.default }]}>
+              <Text style={[styles.guideLabel, { color: colors.brand.primary }]}>Guided Exercise</Text>
+              <Text style={[styles.guideValue, { color: colors.text.secondary }]}>{lesson.introduction}</Text>
+            </View>
+          ) : null}
+
+          {lesson.reflectionPrompt ? (
+            <View style={[styles.guideItem, { borderBottomColor: colors.border.default }]}>
+              <Text style={[styles.guideLabel, { color: colors.brand.primary }]}>Reflection</Text>
+              <Text style={[styles.guideValue, { color: colors.text.secondary }]}>{lesson.reflectionPrompt}</Text>
+            </View>
+          ) : null}
+
+          {lesson.takeaway ? (
+            <View style={[styles.guideItem, { borderBottomColor: colors.border.default }]}>
+              <Text style={[styles.guideLabel, { color: colors.brand.primary }]}>Takeaway</Text>
+              <Text style={[styles.guideValue, { color: colors.text.secondary }]}>{lesson.takeaway}</Text>
+            </View>
+          ) : null}
+
+          {lesson.completionSummary ? (
+            <View style={[styles.guideItem, styles.guideItemLast, { borderBottomColor: colors.border.default }]}>
+              <Text style={[styles.guideLabel, { color: colors.brand.primary }]}>Completion</Text>
+              <Text style={[styles.guideValue, { color: colors.text.secondary }]}>{lesson.completionSummary}</Text>
+            </View>
+          ) : null}
         </View>
 
         <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Exercises</Text>
@@ -175,6 +265,23 @@ const styles = StyleSheet.create({
   progressSummary: { marginTop: spacing.sm },
   progressText: { fontSize: 13, fontWeight: '500' },
   sectionTitle: { fontSize: 18, fontWeight: '700', marginTop: spacing.lg, marginBottom: spacing.md },
+  guideCard: {
+    borderWidth: 1,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  guideItem: {
+    borderBottomWidth: 1,
+    paddingBottom: spacing.md,
+    gap: spacing.xs,
+  },
+  guideItemLast: {
+    borderBottomWidth: 0,
+    paddingBottom: 0,
+  },
+  guideLabel: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8 },
+  guideValue: { fontSize: 14, lineHeight: 20 },
   exercisesList: { gap: spacing.sm },
   exerciseCard: {
     flexDirection: 'row',

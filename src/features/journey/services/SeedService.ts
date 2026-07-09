@@ -1,19 +1,18 @@
-import { getDocs, setDoc, doc, writeBatch } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { programsRef, programLessonsRef, exercisesRef } from '@/lib/firestore';
+import { createServiceRoleClient } from 'backend/client';
 import { DEFAULT_PROGRAMS, DEFAULT_LESSONS } from '@/features/journey/data/programs';
 import { DEFAULT_EXERCISES } from '@/features/journey/data/exercises';
-import { programToDoc, lessonToDoc, exerciseToDoc } from '@/features/journey/models/dto';
 import { logger } from '@/services/logging';
+import { slugToUUID } from '../utils/uuidMapping';
 
-const SEEDED_FLAG_KEY = 'neeva_journey_seeded_v1';
+const SEEDED_FLAG_KEY = 'velness_journey_seeded_sprint4_v2';
 
 let seedingInProgress = false;
 
 async function hasBeenSeeded(): Promise<boolean> {
   const storage = await import('@/services/storage').then((m) => m.storageService);
   const flag = await storage.get(SEEDED_FLAG_KEY);
-  return flag === 'true';
+  if (flag === 'true') return true;
+  return false;
 }
 
 async function markSeeded(): Promise<void> {
@@ -21,15 +20,9 @@ async function markSeeded(): Promise<void> {
   await storage.set(SEEDED_FLAG_KEY, 'true');
 }
 
-async function isCollectionEmpty(ref: ReturnType<typeof programsRef>): Promise<boolean> {
-  if (!ref) return true;
-  const snapshot = await getDocs(ref);
-  return snapshot.empty;
-}
-
 export async function ensureSeeded(): Promise<boolean> {
   if (seedingInProgress) return false;
-  if (!db) return false;
+  if (typeof createServiceRoleClient !== 'function') return false;
 
   try {
     const seeded = await hasBeenSeeded();
@@ -37,42 +30,91 @@ export async function ensureSeeded(): Promise<boolean> {
 
     seedingInProgress = true;
 
-    const programsEmpty = await isCollectionEmpty(programsRef());
-    if (!programsEmpty) {
-      await markSeeded();
-      logger.info('journey', 'Seed skipped — programs already exist in Firestore');
-      return true;
+    const admin = createServiceRoleClient();
+
+    // Ensure default profile and journey exist so that program seeding succeeds.
+    const defaultUserId = '00000000-0000-0000-0000-000000000000';
+    const defaultJourneyId = slugToUUID('default')!;
+
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('id')
+      .eq('id', defaultUserId)
+      .maybeSingle();
+
+    if (!profile) {
+      const { error: profileErr } = await admin.from('profiles').insert({
+        id: defaultUserId,
+        email: 'system@velness.app',
+        full_name: 'System User',
+      } as any);
+      if (profileErr) throw profileErr;
     }
 
-    const batch = writeBatch(db);
+    const { data: journey } = await admin
+      .from('journeys')
+      .select('id')
+      .eq('id', defaultJourneyId)
+      .maybeSingle();
+
+    if (!journey) {
+      const { error: journeyErr } = await admin.from('journeys').insert({
+        id: defaultJourneyId,
+        user_id: defaultUserId,
+        title: 'Default Journey',
+        status: 'active',
+      } as any);
+      if (journeyErr) throw journeyErr;
+    }
 
     for (const program of DEFAULT_PROGRAMS) {
-      const programRef = doc(db, 'programs', program.id);
-      batch.set(programRef, programToDoc(program));
+      const { error: progErr } = await admin
+        .from('programs')
+        .upsert({
+          id: slugToUUID(program.id),
+          title: program.title,
+          description: program.description,
+          position: program.sortOrder,
+          journey_id: defaultJourneyId,
+          status: 'active',
+        } as any, { onConflict: 'id' });
+      if (progErr) throw progErr;
 
       const programLessons = DEFAULT_LESSONS.filter((l) => l.programId === program.id);
       for (const lesson of programLessons) {
-        const lessonRef = doc(db, 'programs', program.id, 'lessons', lesson.id);
-        batch.set(lessonRef, lessonToDoc(lesson));
+        const { error: lessonErr } = await admin
+          .from('lessons')
+          .upsert({
+            id: slugToUUID(lesson.id),
+            program_id: slugToUUID(lesson.programId),
+            title: lesson.title,
+            description: lesson.description,
+            position: lesson.order,
+            duration: lesson.duration,
+          } as any, { onConflict: 'id' });
+        if (lessonErr) throw lessonErr;
       }
     }
 
-    const existingExerciseIds = new Set<string>();
-    if (!(await isCollectionEmpty(exercisesRef()))) {
-      const snap = await getDocs(exercisesRef()!);
-      snap.forEach((d) => existingExerciseIds.add(d.id));
-    }
-
     for (const exercise of DEFAULT_EXERCISES) {
-      if (existingExerciseIds.has(exercise.id)) continue;
-      const exerciseRef = doc(db, 'exercises', exercise.id);
-      batch.set(exerciseRef, exerciseToDoc(exercise));
+      const { error: exErr } = await admin
+        .from('exercises')
+        .upsert({
+          id: slugToUUID(exercise.id),
+          lesson_id: slugToUUID(exercise.lessonId),
+          title: exercise.title,
+          description: exercise.description,
+          duration: exercise.estimatedTime,
+          type: exercise.type as any,
+          position: exercise.sortOrder,
+          content: (exercise.content ?? {}) as any,
+        } as any, { onConflict: 'id' });
+      if (exErr) throw exErr;
     }
 
-    await batch.commit();
     await markSeeded();
 
-    logger.info('journey', 'Seed data written to Firestore', {
+    logger.info('journey', 'Seed data written to Supabase', {
       programs: DEFAULT_PROGRAMS.length,
       lessons: DEFAULT_LESSONS.length,
       exercises: DEFAULT_EXERCISES.length,
@@ -80,7 +122,7 @@ export async function ensureSeeded(): Promise<boolean> {
 
     return true;
   } catch (error) {
-    logger.error('journey', 'Failed to seed Firestore', { error: String(error) });
+    logger.error('journey', 'Failed to seed Supabase', { error: String(error) });
     return false;
   } finally {
     seedingInProgress = false;

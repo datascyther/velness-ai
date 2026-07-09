@@ -45,7 +45,7 @@ export const TypingIndicator = React.memo(function TypingIndicator() {
     <Animated.View
       entering={FadeIn.duration(300)}
       style={styles.container}
-      accessibilityLabel="Neeva is thinking for you"
+      accessibilityLabel="Velness is thinking for you"
       accessibilityLiveRegion="polite"
     >
       <View style={styles.dotsRow}>
@@ -54,7 +54,7 @@ export const TypingIndicator = React.memo(function TypingIndicator() {
         <AnimatedDot delay={300} />
       </View>
       <Text style={[styles.label, { color: colors.text.secondary }]}>
-        Neeva is thinking for you...
+        Velness is thinking for you...
       </Text>
     </Animated.View>
   );

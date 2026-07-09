@@ -1,5 +1,5 @@
 /**
- * Neeva AI — Memory Types
+ * Velness — Memory Types
  *
  * Defines the full context model for the AI conversation engine.
  * Every response is grounded in these data structures.

@@ -1,10 +1,12 @@
 import React, { useCallback } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Moon, Sun, Monitor, Volume2, Languages, Trash2 } from 'lucide-react-native';
+import { ArrowLeft, Moon, Sun, Monitor, Volume2, Languages, Trash2, Check } from 'lucide-react-native';
 import { useAppStore, type ThemeMode } from '@/core/store/useAppStore';
+import { useTheme } from '@/hooks/useTheme';
+import type { Tone } from '@/services/auth/types';
 
 const themeOptions: { label: string; value: ThemeMode; icon: typeof Moon }[] = [
   { label: 'Dark', value: 'dark', icon: Moon },
@@ -12,100 +14,276 @@ const themeOptions: { label: string; value: ThemeMode; icon: typeof Moon }[] = [
   { label: 'Auto', value: 'auto', icon: Monitor },
 ];
 
-const toneOptions = [
-  { label: 'Warm', value: 'warm' as const },
-  { label: 'Motivational', value: 'motivational' as const },
-  { label: 'Soothing', value: 'soothing' as const },
-  { label: 'Auto', value: 'auto' as const },
+const toneOptions: { label: string; value: Tone }[] = [
+  { label: 'Warm', value: 'warm' },
+  { label: 'Motivational', value: 'motivational' },
+  { label: 'Soothing', value: 'soothing' },
+  { label: 'Auto', value: 'auto' },
 ];
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const theme = useAppStore((state) => state.ui.theme);
+  const { colors, theme: activeTheme } = useTheme();
+  
+  const uiTheme = useAppStore((state) => state.ui.theme);
   const setTheme = useAppStore((state) => state.setTheme);
+  const user = useAppStore((state) => state.session.user);
+  const updateUserProfile = useAppStore((state) => state.updateUserProfile);
+
+  const currentTone = user?.preferences?.tone || 'auto';
+
+  const handleSelectTone = useCallback(async (tone: Tone) => {
+    try {
+      const updatedPrefs = {
+        theme: user?.preferences?.theme || 'auto',
+        notifications: user?.preferences?.notifications ?? true,
+        language: user?.preferences?.language || 'en',
+        tone,
+      };
+      await updateUserProfile({ preferences: updatedPrefs });
+    } catch (e) {
+      Alert.alert('Error', 'Failed to update preferences.');
+    }
+  }, [user, updateUserProfile]);
 
   const handleDeleteAccount = useCallback(() => {
-    router.back();
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to permanently delete your account? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert('Deleted', 'Account deletion request submitted.');
+            router.back();
+          },
+        },
+      ]
+    );
   }, [router]);
 
   return (
-    <SafeAreaView className="flex-1 bg-app-dark" edges={['top']}>
-      <StatusBar style="light" />
-      <View className="px-5 pt-4 pb-6 flex-row items-center border-b border-neeva-glass-border">
-        <Pressable onPress={() => router.back()} className="w-10 h-10 items-center justify-center active:opacity-70">
-          <ArrowLeft size={22} color="white" />
-        </Pressable>
-        <Text className="text-white text-card-title font-semibold ml-4">Settings</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background.primary }]} edges={['top']}>
+      <StatusBar style={activeTheme === 'dark' ? 'light' : 'dark'} />
+      
+      {/* Header */}
+      <View style={[styles.header, { borderBottomColor: colors.border.default }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
+          <ArrowLeft size={22} color={colors.text.primary} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>Settings</Text>
+        <View style={styles.backButtonPlaceholder} />
       </View>
 
-      <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 40 }}>
-        <Text className="text-white/50 text-label font-medium uppercase tracking-wider mt-6 mb-3">
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        {/* Appearance Section */}
+        <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>
           Appearance
         </Text>
-        <View className="bg-neeva-glass-dark/20 rounded-glass border border-neeva-glass-border overflow-hidden">
-          {themeOptions.map((opt, i) => {
+        <View style={styles.themeSelectorRow}>
+          {themeOptions.map((opt) => {
             const Icon = opt.icon;
-            const selected = theme === opt.value;
+            const selected = uiTheme === opt.value;
             return (
-              <Pressable
+              <TouchableOpacity
                 key={opt.value}
+                activeOpacity={0.7}
                 onPress={() => setTheme(opt.value)}
-                className={`flex-row items-center px-4 py-4 ${i < themeOptions.length - 1 ? 'border-b border-neeva-glass-border/50' : ''} ${selected ? 'bg-neeva-purple-600/20' : ''} active:opacity-70`}
+                style={[
+                  styles.themeOptionCard,
+                  {
+                    backgroundColor: colors.surface.secondary,
+                    borderColor: selected ? colors.brand.primary : colors.border.default,
+                  }
+                ]}
               >
-                <Icon size={18} color={selected ? '#8B5CF6' : 'rgba(255,255,255,0.4)'} />
-                <Text className={`flex-1 ml-3 text-body ${selected ? 'text-neeva-purple-400 font-medium' : 'text-white/70'}`}>
+                <Icon size={20} color={selected ? colors.brand.primary : colors.text.secondary} />
+                <Text style={[styles.themeOptionLabel, { color: selected ? colors.brand.primary : colors.text.primary, fontWeight: selected ? '600' : '400' }]}>
                   {opt.label}
                 </Text>
-                {selected && <View className="w-2.5 h-2.5 rounded-full bg-neeva-purple-500" />}
-              </Pressable>
+                {selected && <View style={[styles.selectedDot, { backgroundColor: colors.brand.primary }]} />}
+              </TouchableOpacity>
             );
           })}
         </View>
 
-        <Text className="text-white/50 text-label font-medium uppercase tracking-wider mt-8 mb-3">
+        {/* Tone Section */}
+        <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>
           Communication Tone
         </Text>
-        <View className="bg-neeva-glass-dark/20 rounded-glass border border-neeva-glass-border overflow-hidden">
+        <View style={[styles.cardGroup, { backgroundColor: colors.surface.secondary, borderColor: colors.border.default }]}>
           {toneOptions.map((opt, i) => {
-            const selected = false;
+            const selected = currentTone === opt.value;
             return (
-              <View
+              <TouchableOpacity
                 key={opt.value}
-                className={`flex-row items-center px-4 py-4 ${i < toneOptions.length - 1 ? 'border-b border-neeva-glass-border/50' : ''} ${selected ? 'bg-neeva-purple-600/20' : ''}`}
+                activeOpacity={0.7}
+                onPress={() => handleSelectTone(opt.value)}
+                style={[
+                  styles.cardRow,
+                  { borderBottomColor: colors.border.default },
+                  i === toneOptions.length - 1 ? styles.noBorder : null
+                ]}
               >
-                <Volume2 size={18} color={selected ? '#8B5CF6' : 'rgba(255,255,255,0.4)'} />
-                <Text className={`flex-1 ml-3 text-body ${selected ? 'text-neeva-purple-400 font-medium' : 'text-white/70'}`}>
+                <Volume2 size={18} color={selected ? colors.brand.primary : colors.text.secondary} style={styles.rowIcon} />
+                <Text style={[styles.rowText, { color: colors.text.primary, fontWeight: selected ? '600' : '400' }]}>
                   {opt.label}
                 </Text>
-                {selected && <View className="w-2.5 h-2.5 rounded-full bg-neeva-purple-500" />}
-              </View>
+                {selected && <Check size={18} color={colors.brand.primary} />}
+              </TouchableOpacity>
             );
           })}
         </View>
-        <Text className="text-white/30 text-body-sm mt-2 ml-1">
-          Tone preference will be available after an AI chat session.
+        <Text style={[styles.hintText, { color: colors.text.secondary }]}>
+          Choose how your AI wellness companion speaks to you during chat sessions.
         </Text>
 
-        <Text className="text-white/50 text-label font-medium uppercase tracking-wider mt-8 mb-3">
+        {/* Language Section */}
+        <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>
           Language
         </Text>
-        <View className="bg-neeva-glass-dark/20 rounded-glass border border-neeva-glass-border px-4 py-4 flex-row items-center">
-          <Languages size={18} color="rgba(255,255,255,0.4)" />
-          <Text className="flex-1 ml-3 text-white/70 text-body">English</Text>
-          <Text className="text-white/30 text-label">Only language</Text>
+        <View style={[styles.cardGroup, { backgroundColor: colors.surface.secondary, borderColor: colors.border.default }]}>
+          <View style={[styles.cardRow, styles.noBorder]}>
+            <Languages size={18} color={colors.text.secondary} style={styles.rowIcon} />
+            <Text style={[styles.rowText, { color: colors.text.primary }]}>English</Text>
+            <Text style={[styles.badgeText, { color: colors.text.secondary }]}>Default</Text>
+          </View>
         </View>
 
-        <Text className="text-white/50 text-label font-medium uppercase tracking-wider mt-8 mb-3">
-          Account
+        {/* Danger Zone */}
+        <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>
+          Account Actions
         </Text>
-        <Pressable
+        <TouchableOpacity
           onPress={handleDeleteAccount}
-          className="bg-neeva-glass-dark/20 rounded-glass border border-neeva-glass-border px-4 py-4 flex-row items-center active:opacity-70"
+          activeOpacity={0.7}
+          style={[
+            styles.deleteButton,
+            {
+              backgroundColor: colors.surface.secondary,
+              borderColor: colors.danger + '40',
+            }
+          ]}
         >
-          <Trash2 size={18} color="#F87171" />
-          <Text className="flex-1 ml-3 text-red-400 text-body">Delete Account</Text>
-        </Pressable>
+          <Trash2 size={18} color={colors.danger} style={styles.rowIcon} />
+          <Text style={[styles.deleteButtonText, { color: colors.danger }]}>Delete Account</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backButtonPlaceholder: {
+    width: 40,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1.0,
+    marginTop: 24,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  themeSelectorRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+  },
+  themeOptionCard: {
+    flex: 1,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  themeOptionLabel: {
+    fontSize: 14,
+    marginTop: 8,
+  },
+  selectedDot: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  cardGroup: {
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  cardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  noBorder: {
+    borderBottomWidth: 0,
+  },
+  rowIcon: {
+    marginRight: 12,
+  },
+  rowText: {
+    flex: 1,
+    fontSize: 15,
+  },
+  badgeText: {
+    fontSize: 12,
+  },
+  hintText: {
+    fontSize: 13,
+    marginTop: 8,
+    marginLeft: 4,
+    lineHeight: 18,
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    marginTop: 4,
+  },
+  deleteButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+});

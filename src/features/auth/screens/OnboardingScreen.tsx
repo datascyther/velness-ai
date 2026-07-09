@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '@/core/store/useAppStore';
 import { useTheme } from '@/hooks/useTheme';
-import { spacing, colors, typography } from '@/theme/tokens';
+import { authService } from '@/services/auth';
+import { spacing, typography } from '@/theme/tokens';
 
 export function OnboardingScreen() {
   const router = useRouter();
@@ -13,23 +14,13 @@ export function OnboardingScreen() {
   const setOnboardingCompleted = useAppStore((state) => state.setOnboardingCompleted);
   const { colors } = useTheme();
 
-  const handleGetStarted = () => {
-    // Dummy implementation - in real app you'd progress through steps
-    const guestProfile: any = {
-      uid: `guest-${Date.now()}`,
-      name: 'Guest User',
-      email: `guest-${Date.now()}@example.com`,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      lastLoginAt: new Date(),
-      preferences: { theme: 'light', notifications: false, language: 'en', tone: 'auto' },
-      stats: { totalSessions: 1, totalMinutes: 0, streakDays: 0, lastActivityDate: new Date() },
-    };
+  const handleGetStarted = async () => {
+    // Enter guest mode via Supabase anonymous auth (falls back to a local
+    // profile if anonymous sign-in is unavailable).
+    const guestProfile = await authService.signInAsGuest();
     setUser(guestProfile);
     setEmailVerified(true);
     setOnboardingCompleted(true);
-    const store = useAppStore.getState();
-    store.setPreviousGuestUid(guestProfile.uid);
     router.replace('/(tabs)');
   };
 
@@ -37,11 +28,11 @@ export function OnboardingScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl }}>
         <Image
-          source={require('@/shared/assets/neeva-logo.png')}
-          style={{ width: 120, height: 120, marginBottom: spacing.md }}
+          source={require('@/shared/assets/velness-logo.jpg')}
+          style={{ width: 120, height: 120, resizeMode: 'contain', borderRadius: 24, marginBottom: spacing.md }}
         />
         <Text style={{ ...typography.headingLarge, color: colors.text.primary, textAlign: 'center' }}>
-          Welcome to Neeva
+          Welcome to Velness
         </Text>
         <Text style={{ ...typography.textSecondary, textAlign: 'center', marginVertical: spacing.md }}>
           Your personal AI wellness companion

@@ -12,6 +12,7 @@ import Animated, { FadeIn, useSharedValue, useAnimatedStyle, withSpring } from '
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/hooks/useTheme';
 import { chat, spacing, borderRadius as radius } from '@/core/theme/tokens';
+import { SparkleMark } from '@/components/emotion';
 
 interface ReflectionCardProps {
   title?: string;
@@ -51,7 +52,7 @@ export const ReflectionCard = React.memo(function ReflectionCard({
       <View style={styles.content}>
         {/* Header chip */}
         <View style={styles.chip}>
-          <Text style={styles.chipEmoji}>💭</Text>
+          <SparkleMark size={14} />
           <Text style={[styles.chipLabel, { color: ACCENT }]}>Reflection</Text>
         </View>
 

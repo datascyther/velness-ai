@@ -172,7 +172,7 @@ export const RecommendationHeader = React.memo(({
           {title}
         </Text>
 
-        {/* Neeva Companion Avatar with Dynamic Breathing Glow */}
+        {/* Velness Companion Avatar with Dynamic Breathing Glow */}
         <AnimatedView style={[styles.avatarContainer, avatarAnimatedStyle]}>
           <AnimatedView
             style={[

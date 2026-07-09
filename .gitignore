@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════════════════
-# Neeva AI — .gitignore
+# Velness — .gitignore
 # ═══════════════════════════════════════════════════════════════
 
 # ── Node ──────────────────────────────────────────────────────
@@ -15,18 +15,22 @@ build/
 coverage/
 
 # ── Environment & Secrets ─────────────────────────────────────
-# Block ALL .env files by default, then whitelist the safe template
+# Block ALL .env files by default, then whitelist ONLY the safe template
 .env
 .env.local
 .env.*.local
 .env.*
 !.env.example
-!.env.development
-!.env.staging
-!.env.production
+# Never commit real credential / secret files anywhere in the tree
+*.service-account.json
+*serviceAccountKey*.json
+firebase-credentials.json
+secrets.json
+*.service-role.key
 
 # Credential / key files
 *.pem
+*.key
 client_secret_*.json
 google-services.json
 GoogleService-Info.plist
@@ -75,6 +79,7 @@ android/local.properties
 .claude/
 .kilocode/
 .kilo/
+kilo.json
 skills-lock.json
 icon.png
 

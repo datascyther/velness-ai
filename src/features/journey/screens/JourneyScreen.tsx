@@ -26,7 +26,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useJourney } from '@/shared/hooks/useJourney';
 import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
-import { ROUTES } from '@/core/config/routes';
+import { ROUTES, buildRoute } from '@/core/config/routes';
 import { spacing } from '@/core/theme';
 
 import {
@@ -44,6 +44,8 @@ import { usePersonalization } from '@/services/ai/personalization/usePersonaliza
 
 import type { Category } from '@/features/journey/models';
 import { CATEGORY_ID } from '@/features/journey/constants';
+import { DEFAULT_LESSONS } from '@/features/journey/data/programs';
+import { DEFAULT_EXERCISES } from '@/features/journey/data/exercises';
 
 // ── Practice categories data ───────────────────────────────────────────────
 
@@ -55,6 +57,23 @@ function getCategoryIcon(type: string, color: string) {
     case 'sparkles': return <Sparkles size={size} color={color} />;
     case 'leaf': return <Leaf size={size} color={color} />;
     default: return <Sparkles size={size} color={color} />;
+  }
+}
+
+const categoryColors: Record<string, string> = {
+  cbt: '#A78BFA',
+  breathing: '#34D399',
+  meditation: '#60A5FA',
+  wellness: '#F472B6',
+};
+
+function getProgramCategoryIcon(categoryId: string, color: string) {
+  switch (categoryId) {
+    case 'cbt': return getCategoryIcon('brain', color);
+    case 'breathing': return getCategoryIcon('wind', color);
+    case 'meditation': return getCategoryIcon('leaf', color);
+    case 'wellness': return getCategoryIcon('sparkles', color);
+    default: return getCategoryIcon('sparkles', color);
   }
 }
 
@@ -86,9 +105,60 @@ export function JourneyScreen() {
     refresh,
     refreshRecommendation,
     startExercise,
+    favorites,
+    programs,
+    activeGuidedProgress,
+    userProgress,
   } = useJourney();
 
   const { data: personalization, isLoading: personalizationLoading } = usePersonalization();
+
+  const activeProg = useMemo(() => {
+    if (!journey || !programs) return null;
+    return programs.find((p) => p.id === journey.programId);
+  }, [journey, programs]);
+
+  const minutesRemaining = useMemo(() => {
+    if (!activeProg) return 8;
+    return Math.max(Math.round(activeProg.duration * (1 - (journey?.completionPercent || 0) / 100)), 5);
+  }, [activeProg, journey?.completionPercent]);
+
+  const continueSubtitle = useMemo(() => {
+    if (!journey) return undefined;
+    if (activeGuidedProgress && activeGuidedProgress.status === 'in_progress') {
+      const activeEx = DEFAULT_EXERCISES.find((ex) => ex.id === activeGuidedProgress.exercise_id);
+      const activeLes = DEFAULT_LESSONS.find((l) => l.id === activeEx?.lessonId);
+      if (activeEx && activeLes) {
+        return `Lesson ${activeLes.order}, ${activeEx.title} (Step ${activeGuidedProgress.current_step + 1} of 11)`;
+      }
+    }
+    return undefined;
+  }, [journey, activeGuidedProgress]);
+
+  const timelineData = useMemo(() => {
+    if (!journey || !userProgress) return null;
+    const progProg = userProgress.programProgress[journey.programId];
+    if (!progProg) return null;
+    
+    return {
+      programTitle: journey.title,
+      currentLesson: progProg.currentLesson || 1,
+      estimatedRemainingTime: progProg.estimatedRemainingTime ?? 8,
+      completionPercentage: progProg.completionPercentage || 0,
+      activeGuidedProgress: activeGuidedProgress && activeGuidedProgress.status === 'in_progress' ? activeGuidedProgress : null,
+    };
+  }, [journey, userProgress, activeGuidedProgress]);
+
+  const categoryLabels: Record<string, string> = {
+    cbt: 'CBT Program',
+    breathing: 'Breathing Practice',
+    meditation: 'Guided Meditation',
+    wellness: 'Wellness Studio',
+  };
+  const categoryLabel = useMemo(() => {
+    if (!activeProg) return 'CBT Program';
+    return categoryLabels[activeProg.categoryId] || 'Wellness Program';
+  }, [activeProg]);
 
   // ── Handlers ───────────────────────────────────────────────────────────
 
@@ -196,13 +266,69 @@ export function JourneyScreen() {
           <View style={styles.cardPadding}>
             <CurrentProgramCard
               title={journey?.title || 'Managing Overthinking'}
-              currentLesson={journey?.currentLesson || 3}
-              totalLessons={journey?.totalLessons || 8}
-              completionPercent={journey?.completionPercent || 37}
-              minutesRemaining={8}
-              category="CBT PROGRAM"
+              currentLesson={journey?.currentLesson || 1}
+              totalLessons={journey?.totalLessons || 5}
+              completionPercent={journey?.completionPercent || 0}
+              minutesRemaining={minutesRemaining}
+              category={categoryLabel.toUpperCase()}
               onContinue={handleContinue}
+              subtitle={continueSubtitle}
             />
+
+            {timelineData && (
+              <View
+                style={{
+                  marginTop: spacing.md,
+                  padding: spacing.lg,
+                  borderRadius: 16,
+                  backgroundColor: 'rgba(26, 20, 40, 0.6)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255, 255, 255, 0.08)',
+                  gap: spacing.sm,
+                }}
+              >
+                <Text style={{ fontSize: 11, fontWeight: '700', color: 'rgba(255, 255, 255, 0.4)', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                  Active Timeline
+                </Text>
+                
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>
+                    {timelineData.programTitle}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.5)' }}>
+                    ({timelineData.completionPercentage}% complete)
+                  </Text>
+                </View>
+
+                {/* Progress Visual Sequence */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginVertical: 4 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#A78BFA' }}>
+                    Lesson {timelineData.currentLesson}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.3)' }}>→</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#06B6D4' }}>
+                    Exercise 1
+                  </Text>
+                  {timelineData.activeGuidedProgress && (
+                    <>
+                      <Text style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.3)' }}>→</Text>
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: '#34D399' }}>
+                        Step {timelineData.activeGuidedProgress.current_step + 1}
+                      </Text>
+                    </>
+                  )}
+                </View>
+
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: 'rgba(255, 255, 255, 0.4)', letterSpacing: 0.5 }}>
+                    ESTIMATED TIME LEFT:
+                  </Text>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#F59E0B' }}>
+                    {timelineData.estimatedRemainingTime} min
+                  </Text>
+                </View>
+              </View>
+            )}
           </View>
         </View>
 
@@ -232,6 +358,38 @@ export function JourneyScreen() {
             ))}
           </ScrollView>
         </View>
+
+        {/* ── 4b. Favorite Practices ─────────────────────────── */}
+        {favorites && favorites.length > 0 && (
+          <View style={styles.sectionSpacing}>
+            <JourneySectionHeader
+              title="Your favorite practices"
+            />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoriesContainer}
+            >
+              {favorites.map((favProg, idx) => {
+                const accentColor = categoryColors[favProg.categoryId] || '#A78BFA';
+                return (
+                  <View key={favProg.id} style={idx < favorites.length - 1 ? styles.categoryGap : undefined}>
+                    <PracticeCategoryCard
+                      icon={getProgramCategoryIcon(favProg.categoryId, accentColor)}
+                      title={favProg.title}
+                      description={favProg.description}
+                      countLabel={`${favProg.lessonCount} Lessons`}
+                      accentColor={accentColor}
+                      width={160}
+                      animationDelay={100 + idx * 50}
+                      onPress={() => router.push(buildRoute(ROUTES.JOURNEY.PROGRAM, { programId: favProg.id }) as any)}
+                    />
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
 
         {/* ── 5. Recommended Activities ──────────────────────── */}
         <View style={styles.sectionSpacing}>

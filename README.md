@@ -1,6 +1,6 @@
 # 🚀 Velness: Revolutionizing Mental Health with AI
 
-[![GitHub Release](https://img.shields.io/github/v/release/DataScyther/Neeva-AI?color=4F46E5&style=for-the-badge)](https://github.com/DataScyther/Neeva-AI/releases)
+[![GitHub Release](https://img.shields.io/github/v/release/DataScyther/Velness?color=4F46E5&style=for-the-badge)](https://github.com/DataScyther/Velness/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-4F46E5.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-4F46E5.svg?style=for-the-badge)](http://makeapullrequest.com)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js)](https://nodejs.org/)
@@ -175,8 +175,8 @@ to see whether software can help users notice their own behavioral patterns earl
 1. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/DataScyther/Neeva-AI.git
-   cd Neeva-AI
+   git clone https://github.com/DataScyther/Velness.git
+   cd Velness
    ```
 
 2. **Install Dependencies**
@@ -230,7 +230,7 @@ graph TD
 
 ### Key Interactions
 
-- **💬 Chat Interface**: Natural conversations with Neeva AI
+- **💬 Chat Interface**: Natural conversations with Velness
 - **❤️ Mood Logging**: Quick emotional state recording
 - **📈 Dashboard**: Visual analytics and trend analysis
 - **🎯 Exercises**: Guided therapeutic activities
@@ -243,6 +243,10 @@ graph TD
 - Project Synopsis: [docs/Project_Synopsis.md](docs/Project_Synopsis.md)
 - Requirements & Methodology: [docs/Requirements_and_Methodology.md](docs/Requirements_and_Methodology.md)
 - Future Scope & References: [docs/Future_Scope_and_References.md](docs/Future_Scope_and_References.md)
+- Velness Emotion System (design + usage): [docs/EMOTION_SYSTEM.md](docs/EMOTION_SYSTEM.md)
+- Velness Emotion System (API reference): [docs/EMOTION_SYSTEM_API.md](docs/EMOTION_SYSTEM_API.md)
+
+> **Sprint — Velness Emotion System:** Replace all Unicode emojis with a single reusable, animated, brand-consistent `EmotionAvatar` component (Light/Dark, 60 FPS via `react-native-reanimated`).
 
 ---
 
@@ -251,7 +255,7 @@ graph TD
 ### Project Structure
 
 ```text
-Neeva-AI/
+Velness/
 ├── src/
 │   ├── components/     # React components
 │   ├── hooks/         # Custom React hooks
@@ -284,7 +288,7 @@ NVIDIA_API_KEY=your_nvidia_api_key
 
 ## Live Demo
 
-The application is deployed and accessible at: [https://neeva-ai-demo.example.com](https://neeva-ai-demo.example.com)
+The application is deployed and accessible at: [https://velness-demo.example.com](https://velness-demo.example.com)
 
 ### Deployment Setup
 
@@ -355,10 +359,10 @@ copies of the Software...
 
 ### Get Help
 
-- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/DataScyther/Neeva-AI/issues)
-- 💡 **Feature Requests**: [GitHub Discussions](https://github.com/DataScyther/Neeva-AI/discussions)
+- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/DataScyther/Velness/issues)
+- 💡 **Feature Requests**: [GitHub Discussions](https://github.com/DataScyther/Velness/discussions)
 - 💬 **Community Chat**: Join our Discord server
-- 📧 **Professional Support**: [support@neeva-ai.com](mailto:support@neeva-ai.com)
+- 📧 **Professional Support**: [support@velness.app](mailto:support@velness.app)
 
 ### Crisis Resources
 
@@ -366,7 +370,7 @@ If you're experiencing a mental health crisis:
 
 - 🇮🇳 **India**: Call 9152987821 (AASRA)
 - 🌍 **International**: Contact local emergency services
-- 🚨 **Neeva Crisis Mode**: Available 24/7 within the app
+- 🚨 **Velness Crisis Mode**: Available 24/7 within the app
 
 ---
 
@@ -376,4 +380,4 @@ If you're experiencing a mental health crisis:
 
 ---
 
-Experience the future of mental health care. Download Neeva AI today and start your journey toward better mental wellness. 🌟
+Experience the future of mental health care. Download Velness today and start your journey toward better mental wellness. 🌟

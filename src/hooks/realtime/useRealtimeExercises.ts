@@ -1,9 +1,8 @@
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { collection } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useRealtimeCollection } from '@/hooks/useRealtimeSubscription';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from 'backend/client';
 import { journeyRepository } from '@/repositories/JourneyRepository';
+import { uniqueChannelName } from './channelName';
 
 export interface ExerciseProgressDoc {
   id: string;
@@ -13,17 +12,36 @@ export interface ExerciseProgressDoc {
 }
 
 export function useRealtimeExercises(uid: string | null) {
-  const enabled = !!(uid && db);
+  const queryClient = useQueryClient();
+  const queryKey = ['exercises', uid];
+  const enabled = !!uid;
 
-  const exercisesQuery = useMemo(
-    () => (uid && db ? collection(db, 'users', uid, 'exercises') : null),
-    [uid],
-  );
+  useEffect(() => {
+    if (!uid) return;
 
-  useRealtimeCollection<ExerciseProgressDoc>(exercisesQuery, ['exercises', uid], enabled);
+    const channel = supabase
+      .channel(uniqueChannelName(`exercises-changes-${uid}`))
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'progress',
+          filter: `user_id=eq.${uid}`,
+        },
+        () => {
+          void queryClient.invalidateQueries({ queryKey });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [uid, queryClient]);
 
   return useQuery({
-    queryKey: ['exercises', uid],
+    queryKey,
     queryFn: async () => {
       if (!uid) return [];
       const progress = await journeyRepository.loadExerciseProgress(uid);

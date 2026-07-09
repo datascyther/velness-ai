@@ -90,7 +90,7 @@ export function BottomSheet({
               sheetStyle,
               { maxHeight: SHEET_MAX_HEIGHT },
             ]}
-            className="bg-surface-card border-t border-neeva-glass-border rounded-t-2xl"
+            className="bg-surface-card border-t border-velness-glass-border rounded-t-2xl"
           >
             {/* Handle */}
             <View className="items-center pt-3 pb-2">

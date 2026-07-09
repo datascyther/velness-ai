@@ -32,8 +32,11 @@
       "@/*": [
         "./src/*"
       ],
-      "@neeva/*": [
+      "@velness/*": [
         "./src/*"
+      ],
+      "backend/*": [
+        "./backend/*"
       ]
     }
   },

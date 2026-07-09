@@ -1,9 +1,4 @@
-import {
-  analytics,
-  logEvent as fbLogEvent,
-  setUserId as fbSetUserId,
-  setUserProperties as fbSetUserProperties,
-} from '@/lib/firebase';
+import { analyticsRepository } from '../../../backend/repositories/AnalyticsRepository';
 
 export type AnalyticsEvent =
   | 'daily_checkin'
@@ -13,6 +8,11 @@ export type AnalyticsEvent =
   | 'ai_conversation'
   | 'reflection_saved'
   | 'meditation_completed'
+  | 'breathing_session_started'
+  | 'breathing_session_completed'
+  | 'meditation_session_started'
+  | 'sleep_session_started'
+  | 'sleep_session_completed'
   | 'subscription_purchased'
   | 'auth_signin'
   | 'auth_signup'
@@ -52,9 +52,11 @@ class AnalyticsService {
       console.log(`[Analytics] ${event}`, properties ?? '');
     }
 
-    if (!analytics) return;
     try {
-      fbLogEvent(analytics, event, properties);
+      void analyticsRepository.track({
+        event_name: event,
+        properties: (properties ?? {}) as Record<string, unknown>,
+      });
     } catch {
       // analytics failures never crash the app
     }
@@ -68,20 +70,10 @@ class AnalyticsService {
     if (__DEV__) {
       console.log(`[Analytics] Identify: ${userId}`, traits ?? '');
     }
-
-    if (!analytics) return;
-    try {
-      fbSetUserId(analytics, userId);
-      if (traits) {
-        fbSetUserProperties(analytics, traits as Record<string, string>);
-      }
-    } catch {
-      // analytics failures never crash the app
-    }
   }
 
   reset(): void {
-    this.identifyUser('');
+    // no-op
   }
 }
 

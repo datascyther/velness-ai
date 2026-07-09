@@ -1,5 +1,5 @@
 /**
- * Neeva AI — Bubble Variants
+ * Velness — Bubble Variants
  *
  * Defines the visual shape grammar for AI and user message bubbles.
  * Supports iMessage-style grouping: adjacent same-role messages

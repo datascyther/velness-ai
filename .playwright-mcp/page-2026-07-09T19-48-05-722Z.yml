@@ -1,0 +1,13 @@
+- generic [ref=f1e3]:
+  - generic [ref=f1e4]: "[plugin:vite:import-analysis] Failed to resolve import \"backend/client\" from \"src/services/auth/index.ts\". Does the file exist?"
+  - generic [ref=f1e5]: /Users/mymac/Antigravity/Velness/Velness/src/services/auth/index.ts:14:25
+  - generic [ref=f1e6]: "10 | import { storageService } from \"@/services/storage\"; 11 | import { analyticsService } from \"@/services/analytics\"; 12 | import { supabase } from \"backend/client\"; | ^ 13 | const STORAGE_KEYS = { 14 | ONBOARDING_COMPLETED: \"onboarding_completed\""
+  - generic [ref=f1e7]: at TransformPluginContext._formatLog (file:///Users/mymac/Antigravity/Velness/Velness/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42658:41) at TransformPluginContext.error (file:///Users/mymac/Antigravity/Velness/Velness/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42655:16) at normalizeUrl (file:///Users/mymac/Antigravity/Velness/Velness/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40634:23) at process.processTicksAndRejections (node:internal/process/task_queues:104:5) at async file:///Users/mymac/Antigravity/Velness/Velness/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40753:37 at async Promise.all (index 8) at async TransformPluginContext.transform (file:///Users/mymac/Antigravity/Velness/Velness/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:40680:7) at async EnvironmentPluginContainer.transform (file:///Users/mymac/Antigravity/Velness/Velness/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:42453:18) at async loadAndTransform (file:///Users/mymac/Antigravity/Velness/Velness/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:35845:27) at async viteTransformMiddleware (file:///Users/mymac/Antigravity/Velness/Velness/node_modules/vite/dist/node/chunks/dep-Dm0c1Wj2.js:37369:24
+  - generic [ref=f1e8]:
+    - text: Click outside, press Esc key, or fix the code to dismiss.You can also disable this overlay by setting
+    - code [ref=f1e9]: server.hmr.overlay
+    - text: to
+    - code [ref=f1e10]: "false"
+    - text: in
+    - code [ref=f1e11]: vite.config.ts
+    - text: .

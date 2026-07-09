@@ -2,37 +2,76 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * These CSS variables are the static fallback that mirrors src/theme/light.ts
+ * and src/theme/dark.ts. At runtime, ThemeProvider overwrites them on
+ * <html> so Tailwind classes and inline tokens can never drift. Keep the
+ * values here identical to the token source of truth.
+ */
 @layer base {
   :root {
-    --background-primary: #F8F9FC;
-    --background-secondary: #F1F4F9;
+    --background-primary: #F7F8FC;
+    --background-secondary: #EEF1F7;
+    --background-tertiary: #E4E8F0;
     --surface-primary: #FFFFFF;
-    --surface-secondary: #F8FAFC;
-    --text-primary: #111827;
-    --text-secondary: #6B7280;
-    --border-default: #E5E7EB;
+    --surface-secondary: #F4F6FB;
+    --surface-tertiary: #EAEEF6;
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --text-tertiary: #64748B;
+    --text-disabled: #94A3B8;
+    --text-onBrand: #FFFFFF;
+    --text-inverse: #F8FAFC;
+    --border-default: #E2E8F0;
+    --border-strong: #CBD5E1;
+    --border-subtle: #EEF2F7;
     --brand-primary: #6C4CF1;
     --brand-secondary: #8B5CF6;
     --brand-contrastText: #FFFFFF;
-    --success: #22C55E;
-    --warning: #F59E0B;
-    --danger: #EF4444;
+    --brand-subtle: rgba(108, 76, 241, 0.10);
+    --brand-border: rgba(108, 76, 241, 0.35);
+    --overlay: rgba(15, 23, 42, 0.45);
+    --success: #16A34A;
+    --warning: #D97706;
+    --danger: #DC2626;
+    --successSubtle: rgba(22, 163, 74, 0.12);
+    --warningSubtle: rgba(217, 119, 6, 0.12);
+    --dangerSubtle: rgba(220, 38, 38, 0.12);
+    --successText: #15803D;
+    --warningText: #B45309;
+    --dangerText: #B91C1C;
   }
 
   .dark {
     --background-primary: #0B0B12;
-    --background-secondary: #12121A;
-    --surface-primary: #161622;
-    --surface-secondary: #1C1C2A;
-    --text-primary: #FFFFFF;
-    --text-secondary: rgba(255, 255, 255, 0.6);
-    --border-default: rgba(255, 255, 255, 0.08);
+    --background-secondary: #12121C;
+    --background-tertiary: #181826;
+    --surface-primary: #16161F;
+    --surface-secondary: #1C1C28;
+    --surface-tertiary: #23232F;
+    --text-primary: #F8FAFC;
+    --text-secondary: #C3C9D4;
+    --text-tertiary: #9AA3B2;
+    --text-disabled: #6B7280;
+    --text-onBrand: #FFFFFF;
+    --text-inverse: #0B0B12;
+    --border-default: rgba(255, 255, 255, 0.10);
+    --border-strong: rgba(255, 255, 255, 0.18);
+    --border-subtle: rgba(255, 255, 255, 0.05);
     --brand-primary: #8B5CF6;
     --brand-secondary: #A78BFA;
     --brand-contrastText: #FFFFFF;
-    --success: #10B981;
-    --warning: #F59E0B;
-    --danger: #EF4444;
+    --brand-subtle: rgba(139, 92, 246, 0.16);
+    --brand-border: rgba(139, 92, 246, 0.45);
+    --overlay: rgba(0, 0, 0, 0.62);
+    --success: #34D399;
+    --warning: #FBBF24;
+    --danger: #F87171;
+    --successSubtle: rgba(52, 211, 153, 0.14);
+    --warningSubtle: rgba(251, 191, 36, 0.14);
+    --dangerSubtle: rgba(248, 113, 113, 0.14);
+    --successText: #6EE7B7;
+    --warningText: #FCD34D;
+    --dangerText: #FCA5A5;
   }
 }
-

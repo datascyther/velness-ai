@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# Neeva AI — Repository Security Cleanup
+# Velness — Repository Security Cleanup
 # =============================================================================
 # This script documents the steps to remove sensitive files from git tracking.
 # Run once to clean up any committed secrets.

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, TextInput, Text, StyleSheet } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { typography, spacing, borderRadius, colors as oldColors } from '@/core/theme';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -8,6 +9,7 @@ export interface ReflectionInputProps {
   onChangeText: (text: string) => void;
   placeholder?: string;
   maxLength?: number;
+  inputRef?: React.MutableRefObject<{ focus: () => void } | null>;
 }
 
 export const ReflectionInput = React.memo(({
@@ -15,10 +17,25 @@ export const ReflectionInput = React.memo(({
   onChangeText,
   placeholder = "What's contributing to this feeling today? (Optional)",
   maxLength = 200,
+  inputRef,
 }: ReflectionInputProps) => {
+  const innerRef = React.useRef<TextInput>(null);
+
+  React.useImperativeHandle(inputRef, () => ({
+    focus: () => innerRef.current?.focus(),
+  }), [inputRef]);
   const [isFocused, setIsFocused] = useState(false);
   const [inputHeight, setInputHeight] = useState(40);
   const { colors } = useTheme();
+
+  // Animate character counter opacity
+  const counterOpacity = useSharedValue(value.length > 0 ? 1 : 0.4);
+  useEffect(() => {
+    counterOpacity.value = withTiming(value.length > 0 ? 1 : 0.4, { duration: 200 });
+  }, [value.length > 0]);
+  const counterStyle = useAnimatedStyle(() => ({
+    opacity: counterOpacity.value,
+  }));
 
   return (
     <View style={styles.container}>
@@ -27,15 +44,16 @@ export const ReflectionInput = React.memo(({
           styles.inputWrapper,
           { borderColor: colors.border.default, backgroundColor: colors.surface.secondary },
           isFocused
-            ? { backgroundColor: colors.surface.primary, borderColor: colors.brand.primary }
+            ? { backgroundColor: colors.surface.primary, borderColor: colors.border.strong }
             : null,
         ]}
       >
         <TextInput
+          ref={innerRef}
           style={[styles.textInput, { height: inputHeight, color: colors.text.primary }]}
           multiline
           placeholder={placeholder}
-          placeholderTextColor={colors.text.secondary}
+          placeholderTextColor={colors.text.tertiary}
           value={value}
           onChangeText={onChangeText}
           maxLength={maxLength}
@@ -49,9 +67,11 @@ export const ReflectionInput = React.memo(({
           accessibilityHint="Optionally type what is contributing to your feeling today, maximum 200 characters"
         />
         <View style={styles.bottomRow}>
-          <Text style={[styles.charCounter, { color: colors.text.secondary }]}>
-            {value.length} / {maxLength}
-          </Text>
+          <Animated.View style={counterStyle}>
+            <Text style={[styles.charCounter, { color: colors.text.tertiary }]}>
+              {value.length} / {maxLength}
+            </Text>
+          </Animated.View>
         </View>
       </View>
     </View>
@@ -60,8 +80,7 @@ export const ReflectionInput = React.memo(({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: spacing.xl, // 24px
-    marginVertical: spacing.sm,    // 8px standard
+    marginVertical: spacing.sm,
   },
   inputWrapper: {
     borderRadius: borderRadius.xl, // 20px

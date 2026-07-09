@@ -1,8 +1,8 @@
-Neeva AI - Complete Project Analysis
+Velness - Complete Project Analysis
 
   Project Overview
 
-  Neeva AI is a cross-platform mental wellness application built with React Native + Expo Router
+  Velness is a cross-platform mental wellness application built with React Native + Expo Router
   + TypeScript that provides an AI-powered conversational companion for mood tracking,
   reflective journaling, and CBT-inspired exercises.
 
@@ -44,7 +44,7 @@ Neeva AI - Complete Project Analysis
   ---
   Project Structure
 
-  Neeva-AI/
+  Velness/
   ├── app/                          # Expo Router file-based routes
   │   ├── index.tsx                 # Entry gateway (auth → onboarding → tabs)
   │   ├── onboarding.tsx            # Onboarding flow entry
@@ -56,7 +56,7 @@ Neeva AI - Complete Project Analysis
   ├── src/
   │   ├── core/                     # Core infrastructure
   │   │   ├── config/               # Routes, env, features flags
-  │   │   ├── providers/            # NeevaProvider (Auth, Theme, Query)
+  │   │   ├── providers/            # VelnessProvider (Auth, Theme, Query)
   │   │   ├── queryClient.ts        # TanStack Query setup
   │   │   ├── store/                # Zustand stores (app + sync)
   │   │   └── theme/                # Theme system
@@ -134,13 +134,13 @@ Neeva AI - Complete Project Analysis
 
   3. Provider Composition
 
-  <NeevaProvider>                    // GestureHandler + SafeArea + QueryClient
+  <VelnessProvider>                    // GestureHandler + SafeArea + QueryClient
     <AuthProvider>                   // Firebase auth state → Zustand sync
       <ThemeProvider>               // Dark/Light/Auto + NativeWind sync
         {children}
       </ThemeProvider>
     </AuthProvider>
-  </NeevaProvider>
+  </VelnessProvider>
 
   4. Offline-First with Sync Queue
 
@@ -206,7 +206,7 @@ Neeva AI - Complete Project Analysis
   - Retry logic for 503 (service busy) with 2s backoff
   - MemoryManager condenses history (removes old, keeps summary)
   - Multi-message-type support: markdown, reflection, insight, exercise, breathing
-  - Phase 6 Neeva-native actions: Save, Later, Share, Follow-up, Regenerate
+  - Phase 6 Velness-native actions: Save, Later, Share, Follow-up, Regenerate
 
   ---
   Home Screen (Daily Check-in)
@@ -406,7 +406,7 @@ Neeva AI - Complete Project Analysis
   1. React 19 + Expo Router — Modern, file-based routing with type safety
   2. Non-streaming AI by default — generateResponse used over streamAIChat for reliability
   3. MemoryManager per conversation — Local-first summarization, no server dependency
-  4. Phase 6 Action Buttons — Neeva-native interactions (Save/Later/Share/Follow-up) instead of generic 👍/👎
+  4. Phase 6 Action Buttons — Velness-native interactions (Save/Later/Share/Follow-up) instead of generic 👍/👎
   5. Strict state separation — Prevents sync bugs between client/server state
   6. Repository abstraction — Enables unit testing and future backend swap
   7. Guest Mode — Zero-friction trial without auth

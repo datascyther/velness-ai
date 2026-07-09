@@ -1,43 +1,93 @@
-import React from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import React, { useCallback } from 'react';
+import { View, Text, ScrollView, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Shield, Key, Download, FileText, Mail } from 'lucide-react-native';
+import { ArrowLeft, Shield, Key, Download, FileText, Mail, ChevronRight } from 'lucide-react-native';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function SecurityScreen() {
   const router = useRouter();
+  const { colors, theme } = useTheme();
+
+  const handleAction = useCallback((label: string) => {
+    Alert.alert(label, `You selected the "${label}" action.`);
+  }, []);
 
   return (
-    <SafeAreaView className="flex-1 bg-app-dark" edges={['top']}>
-      <StatusBar style="light" />
-      <View className="px-5 pt-4 pb-6 flex-row items-center border-b border-neeva-glass-border">
-        <Pressable onPress={() => router.back()} className="w-10 h-10 items-center justify-center active:opacity-70">
-          <ArrowLeft size={22} color="white" />
-        </Pressable>
-        <Text className="text-white text-card-title font-semibold ml-4">Privacy & Security</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background.primary }]} edges={['top']}>
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+
+      {/* Header */}
+      <View style={[styles.header, { borderBottomColor: colors.border.default }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
+          <ArrowLeft size={22} color={colors.text.primary} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>Privacy & Security</Text>
+        <View style={styles.backButtonPlaceholder} />
       </View>
 
-      <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 40 }}>
-        <Text className="text-white/50 text-label font-medium uppercase tracking-wider mt-6 mb-3">
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        {/* Security Section */}
+        <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>
           Security
         </Text>
-        <View className="bg-neeva-glass-dark/20 rounded-glass border border-neeva-glass-border overflow-hidden">
-          <SecurityRow icon={Key} label="Change Password" description="Update your account password" isFirst />
-          <SecurityRow icon={Mail} label="Email Verification" description="Manage your verified email" isLast />
+        <View style={[styles.cardGroup, { backgroundColor: colors.surface.secondary, borderColor: colors.border.default }]}>
+          <SecurityRow
+            icon={Key}
+            iconColor="#8B5CF6"
+            label="Change Password"
+            description="Update your account password"
+            onPress={() => handleAction('Change Password')}
+            colors={colors}
+          />
+          <SecurityRow
+            icon={Mail}
+            iconColor="#06B6D4"
+            label="Email Verification"
+            description="Manage your verified email"
+            onPress={() => handleAction('Email Verification')}
+            colors={colors}
+            isLast
+          />
         </View>
 
-        <Text className="text-white/50 text-label font-medium uppercase tracking-wider mt-8 mb-3">
-          Data
+        {/* Data Section */}
+        <Text style={[styles.sectionTitle, { color: colors.text.secondary }]}>
+          Data & Privacy
         </Text>
-        <View className="bg-neeva-glass-dark/20 rounded-glass border border-neeva-glass-border overflow-hidden">
-          <SecurityRow icon={Download} label="Export My Data" description="Download a copy of your data" isFirst />
-          <SecurityRow icon={FileText} label="Privacy Policy" description="How we handle your data" />
-          <SecurityRow icon={Shield} label="Terms of Service" description="Platform terms and conditions" isLast />
+        <View style={[styles.cardGroup, { backgroundColor: colors.surface.secondary, borderColor: colors.border.default }]}>
+          <SecurityRow
+            icon={Download}
+            iconColor="#10B981"
+            label="Export My Data"
+            description="Download a copy of your data"
+            onPress={() => handleAction('Export My Data')}
+            colors={colors}
+          />
+          <SecurityRow
+            icon={FileText}
+            iconColor="#F59E0B"
+            label="Privacy Policy"
+            description="How we handle your data"
+            onPress={() => handleAction('Privacy Policy')}
+            colors={colors}
+          />
+          <SecurityRow
+            icon={Shield}
+            iconColor="#6C4CF1"
+            label="Terms of Service"
+            description="Platform terms and conditions"
+            onPress={() => handleAction('Terms of Service')}
+            colors={colors}
+            isLast
+          />
         </View>
 
-        <View className="mt-8 bg-neeva-glass-dark/20 rounded-glass p-4 border border-neeva-glass-border">
-          <Text className="text-white/50 text-body-sm text-center leading-relaxed">
+        {/* Encrypted Disclaimer Card */}
+        <View style={[styles.infoCard, { backgroundColor: colors.surface.secondary, borderColor: colors.border.default }]}>
+          <Shield size={22} color={colors.brand.primary} style={styles.infoIcon} />
+          <Text style={[styles.infoText, { color: colors.text.secondary }]}>
             Your data is encrypted in transit and at rest. We use industry-standard security practices to protect your information. For account deletion or data requests, contact our support team.
           </Text>
         </View>
@@ -46,29 +96,139 @@ export default function SecurityScreen() {
   );
 }
 
-function SecurityRow({
-  icon: Icon,
-  label,
-  description,
-  isFirst,
-  isLast,
-}: {
+interface SecurityRowProps {
   icon: any;
+  iconColor: string;
   label: string;
   description: string;
-  isFirst?: boolean;
+  onPress: () => void;
+  colors: any;
   isLast?: boolean;
-}) {
+}
+
+function SecurityRow({
+  icon: Icon,
+  iconColor,
+  label,
+  description,
+  onPress,
+  colors,
+  isLast,
+}: SecurityRowProps) {
   return (
-    <Pressable
-      className={`flex-row items-center px-4 py-4 ${!isLast ? 'border-b border-neeva-glass-border/50' : ''} active:opacity-70`}
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.7}
+      style={[
+        styles.rowContainer,
+        { borderBottomColor: colors.border.default },
+        isLast ? styles.noBorder : null
+      ]}
     >
-      <Icon size={18} color="rgba(255,255,255,0.4)" />
-      <View className="flex-1 ml-3">
-        <Text className="text-white/80 text-body font-medium">{label}</Text>
-        <Text className="text-white/40 text-body-sm mt-0.5">{description}</Text>
+      <View style={[styles.iconWrapper, { backgroundColor: iconColor + '15' }]}>
+        <Icon size={20} color={iconColor} />
       </View>
-      <Text className="text-white/30 text-lg ml-2">›</Text>
-    </Pressable>
+      <View style={styles.rowTextWrapper}>
+        <Text style={[styles.rowLabel, { color: colors.text.primary }]}>{label}</Text>
+        <Text style={[styles.rowDescription, { color: colors.text.secondary }]}>{description}</Text>
+      </View>
+      <ChevronRight size={18} color={colors.text.secondary} />
+    </TouchableOpacity>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backButtonPlaceholder: {
+    width: 40,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1.0,
+    marginTop: 24,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  cardGroup: {
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  rowContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  noBorder: {
+    borderBottomWidth: 0,
+  },
+  iconWrapper: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  rowTextWrapper: {
+    flex: 1,
+    marginRight: 8,
+  },
+  rowLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  rowDescription: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    marginTop: 28,
+  },
+  infoIcon: {
+    marginRight: 12,
+    marginTop: 2,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+});

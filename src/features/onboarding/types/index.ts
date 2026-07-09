@@ -1,5 +1,5 @@
 /**
- * Neeva AI — Onboarding Feature Types
+ * Velness — Onboarding Feature Types
  *
  * Centralised type definitions for the onboarding flow.
  */

@@ -62,11 +62,11 @@ export function NavigationItem({ name, label, hint }: NavigationItemProps) {
 
   let textColor: string;
   if (isDisabled) {
-    textColor = colors.text.secondary + '40';
+    textColor = colors.text.disabled;
   } else if (isActive) {
-    textColor = colors.text.primary;
+    textColor = colors.brand.primary;
   } else {
-    textColor = colors.text.secondary + 'B3';
+    textColor = colors.text.secondary;
   }
 
   return (
@@ -109,6 +109,7 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 1,
   },
   iconContainer: {
     position: 'relative',

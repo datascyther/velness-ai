@@ -9,6 +9,9 @@ export interface Exercise {
   estimatedTime: number;
   content: Record<string, unknown>;
   sortOrder: number;
+  goal?: string;
+  instructions?: string[];
+  completionCriteria?: string;
 }
 
 export interface ExerciseWithProgress extends Exercise {

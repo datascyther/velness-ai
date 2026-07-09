@@ -13,13 +13,13 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-neeva-glass-highlight',
+        default: 'bg-velness-glass-highlight',
         success: 'bg-green-500/20',
         warning: 'bg-yellow-500/20',
         error: 'bg-red-500/20',
         info: 'bg-blue-500/20',
-        purple: 'bg-neeva-purple-600/20',
-        cyan: 'bg-neeva-cyan-600/20',
+        purple: 'bg-velness-purple-600/20',
+        cyan: 'bg-velness-cyan-600/20',
       },
     },
     defaultVariants: {
@@ -36,8 +36,8 @@ const textVariants = cva('text-caption font-medium', {
       warning: 'text-yellow-400',
       error: 'text-red-400',
       info: 'text-blue-400',
-      purple: 'text-neeva-purple-400',
-      cyan: 'text-neeva-cyan-400',
+      purple: 'text-velness-purple-400',
+      cyan: 'text-velness-cyan-400',
     },
   },
   defaultVariants: {

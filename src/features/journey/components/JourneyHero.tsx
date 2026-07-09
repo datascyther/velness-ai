@@ -116,7 +116,7 @@ export const JourneyHero = React.memo(({
         {/* Content */}
         <View style={styles.content}>
           <Text style={[styles.greeting, { color: isDark ? '#A78BFA' : '#6C4CF1' }]}>
-            Keep going{firstName ? `, ${firstName}` : ''}! 👏
+            Keep going{firstName ? `, ${firstName}` : ''}!
           </Text>
           <Text style={[styles.message, { color: isDark ? 'rgba(255,255,255,0.75)' : '#4B5563' }]}>
             You're making great progress{'\n'}on your wellness journey.

@@ -1,30 +1,44 @@
-import { useMemo, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { doc } from 'firebase/firestore';
-import { db, isFirebaseConfigured } from '@/lib/firebase';
-import { useRealtimeDocument } from '@/hooks/useRealtimeSubscription';
+import { supabase } from 'backend/client';
 import { conversationRepository } from '@/repositories/ConversationRepository';
-import type { Conversation } from '@/shared/types';
+import { uniqueChannelName } from './channelName';
 
 export function useRealtimeConversationDetails(conversationId: string | null) {
   const queryClient = useQueryClient();
-  const enabled = !!(conversationId && isFirebaseConfigured());
+  const queryKey = ['conversationDetail', conversationId];
+  const enabled = !!conversationId;
 
-  const docRef = useMemo(
-    () => (conversationId && isFirebaseConfigured() ? doc(db!, 'conversations', conversationId) : null),
-    [conversationId],
-  );
+  useEffect(() => {
+    if (!conversationId) return;
 
-  useRealtimeDocument<Conversation>(docRef, ['conversationDetail', conversationId], enabled);
+    const channel = supabase
+      .channel(uniqueChannelName(`conversation-detail-${conversationId}`))
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversations',
+          filter: `id=eq.${conversationId}`,
+        },
+        () => {
+          void queryClient.invalidateQueries({ queryKey });
+        },
+      )
+      .subscribe();
 
-  const queryFn = useCallback(
-    () => queryClient.getQueryData<Conversation | null>(['conversationDetail', conversationId]) ?? null,
-    [queryClient, conversationId],
-  );
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId, queryClient]);
 
   return useQuery({
-    queryKey: ['conversationDetail', conversationId],
-    queryFn,
+    queryKey,
+    queryFn: async () => {
+      if (!conversationId) return null;
+      return conversationRepository.getConversation(conversationId);
+    },
     enabled,
     staleTime: Infinity,
   });

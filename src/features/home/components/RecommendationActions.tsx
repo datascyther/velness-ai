@@ -72,12 +72,12 @@ export const RecommendationActions = React.memo(({
 }: RecommendationActionsProps) => {
   return (
     <View style={styles.container}>
-      {/* Ask Neeva why */}
+      {/* Ask Velness why */}
       <ActionButton
         onPress={onAskWhy}
         disabled={disabled}
-        label="Ask Neeva why"
-        accessibilityLabel="Ask Neeva why this is recommended"
+        label="Ask Velness why"
+        accessibilityLabel="Ask Velness why this is recommended"
       />
 
       <Text style={styles.divider}>•</Text>

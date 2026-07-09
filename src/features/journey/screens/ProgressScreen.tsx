@@ -3,6 +3,7 @@ import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ArrowLeft, Trophy, TrendingUp, BarChart3, Flame, Medal, Star, CheckCircle } from 'lucide-react-native';
+import { StarIcon } from '@/shared/components/SymbolIcons';
 import { useTheme } from '@/hooks/useTheme';
 import { useJourney } from '@/shared/hooks/useJourney';
 import { ProgressBar } from '@/shared/components/ProgressBar';
@@ -132,18 +133,44 @@ export function ProgressScreen() {
           {achievements.length === 0 ? (
             <Text style={[styles.emptyText, { color: colors.text.secondary }]}>Complete exercises to earn achievements.</Text>
           ) : (
-            achievements.map((ms: Milestone) => (
-              <View key={ms.id} style={styles.achievementRow}>
-                {getAchievementIcon(!!ms.achievedAt)}
-                <View style={styles.achievementInfo}>
-                  <Text style={[styles.achievementTitle, { color: colors.text.primary }]}>{ms.title}</Text>
-                  <Text style={[styles.achievementDesc, { color: colors.text.secondary }]}>{ms.description}</Text>
+            achievements.map((ms: Milestone) => {
+              const isRecent = ms.achievedAt && (new Date().getTime() - new Date(ms.achievedAt).getTime() < 24 * 60 * 60 * 1000);
+              return (
+                <View
+                  key={ms.id}
+                  style={[
+                    styles.achievementRow,
+                    isRecent && {
+                      backgroundColor: `${colors.warning}15`,
+                      borderColor: colors.warning,
+                      borderWidth: 1,
+                      borderRadius: borderRadius.md,
+                      padding: spacing.md,
+                      marginHorizontal: -spacing.sm,
+                    }
+                  ]}
+                >
+                  {getAchievementIcon(!!ms.achievedAt)}
+                  <View style={styles.achievementInfo}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={[styles.achievementTitle, { color: colors.text.primary }]}>{ms.title}</Text>
+                      {isRecent && (
+                        <View style={{ backgroundColor: colors.warning, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 1 }}>
+                            <Text style={{ fontSize: 9, fontWeight: '700', color: colors.background.primary }}>NEW</Text>
+                            <StarIcon size={9} color={colors.background.primary} />
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={[styles.achievementDesc, { color: colors.text.secondary }]}>{ms.description}</Text>
+                  </View>
+                  {ms.achievedAt && (
+                    <CheckCircle size={16} color={colors.success} />
+                  )}
                 </View>
-                {ms.achievedAt && (
-                  <CheckCircle size={16} color={colors.success} />
-                )}
-              </View>
-            ))
+              );
+            })
           )}
         </View>
 

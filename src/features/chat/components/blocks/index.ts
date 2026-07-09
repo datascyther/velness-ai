@@ -1,5 +1,5 @@
 /**
- * Neeva AI — Conversation Block Components
+ * Velness — Conversation Block Components
  *
  * Phase 2 reusable conversation blocks.
  * Each block type maps to a MessageType and is routed via MessageRenderer.

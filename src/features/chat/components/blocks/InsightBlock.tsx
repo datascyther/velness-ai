@@ -3,7 +3,7 @@
  *
  * ✨ Insight — Violet accent
  *
- * Used when Neeva shares a pattern or insight it noticed about the user.
+ * Used when Velness shares a pattern or insight it noticed about the user.
  * Callout-box style with a highlighted insight quote area.
  */
 

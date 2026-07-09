@@ -3,7 +3,7 @@
  *
  * Full-width card bubble for assistant messages.
  *
- * Phase 6 — Neeva-native Interaction Layer
+ * Phase 6 — Velness-native Interaction Layer
  *
  * Instead of generic 👍/👎/Copy, uses:
  * - Save Reflection
@@ -53,7 +53,7 @@ interface AIMessageBubbleProps {
   isLast?: boolean;
 }
 
-function NeevaActionButton({
+function VelnessActionButton({
   onPress,
   icon,
   label,
@@ -137,7 +137,7 @@ export const AIMessageBubble = React.memo(function AIMessageBubble({
   const handleShareInsight = useCallback(async () => {
     if (!message.content) return;
     try {
-      await Share.share({ message: message.content, title: 'Insight from Neeva' });
+      await Share.share({ message: message.content, title: 'Insight from Velness' });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch {}
     onShareInsight?.(message.id);
@@ -198,7 +198,7 @@ export const AIMessageBubble = React.memo(function AIMessageBubble({
             </Svg>
             <Brain size={14} color="#FFFFFF" strokeWidth={2} />
           </View>
-          <Text style={[styles.brandLabel, { color: colors.text.primary }]}>Neeva</Text>
+          <Text style={[styles.brandLabel, { color: colors.text.primary }]}>Velness</Text>
         </View>
       )}
 
@@ -217,30 +217,30 @@ export const AIMessageBubble = React.memo(function AIMessageBubble({
         <MessageTimestamp date={message.createdAt} style={styles.timestampBelow} />
       )}
 
-      {/* Neeva-native action buttons */}
+      {/* Velness-native action buttons */}
       {message.content ? (
         <View style={styles.actionsRow}>
           {(messageType === 'reflection' || messageType === 'insight') && (
-            <NeevaActionButton
+            <VelnessActionButton
               onPress={handleSaveReflection}
               icon={<BookmarkPlus size={14} color={colors.text.secondary} strokeWidth={2} />}
               label="Save"
               accessibilityLabel="Save reflection"
             />
           )}
-          <NeevaActionButton
+          <VelnessActionButton
             onPress={handleContinueLater}
             icon={<Clock size={14} color={colors.text.secondary} strokeWidth={2} />}
             label="Later"
             accessibilityLabel="Continue later"
           />
-          <NeevaActionButton
+          <VelnessActionButton
             onPress={handleShareInsight}
             icon={<Share2 size={14} color={colors.text.secondary} strokeWidth={2} />}
             label="Share"
             accessibilityLabel="Share insight"
           />
-          <NeevaActionButton
+          <VelnessActionButton
             onPress={handleAskFollowUp}
             icon={<MessageCircle size={14} color={colors.text.secondary} strokeWidth={2} />}
             label="Follow-up"

@@ -1,44 +1,47 @@
-import { useEffect, useMemo, useCallback } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { doc } from 'firebase/firestore';
-import { db, isFirebaseConfigured } from '@/lib/firebase';
-import { useRealtimeDocument } from '@/hooks/useRealtimeSubscription';
+import { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { profileRepository } from '../../backend/repositories/ProfileRepository';
+import { authService } from '../../backend/services/AuthService';
 import { useAppStore } from '@/core/store/useAppStore';
-import type { UserProfile } from '@/services/auth/types';
 
 export function useProfileSync(uid: string | null) {
-  const queryClient = useQueryClient();
-  const enabled = !!(uid && isFirebaseConfigured());
-
-  const docRef = useMemo(
-    () => (uid && isFirebaseConfigured() ? doc(db!, 'users', uid) : null),
-    [uid],
-  );
-
-  useRealtimeDocument<UserProfile>(docRef, ['profile', uid], enabled);
-
-  const queryFn = useCallback(
-    () => queryClient.getQueryData<UserProfile | null>(['profile', uid]) ?? null,
-    [queryClient, uid],
-  );
-
-  const { data: profile } = useQuery<UserProfile | null>({
-    queryKey: ['profile', uid],
-    queryFn,
-    enabled,
-    staleTime: Infinity,
-  });
-
   const setUser = useAppStore((state) => state.setUser);
   const setTheme = useAppStore((state) => state.setTheme);
 
+  const { data: profileRow } = useQuery({
+    queryKey: ['profile', uid],
+    queryFn: () => (uid ? profileRepository.getById(uid) : null),
+    enabled: !!uid,
+    staleTime: 30_000,
+  });
+
   useEffect(() => {
-    if (!profile) return;
+    if (!profileRow) return;
 
-    setUser(profile);
+    const authUser = authService.getCurrentUser();
+    if (!authUser) return;
 
-    if (profile.preferences?.theme && profile.preferences.theme !== 'auto') {
-      setTheme(profile.preferences.theme);
-    }
-  }, [profile, setUser, setTheme]);
+    setUser({
+      uid: authUser.id,
+      name: profileRow.display_name || authUser.email?.split('@')[0] || 'User',
+      email: authUser.email || '',
+      photoURL: profileRow.avatar_url || undefined,
+      createdAt: new Date(profileRow.created_at),
+      updatedAt: new Date(profileRow.updated_at),
+      lastLoginAt: new Date(profileRow.last_login_at || profileRow.created_at),
+      preferences: {
+        theme: 'dark',
+        notifications: true,
+        language: (profileRow.locale as any) || 'en',
+        tone: 'auto',
+      },
+      stats: {
+        totalSessions: 0,
+        totalMinutes: 0,
+        streakDays: 0,
+        lastActivityDate: new Date(),
+      },
+      onboardingCompleted: profileRow.onboarding_completed || false,
+    });
+  }, [profileRow, setUser]);
 }

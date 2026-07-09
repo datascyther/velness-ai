@@ -13,12 +13,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import { Mail, Lock, AlertCircle } from 'lucide-react-native';
+import { Mail, Lock, AlertCircle, User } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { authService } from '@/services/auth';
-import type { UserProfile } from '@/services/auth/types';
 import { analyticsService } from '@/services/analytics';
 import { useAppStore } from '@/core/store/useAppStore';
 import { useTheme } from '@/hooks/useTheme';
@@ -28,7 +27,7 @@ import { PasswordField } from '@/shared/components/PasswordField';
 import { GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton';
 import { loginSchema, type LoginFormData } from '@/features/auth/validators';
 import { AUTH_STRINGS } from '@/features/auth/constants';
-import { spacing, colors, typography, borderRadius } from '@/theme/tokens';
+import { spacing, typography, borderRadius } from '@/theme/tokens';
 
 const { width } = Dimensions.get('window');
 
@@ -98,13 +97,6 @@ export function LoginScreen() {
     clearError();
     analyticsService.trackEvent('login_attempt', { action: 'google' });
     try {
-      if (Platform.OS !== 'web') {
-        addToast({
-          type: 'error',
-          message: 'Google Sign-In is not configured for mobile yet. Please use email/password.',
-        });
-        return;
-      }
       await authService.signInWithGoogle();
       analyticsService.trackEvent('login_success', { method: 'google' });
     } catch (err: any) {
@@ -130,23 +122,13 @@ export function LoginScreen() {
     }
   }, [clearError, addToast]);
 
-  const handleGuestMode = useCallback(() => {
+  const handleGuestMode = useCallback(async () => {
     analyticsService.trackEvent('login_attempt', { action: 'guest' });
-    const guestProfile: UserProfile = {
-      uid: `guest-${Date.now()}`,
-      name: 'Guest User',
-      email: `guest-${Date.now()}@example.com`,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      lastLoginAt: new Date(),
-      preferences: { theme: 'dark', notifications: false, language: 'en', tone: 'auto' },
-      stats: { totalSessions: 1, totalMinutes: 0, streakDays: 0, lastActivityDate: new Date() },
-    };
+
+    const guestProfile = await authService.signInAsGuest();
     setUser(guestProfile);
     setEmailVerified(true);
     setOnboardingCompleted(true);
-    const store = useAppStore.getState();
-    store.setPreviousGuestUid(guestProfile.uid);
     router.replace('/(tabs)');
   }, [setUser, setEmailVerified, setOnboardingCompleted, router]);
 
@@ -190,16 +172,17 @@ export function LoginScreen() {
                 }}
               >
                 <Image
-                  source={require('@/shared/assets/neeva-logo.png')}
+                  source={require('@/shared/assets/velness-logo.jpg')}
                   style={{
                     width: 28,
                     height: 28,
                     resizeMode: 'contain',
+                    borderRadius: 7,
                   }}
                 />
               </View>
               <Text className="text-text-primary text-body font-bold tracking-tight ml-2">
-                Neeva AI
+                Velness
               </Text>
               <Text className="text-text-secondary text-caption font-semibold">
                 1.0.0 Beta
@@ -328,12 +311,19 @@ export function LoginScreen() {
 
             <Pressable
               onPress={handleGuestMode}
-              className="items-center mt-6 py-2 active:opacity-75"
-              style={{ borderRadius: borderRadius.md }}
+              disabled={loading}
+              className="flex-row items-center justify-center mt-5 py-3.5 active:opacity-80"
+              style={{
+                borderRadius: borderRadius.md,
+                borderWidth: 1.5,
+                borderColor: 'rgba(99, 102, 241, 0.5)',
+                backgroundColor: 'rgba(99, 102, 241, 0.07)',
+              }}
               accessibilityRole="button"
               accessibilityLabel="Explore as Guest"
             >
-              <Text className="text-brand-primary text-body-sm font-semibold underline underline-offset-4">
+              <User color="#6366F1" size={18} strokeWidth={2.2} />
+              <Text className="text-brand-primary text-body font-semibold ml-2">
                 Explore as Guest
               </Text>
             </Pressable>
@@ -362,7 +352,7 @@ export function LoginScreen() {
             </View>
 
             <Text className="text-text-secondary text-caption text-center px-4 leading-5 font-medium">
-              By continuing, you agree to Neeva's{' '}
+              By continuing, you agree to Velness'{' '}
               <Text className="underline text-text-primary">Terms of Service</Text> and{' '}
               <Text className="underline text-text-primary">Privacy Policy</Text>.
             </Text>

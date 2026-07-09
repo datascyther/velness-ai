@@ -1,5 +1,5 @@
 /**
- * Neeva AI — Shared Type Definitions
+ * Velness — Shared Type Definitions
  *
  * Core application types shared across features.
  * Feature-specific types live in their respective feature folders.
@@ -48,12 +48,17 @@ export interface UserProfile {
 
 export type MoodRating = 1 | 2 | 3 | 4 | 5;
 
-export const MOOD_MAP: Record<MoodRating, { label: string; emoji: string }> = {
-  5: { label: 'Great', emoji: '🤩' },
-  4: { label: 'Good', emoji: '😊' },
-  3: { label: 'Okay', emoji: '😌' },
-  2: { label: 'Not good', emoji: '😰' },
-  1: { label: 'Awful', emoji: '🤯' },
+import type { EmotionType } from '@/constants/emotions';
+
+export const MOOD_MAP: Record<
+  MoodRating,
+  { label: string; emoji: string; emotion: EmotionType }
+> = {
+  5: { label: 'Great', emoji: '🤩', emotion: 'great' },
+  4: { label: 'Good', emoji: '😊', emotion: 'good' },
+  3: { label: 'Okay', emoji: '😌', emotion: 'calm' },
+  2: { label: 'Not good', emoji: '😰', emotion: 'notGood' },
+  1: { label: 'Awful', emoji: '🤯', emotion: 'overwhelmed' },
 };
 
 export function getMoodLabel(rating: MoodRating): string {
@@ -64,11 +69,17 @@ export function getMoodEmoji(rating: MoodRating): string {
   return MOOD_MAP[rating].emoji;
 }
 
+/** @deprecated Use `getMoodEmotion` — Unicode emojis are being replaced. */
+export function getMoodEmotion(rating: MoodRating): EmotionType {
+  return MOOD_MAP[rating].emotion;
+}
+
 export interface Mood {
   id: string;
   rating: MoodRating;
   note: string;
   timestamp: Date;
+  label?: string;
 }
 
 // ─── Chat ───────────────────────────────────────────────────────────────

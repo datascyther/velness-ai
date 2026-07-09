@@ -11,4 +11,6 @@ export interface Program {
   lessonCount: number;
   status: ProgramStatus;
   sortOrder: number;
+  benefits?: string[];
+  estimatedTime?: string;
 }

@@ -12,7 +12,7 @@ interface MessageBubbleProps {
   onRegenerate?: () => void;
   onCopy?: (text: string) => void;
   onFeedback?: (type: 'helpful' | 'unhelpful') => void;
-  /** Phase 6 — Neeva-native actions */
+  /** Phase 6 — Velness-native actions */
   onSaveReflection?: (messageId: string) => void;
   onContinueLater?: (messageId: string) => void;
   onShareInsight?: (messageId: string) => void;

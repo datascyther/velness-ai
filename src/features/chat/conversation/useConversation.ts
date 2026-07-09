@@ -25,10 +25,9 @@ export function useConversation(): { state: ConversationState; controller: Conve
   const contextEngine: ContextEngineInput = useMemo(() => ({
     userName: userName,
     initialMood: sessionCtx.mood ?? undefined,
-    reflectionStreak: sessionCtx.streak,
     currentJourney: sessionCtx.previousSessionFocus ?? undefined,
     sessionCount: sessionCtx.sessionCount,
-  }), [userName, sessionCtx.mood, sessionCtx.streak, sessionCtx.previousSessionFocus, sessionCtx.sessionCount]);
+  }), [userName, sessionCtx.mood, sessionCtx.previousSessionFocus, sessionCtx.sessionCount]);
 
   const {
     messages,

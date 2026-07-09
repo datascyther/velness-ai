@@ -68,7 +68,7 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
   return (
     <Animated.View
       style={animatedStyle}
-      className="bg-surface-card border border-neeva-glass-border rounded-glass-lg px-4 py-3.5 mx-4 mb-2 flex-row items-center"
+      className="bg-surface-card border border-velness-glass-border rounded-glass-lg px-4 py-3.5 mx-4 mb-2 flex-row items-center"
     >
       <Icon size={20} color={color} />
       <Text className="flex-1 text-white text-body-sm ml-3">{toast.message}</Text>

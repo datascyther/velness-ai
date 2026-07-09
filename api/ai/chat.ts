@@ -138,7 +138,7 @@ export default async function handler(request: Request) {
     // Minimal system prompt (single source of truth remains server-side).
     // Profile/tone retrieval from Firestore/auth is not available in this repo yet,
     // so we keep current server prompt while keeping request contract forward-compatible.
-    const system = 'You are Neeva, a compassionate mental wellness companion. Do not diagnose. Follow safety protocol.';
+    const system = 'You are Velness, a compassionate mental wellness companion. Do not diagnose. Follow safety protocol.';
 
     const messages: Array<{ role: Role; content: string }> = [
         { role: 'system', content: system },

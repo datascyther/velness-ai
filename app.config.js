@@ -111,19 +111,19 @@ const androidPackage =
   googleEnv.ANDROID_PACKAGE || pick('EXPO_PUBLIC_ANDROID_PACKAGE') || 'com.mentalhealth.app';
 
 function appNameForEnvironment() {
-  if (APP_ENV === 'development') return 'Neeva AI (Dev)';
-  if (APP_ENV === 'staging') return 'Neeva AI (Staging)';
-  return 'Neeva AI';
+  if (APP_ENV === 'development') return 'Velness (Dev)';
+  if (APP_ENV === 'staging') return 'Velness (Staging)';
+  return 'Velness';
 }
 
 module.exports = {
   expo: {
     name: appNameForEnvironment(),
-    slug: 'neeva-ai',
+    slug: 'velness',
     version: '1.0.0',
     orientation: 'portrait',
     icon: './src/shared/assets/icon.png',
-    scheme: 'neeva',
+    scheme: ['neeva', 'velness'],
     userInterfaceStyle: 'automatic',
     splash: {
       image: './src/shared/assets/splash.png',
@@ -132,10 +132,10 @@ module.exports = {
     },
     ios: {
       supportsTablet: true,
-      bundleIdentifier: APP_ENV === 'production' ? 'com.neeva.ai' : `com.neeva.ai.${APP_ENV}`,
+      bundleIdentifier: APP_ENV === 'production' ? 'com.velness.app' : `com.velness.app.${APP_ENV}`,
       infoPlist: {
-        NSMicrophoneUsageDescription: 'Neeva uses the microphone to convert your speech into text, making it easier to express yourself.',
-        NSSpeechRecognitionUsageDescription: 'Neeva uses speech recognition to transcribe your voice into text for messaging.',
+        NSMicrophoneUsageDescription: 'Velness uses the microphone to convert your speech into text, making it easier to express yourself.',
+        NSSpeechRecognitionUsageDescription: 'Velness uses speech recognition to transcribe your voice into text for messaging.',
       },
     },
     android: {
@@ -154,6 +154,7 @@ module.exports = {
       'expo-secure-store',
       'expo-speech-recognition',
       'expo-system-ui',
+      'expo-web-browser',
       // '@sentry/react-native/expo',  // uncomment when @sentry/react-native is installed
     ],
     extra: {

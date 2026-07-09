@@ -3,7 +3,7 @@
  *
  * 📝 Summary — Amber accent
  *
- * Used when Neeva summarises a conversation or key themes. Renders
+ * Used when Velness summarises a conversation or key themes. Renders
  * a bulleted list of summary points with amber accent styling.
  */
 

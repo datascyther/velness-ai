@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTheme } from '@/hooks/useTheme';
+import { BrainIcon } from '@/shared/components/SymbolIcons';
 
 export interface EmptyJourneyStateProps {
   onStart: () => void;
@@ -18,7 +19,7 @@ export const EmptyJourneyState = React.memo(({ onStart }: EmptyJourneyStateProps
     >
       <View style={styles.cardContent}>
         <View style={[styles.iconContainer, { backgroundColor: `${colors.brand.primary}1A` }]}>
-          <Text style={styles.icon}>🧠</Text>
+          <BrainIcon size={28} />
         </View>
         <Text style={[styles.titleText, { color: colors.text.primary }]}>
           Begin Your Wellness Journey

@@ -1,14 +1,22 @@
-import React, { useMemo, useEffect } from 'react';
-import Svg, { Path, Defs, LinearGradient, Stop, G } from 'react-native-svg';
+// src/features/home/components/MoodTimeline.tsx
+//
+// Compact sparkline SVG for the WeeklyHistoryCard mini chart.
+// - Height: 56px (down from 120px)
+// - Stroke: 2px crisp line + area fill, no shimmer glow
+// - Draw animation: path stroke-dashoffset sweeps in on mount
+
+import React, { useEffect, useMemo } from 'react';
+import { View } from 'react-native';
+import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 import Animated, {
   useSharedValue,
   useAnimatedProps,
-  withRepeat,
   withTiming,
   Easing,
 } from 'react-native-reanimated';
 import { useTheme } from '@/hooks/useTheme';
-import { MoodPoint } from './MoodPoint';
+
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 interface TimelinePoint {
   x: number;
@@ -22,130 +30,88 @@ interface MoodTimelineProps {
   svgHeight: number;
 }
 
-const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
-
 export const MoodTimeline = React.memo(({ points, svgWidth, svgHeight }: MoodTimelineProps) => {
   const { colors } = useTheme();
 
-  const shimmerPos = useSharedValue(0);
+  // Draw-itself: stroke-dashoffset from full length → 0
+  // We approximate path length as 2× svgWidth (generous upper bound)
+  const pathLength = svgWidth * 2;
+  const drawProgress = useSharedValue(pathLength);
 
   useEffect(() => {
-    shimmerPos.value = withRepeat(
-      withTiming(1, { duration: 3000, easing: Easing.linear }),
-      -1,
-      false
-    );
-  }, [shimmerPos]);
+    drawProgress.value = withTiming(0, {
+      duration: 800,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [drawProgress]);
 
-  const shimmerProps = useAnimatedProps(() => ({
-    x1: `${shimmerPos.value * 100}%`,
-    x2: `${(shimmerPos.value * 100) + 30}%`,
+  const animatedLineProps = useAnimatedProps(() => ({
+    strokeDashoffset: drawProgress.value,
   }));
 
-  const pathD = useMemo(() => {
-    const validPoints = points.filter(p => p.moodLevel !== null);
-    if (validPoints.length < 2) return '';
+  const { pathD, areaD } = useMemo(() => {
+    const padding = 6;
+    const baseline = svgHeight - padding;
 
-    let d = `M ${validPoints[0].x} ${validPoints[0].y}`;
-    for (let i = 1; i < validPoints.length; i++) {
-      const prev = validPoints[i - 1];
-      const curr = validPoints[i];
-      const cx1 = (prev.x + curr.x) / 2;
-      const cx2 = (prev.x + curr.x) / 2;
-      d += ` C ${cx1} ${prev.y}, ${cx2} ${curr.y}, ${curr.x} ${curr.y}`;
+    const validPoints = points
+      .filter((p) => p.moodLevel !== null)
+      .sort((a, b) => a.x - b.x);
+
+    if (validPoints.length < 2) {
+      return { pathD: '', areaD: '' };
     }
-    return d;
-  }, [points]);
 
-  const areaD = useMemo(() => {
-    const validPoints = points.filter(p => p.moodLevel !== null);
-    if (validPoints.length < 2) return '';
-    const last = validPoints[validPoints.length - 1];
-    const first = validPoints[0];
-    return `${pathD} L ${last.x} ${svgHeight - 10} L ${first.x} ${svgHeight - 10} Z`;
-  }, [pathD, points, svgHeight]);
+    const clampY = (y: number) =>
+      Math.min(baseline - padding, Math.max(padding, y));
+
+    const normalized = validPoints.map((p) => ({ ...p, y: clampY(p.y) }));
+
+    let d = `M ${normalized[0].x} ${normalized[0].y}`;
+    for (let i = 1; i < normalized.length; i++) {
+      const prev = normalized[i - 1];
+      const curr = normalized[i];
+      const cx = (prev.x + curr.x) / 2;
+      d += ` C ${cx} ${prev.y}, ${cx} ${curr.y}, ${curr.x} ${curr.y}`;
+    }
+
+    const a = `${d} L ${normalized[normalized.length - 1].x} ${baseline} L ${normalized[0].x} ${baseline} Z`;
+
+    return { pathD: d, areaD: a };
+  }, [points, svgHeight]);
+
+  if (!pathD) return <View style={{ height: svgHeight }} />;
 
   return (
-    <Svg
-      width={svgWidth}
-      height={svgHeight}
-    >
+    <Svg width={svgWidth} height={svgHeight}>
       <Defs>
-        <LinearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={colors.brand.primary} stopOpacity={0.25} />
-          <Stop offset="0.5" stopColor={colors.brand.primary} stopOpacity={0.10} />
-          <Stop offset="1" stopColor={colors.brand.primary} stopOpacity={0.02} />
+        <LinearGradient id="areaGradCompact" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={colors.text.tertiary} stopOpacity={0.18} />
+          <Stop offset="1" stopColor={colors.text.tertiary} stopOpacity={0.02} />
         </LinearGradient>
-        <LinearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <Stop offset="0%" stopColor={colors.brand.secondary || '#8B5CF6'} />
-          <Stop offset="50%" stopColor={colors.brand.primary} />
+        <LinearGradient id="lineGradCompact" x1="0%" y1="0%" x2="100%" y2="0%">
+          <Stop offset="0%" stopColor="#06B6D4" />
           <Stop offset="100%" stopColor="#06B6D4" />
         </LinearGradient>
-        <AnimatedLinearGradient
-          id="shimmerGrad"
-          animatedProps={shimmerProps}
-          y1="0%"
-          y2="0%"
-        >
-          <Stop offset="0%" stopColor="transparent" stopOpacity={0} />
-          <Stop offset="40%" stopColor="#FFFFFF" stopOpacity={0.35} />
-          <Stop offset="70%" stopColor="#FFFFFF" stopOpacity={0.15} />
-          <Stop offset="100%" stopColor="transparent" stopOpacity={0} />
-        </AnimatedLinearGradient>
       </Defs>
 
+      {/* Area fill */}
       {areaD.length > 0 && (
-        <Path
-          d={areaD}
-          fill="url(#areaGrad)"
-        />
+        <Path d={areaD} fill="url(#areaGradCompact)" />
       )}
 
+      {/* Animated crisp line */}
       {pathD.length > 0 && (
-        <G>
-          <Path
-            d={pathD}
-            stroke="url(#lineGrad)"
-            strokeWidth={12}
-            fill="none"
-            strokeLinecap="round"
-            opacity={0.08}
-          />
-          <Path
-            d={pathD}
-            stroke="url(#lineGrad)"
-            strokeWidth={7}
-            fill="none"
-            strokeLinecap="round"
-            opacity={0.2}
-          />
-          <Path
-            d={pathD}
-            stroke="url(#shimmerGrad)"
-            strokeWidth={7}
-            fill="none"
-            strokeLinecap="round"
-          />
-          <Path
-            d={pathD}
-            stroke="url(#lineGrad)"
-            strokeWidth={3.5}
-            fill="none"
-            strokeLinecap="round"
-            opacity={0.95}
-          />
-        </G>
-      )}
-
-      {points.map((p, i) => (
-        <MoodPoint
-          key={i}
-          cx={p.x}
-          cy={p.y}
-          moodLevel={p.moodLevel}
-          isToday={i === points.length - 1}
+        <AnimatedPath
+          d={pathD}
+          stroke="url(#lineGradCompact)"
+          strokeWidth={2}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={pathLength}
+          animatedProps={animatedLineProps}
+          opacity={0.95}
         />
-      ))}
+      )}
     </Svg>
   );
 });

@@ -137,7 +137,7 @@ if (gsPath) {
 }
 
 if (plistPath) {
-  const iosTarget = path.join(root, 'ios', 'NeevaAI', 'GoogleService-Info.plist');
+  const iosTarget = path.join(root, 'ios', 'Velness', 'GoogleService-Info.plist');
   fs.mkdirSync(path.dirname(iosTarget), { recursive: true });
   fs.copyFileSync(plistPath, iosTarget);
   console.log(`  ✓ Copied to ${path.relative(root, iosTarget)}`);

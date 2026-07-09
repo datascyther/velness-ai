@@ -1,5 +1,5 @@
 /**
- * Cross-platform environment configuration for Neeva AI.
+ * Cross-platform environment configuration for Velness.
  *
  * Each value uses static `process.env.EXPO_PUBLIC_*` / `process.env.VITE_*`
  * references so Metro (Expo) and Vite can inline them at build time.
@@ -108,7 +108,7 @@ export const env = {
     process.env.APP_ENV,
   ) || 'development',
 
-  appName: 'Neeva AI',
+  appName: 'Velness',
   appVersion: '1.0.0',
   isDev: __DEV__,
 } as const;

@@ -1,5 +1,5 @@
 /**
- * Neeva AI — Onboarding Feature Constants
+ * Velness — Onboarding Feature Constants
  *
  * Constants specific to the onboarding flow.
  */
@@ -89,7 +89,7 @@ export const REMINDER_OPTIONS = [
 export const TOTAL_ONBOARDING_STEPS = 7;
 
 export const ONBOARDING_STRINGS = {
-  WELCOME_TITLE: 'Welcome to Neeva',
+  WELCOME_TITLE: 'Welcome to Velness',
   WELCOME_SUBTITLE: 'Your personal AI wellness companion',
   WELCOME_DESCRIPTION:
     'Together, we\'ll build healthier habits, manage stress, and cultivate mindfulness. Let\'s get to know you a little better.',

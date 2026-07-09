@@ -1,20 +1,8 @@
-import { useEffect, useMemo, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  query as firestoreQuery,
-  orderBy,
-  limit,
-  getDocs,
-  getDoc,
-  startAfter,
-  doc,
-  collection,
-  onSnapshot,
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { MESSAGES_PAGE_SIZE } from '@/lib/firestore';
-import { docSnapshotToData } from '@/hooks/useRealtimeSubscription';
-import { messageRepository } from '@/repositories/MessageRepository';
+import { supabase } from 'backend/client';
+import { messageRepository, MESSAGES_PAGE_SIZE } from '@/repositories/MessageRepository';
+import { uniqueChannelName } from './channelName';
 import type { ConversationMessage } from '@/shared/types';
 
 function messagesQueryKey(conversationId: string | null): string[] {
@@ -24,45 +12,31 @@ function messagesQueryKey(conversationId: string | null): string[] {
 export function useRealtimeGroupMessages(conversationId: string | null) {
   const queryClient = useQueryClient();
   const key = messagesQueryKey(conversationId);
-  const enabled = !!(conversationId && db);
-
-  const messagesRef = useMemo(
-    () =>
-      conversationId && db
-        ? firestoreQuery(
-            collection(db, 'conversations', conversationId, 'messages'),
-            orderBy('timestamp', 'desc'),
-            limit(MESSAGES_PAGE_SIZE),
-          )
-        : null,
-    [conversationId],
-  );
+  const enabled = !!conversationId;
 
   useEffect(() => {
-    if (!conversationId || !messagesRef || !db) return;
+    if (!conversationId) return;
 
-    const unsubscribe = onSnapshot(
-      messagesRef,
-      (snapshot: any) => {
-        const latest = snapshot.docs.map((doc: any) =>
-          docSnapshotToData<ConversationMessage>(doc),
-        );
+    const channel = supabase
+      .channel(uniqueChannelName(`group-messages-${conversationId}`))
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversation_messages',
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: key });
+        },
+      )
+      .subscribe();
 
-        queryClient.setQueryData<ConversationMessage[]>(key, (existing = []) => {
-          if (existing.length <= MESSAGES_PAGE_SIZE) return latest;
-
-          const latestIds = new Set(latest.map((m) => m.id));
-          const olderMessages = existing.filter((m) => !latestIds.has(m.id));
-          return [...latest, ...olderMessages];
-        });
-      },
-      (error: Error) => {
-        console.error('[useRealtimeGroupMessages] Error:', error);
-      },
-    );
-
-    return () => unsubscribe();
-  }, [conversationId, messagesRef, queryClient, key]);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId, queryClient]);
 
   const loadOlderMessages = useCallback(async (): Promise<number> => {
     if (!conversationId) return 0;
@@ -72,26 +46,10 @@ export function useRealtimeGroupMessages(conversationId: string | null) {
 
     const lastMessage = cached[cached.length - 1];
 
-    const lastDocRef = doc(
-      db,
-      'conversations',
+    const olderMessages = await messageRepository.getMessages(
       conversationId,
-      'messages',
-      lastMessage.id,
-    );
-    const lastDocSnap = await getDoc(lastDocRef);
-    if (!lastDocSnap.exists()) return 0;
-
-    const olderQuery = firestoreQuery(
-      collection(db, 'conversations', conversationId, 'messages'),
-      orderBy('timestamp', 'desc'),
-      startAfter(lastDocSnap),
-      limit(MESSAGES_PAGE_SIZE),
-    );
-
-    const snapshot = await getDocs(olderQuery);
-    const olderMessages = snapshot.docs.map((doc) =>
-      docSnapshotToData<ConversationMessage>(doc),
+      MESSAGES_PAGE_SIZE,
+      lastMessage,
     );
 
     if (olderMessages.length > 0) {

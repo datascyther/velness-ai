@@ -69,7 +69,7 @@ export function Modal({
 
         <Animated.View
           style={contentStyle}
-          className={`bg-surface-card border border-neeva-glass-border rounded-glass-lg w-full max-w-sm ${className}`}
+          className={`bg-surface-card border border-velness-glass-border rounded-glass-lg w-full max-w-sm ${className}`}
         >
           {/* Header */}
           {(title || showCloseButton) && (

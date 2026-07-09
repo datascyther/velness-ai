@@ -72,9 +72,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl,
-    marginTop: spacing.xl,
-    marginBottom: spacing.sm,
     width: '100%',
   },
   leftSection: {
@@ -88,11 +85,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: typography.fontSize.caption,
-    fontWeight: typography.fontWeight['section-title'],
+    fontSize: 15,
+    fontWeight: '600' as const,
     fontFamily: typography.fontFamily.display,
-    textTransform: 'uppercase',
-    letterSpacing: typography.letterSpacing['section-title'] ?? 0,
+    letterSpacing: -0.1,
   },
   subtitle: {
     fontSize: typography.fontSize.label,

@@ -1,5 +1,5 @@
 /**
- * Neeva AI — Global Application Store (Zustand)
+ * Velness — Global Application Store (Zustand)
  *
  * Manages UI state only. Server state belongs in TanStack Query.
  * NEVER duplicate server data inside this store.
@@ -13,6 +13,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { UserProfile } from '@/services/auth/types';
 import { authService } from '@/services/auth';
+import { profileRepository } from '../../../backend/repositories/ProfileRepository';
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
@@ -394,17 +395,9 @@ export const useAppStore = create<AppStore>()(
         set((s) => ({ session: { ...s.session, user: updatedUser } }));
 
         try {
-          const { queryClient } = require('../queryClient');
-          const { useSyncStore } = require('./useSyncStore');
-          
-          await useSyncStore.getState().enqueueItem(
-            'update_profile',
-            { uid: currentUser.uid, updates },
-            queryClient
-          );
-        } catch (error) {
-          console.warn('[useAppStore] Sync queue enqueue failed, updating profile directly:', error);
           await authService.updateProfile(updates);
+        } catch (error) {
+          console.warn('[useAppStore] Profile update failed:', error);
         }
       },
 
@@ -426,7 +419,7 @@ export const useAppStore = create<AppStore>()(
         }),
     }),
     {
-      name: 'neeva-app-store',
+      name: 'velness-app-store',
       partialize: (state) => ({
         session: {
           onboardingCompleted: state.session.onboardingCompleted,

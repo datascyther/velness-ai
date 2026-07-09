@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# Neeva AI — iOS Production Build Script
+# Velness — iOS Production Build Script
 # =============================================================================
 # Prerequisites:
 #   1. Place GoogleService-Info.plist in project root

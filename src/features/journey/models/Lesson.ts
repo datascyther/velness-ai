@@ -6,4 +6,10 @@ export interface Lesson {
   order: number;
   duration: number;
   exerciseIds: string[];
+  introduction?: string;
+  learningObjective?: string;
+  preparation?: string;
+  reflectionPrompt?: string;
+  takeaway?: string;
+  completionSummary?: string;
 }

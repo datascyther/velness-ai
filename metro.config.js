@@ -8,7 +8,8 @@ const config = getDefaultConfig(__dirname);
 config.resolver.extraNodeModules = {
   ...config.resolver.extraNodeModules,
   '@': path.resolve(__dirname, 'src'),
-  '@neeva': path.resolve(__dirname, 'src'),
+  '@velness': path.resolve(__dirname, 'src'),
+  backend: path.resolve(__dirname, 'backend'),
 };
 
 config.watchFolders = [...(config.watchFolders || []), path.resolve(__dirname, 'src')];

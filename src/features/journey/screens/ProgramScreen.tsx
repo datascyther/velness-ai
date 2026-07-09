@@ -2,12 +2,12 @@ import React, { useMemo, useCallback } from 'react';
 import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, CheckCircle, Circle, Lock, Play } from 'lucide-react-native';
+import { ArrowLeft, CheckCircle, Circle, Lock, Play, Star } from 'lucide-react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { useJourney } from '@/shared/hooks/useJourney';
 import { useJourneyStore } from '@/features/journey/store/useJourneyStore';
 import { ProgressBar } from '@/shared/components/ProgressBar';
-import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
+import { SkeletonLoader } from '@/shared/components/SkeletonLoader';
 import { ROUTES, buildRoute } from '@/core/config/routes';
 import { spacing, borderRadius } from '@/core/theme';
 import { DIFFICULTY, PROGRAM_STATUS } from '@/features/journey/constants';
@@ -16,12 +16,60 @@ import type { Program } from '@/features/journey/models';
 
 type LessonStatus = 'locked' | 'available' | 'completed';
 
+function ProgramSkeleton() {
+  const { colors } = useTheme();
+  return (
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background.primary }]} edges={['top']}>
+      <View style={styles.header}>
+        <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)' }} />
+        <SkeletonLoader width="40%" height={18} borderRadius={4} />
+        <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)' }} />
+      </View>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.programHero}>
+          <SkeletonLoader width="70%" height={26} borderRadius={6} className="mb-3" />
+          <SkeletonLoader width="100%" height={14} borderRadius={4} className="mb-2" />
+          <SkeletonLoader width="90%" height={14} borderRadius={4} className="mb-4" />
+          <View style={{ flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg, alignItems: 'center' }}>
+            <SkeletonLoader width={80} height={18} borderRadius={4} />
+            <SkeletonLoader width={100} height={12} borderRadius={4} />
+          </View>
+          <View style={styles.progressSection}>
+            <SkeletonLoader width="100%" height={6} borderRadius={3} />
+            <SkeletonLoader width={60} height={10} borderRadius={3} />
+          </View>
+        </View>
+
+        <SkeletonLoader width={100} height={20} borderRadius={4} className="mt-8 mb-4" />
+
+        <SkeletonLoader width="100%" height={54} borderRadius={10} className="mb-6" />
+
+        <View style={styles.lessonsList}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <View key={i} style={[styles.lessonCard, { backgroundColor: colors.surface.primary, borderColor: colors.border.default, opacity: 0.5 }]}>
+              <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(255,255,255,0.05)' }} />
+              <View style={styles.lessonInfo}>
+                <SkeletonLoader width="60%" height={15} borderRadius={4} className="mb-2" />
+                <SkeletonLoader width="30%" height={11} borderRadius={3} />
+              </View>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
 export function ProgramScreen() {
   const { colors } = useTheme();
   const { programId } = useLocalSearchParams<{ programId: string }>();
-  const { programs, userProgress, isLoading } = useJourney();
+  const { programs, userProgress, isLoading, toggleFavorite } = useJourney();
   const setCurrentProgram = useJourneyStore((s) => s.setCurrentProgram);
   const setCurrentLesson = useJourneyStore((s) => s.setCurrentLesson);
+
+  const isFavorite = useMemo(() => {
+    return userProgress?.favorites?.includes(programId || '') ?? false;
+  }, [userProgress, programId]);
 
   const program = useMemo(() => programs.find(p => p.id === programId), [programs, programId]);
 
@@ -74,11 +122,7 @@ export function ProgramScreen() {
   }, [program, colors]);
 
   if (isLoading) {
-    return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background.primary }]} edges={['top']}>
-        <LoadingSpinner />
-      </SafeAreaView>
-    );
+    return <ProgramSkeleton />;
   }
 
   if (!program) {
@@ -103,7 +147,18 @@ export function ProgramScreen() {
           <ArrowLeft size={24} color={colors.text.primary} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text.primary }]} numberOfLines={1}>{program.title}</Text>
-        <View style={styles.headerSpacer} />
+        <Pressable
+          onPress={() => toggleFavorite(programId || '')}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel={isFavorite ? "Remove from favorites" : "Add to favorites"}
+        >
+          <Star
+            size={22}
+            color={isFavorite ? '#F59E0B' : colors.text.primary}
+            fill={isFavorite ? '#F59E0B' : 'transparent'}
+          />
+        </Pressable>
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.programHero}>

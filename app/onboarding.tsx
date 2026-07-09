@@ -1,5 +1,5 @@
 /**
- * Neeva AI — Onboarding Screen
+ * Velness — Onboarding Screen
  *
  * Phase 3 target: Full multi-step onboarding flow.
  * Current: Placeholder screen.

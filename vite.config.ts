@@ -101,6 +101,7 @@ export default defineConfig(({ mode }) => ({
     extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
     alias: {
       '@': path.resolve(__dirname, './src'),
+      'backend': path.resolve(__dirname, './backend'),
       'react-native/Libraries/Utilities/codegenNativeComponent': path.resolve(__dirname, './src/utils/codegenNativeComponentMock.ts'),
       'react-native': path.resolve(__dirname, './src/utils/react-native-web-wrapper.ts'),
       'expo-router': path.resolve(__dirname, './src/utils/expo-router-mock.tsx'),

@@ -1,7 +1,17 @@
-import React, { createContext, useEffect, useMemo, useCallback } from 'react';
-import { useColorScheme as useReactNativeColorScheme } from 'react-native';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useAppStore } from '@/core/store/useAppStore';
-import { colors } from '@/theme/colors';
+import { colors as themeColors } from '@/theme/colors';
+import { themeToCssVars } from '@/theme/cssVars';
+import { resolveSunTheme, msUntilNextTransition, getSunSchedule } from '@/theme/schedule';
 import type { ThemeTokens } from '@/theme';
 
 export type ThemeMode = 'light' | 'dark' | 'auto';
@@ -13,63 +23,92 @@ export interface ThemeContextType {
   colors: ThemeTokens;
   setMode: (mode: ThemeMode) => void;
   toggleTheme: () => void;
+  /** True when the resolved theme is dark (handy for icons/gradients). */
+  isDark: boolean;
+  /** For "auto": which theme the system schedule would currently resolve to. */
+  systemTheme: ThemeType;
 }
 
 export const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+function applyThemeToDocument(theme: ThemeType, tokens: ThemeTokens) {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  const root = document.documentElement;
+  root.setAttribute('data-theme', theme);
+  root.classList.toggle('dark', theme === 'dark');
+  root.style.colorScheme = theme;
+
+  // Single source of truth: push token values as CSS variables so every
+  // Tailwind class and every `var(--…)` usage reflects the active theme.
+  const vars = themeToCssVars(tokens);
+  for (const [key, value] of Object.entries(vars)) {
+    root.style.setProperty(key, value);
+  }
+
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) {
+    meta.setAttribute('content', tokens.background.primary);
+  }
+}
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const mode = useAppStore((state) => state.ui.theme);
   const setMode = useAppStore((state) => state.setTheme);
 
-  // Safely hook into standard React Native useColorScheme
-  const systemColorScheme = useReactNativeColorScheme();
+  // Re-render trigger so the "auto" schedule flips at the next sunrise/sunset.
+  const [tick, setTick] = useState(0);
+
+  const systemTheme = useMemo<ThemeType>(() => resolveSunTheme(new Date(), getSunSchedule()), [tick]);
 
   const theme = useMemo<ThemeType>(() => {
-    if (mode === 'auto') {
-      return systemColorScheme === 'dark' ? 'dark' : 'light';
-    }
+    if (mode === 'auto') return systemTheme;
     return mode === 'dark' ? 'dark' : 'light';
-  }, [mode, systemColorScheme]);
+  }, [mode, systemTheme]);
 
-  const resolvedColors = useMemo(() => {
-    return colors[theme];
-  }, [theme]);
+  const tokens = useMemo<ThemeTokens>(() => themeColors[theme], [theme]);
 
-  // Synchronize CSS custom properties on Web
+  // Schedule the next auto flip at the upcoming sunrise/sunset boundary.
   useEffect(() => {
-    if (typeof window !== 'undefined' && typeof document !== 'undefined' && document.documentElement) {
-      const root = document.documentElement;
-      root.setAttribute('data-theme', theme);
-      root.classList.toggle('dark', theme === 'dark');
-      root.style.colorScheme = theme;
+    if (mode !== 'auto') return;
+    const id = setTimeout(() => setTick((t) => t + 1), msUntilNextTransition(new Date(), getSunSchedule()));
+    return () => clearTimeout(id);
+  }, [mode, tick]);
 
-      // Update HTML metadata theme-color
-      const meta = document.querySelector('meta[name="theme-color"]');
-      if (meta) {
-        meta.setAttribute('content', theme === 'dark' ? '#0B0B0F' : '#F8F9FC');
-      }
-    }
-  }, [theme]);
-
-  // Sync NativeWind's color scheme
+  // Sync NativeWind's color scheme (used on native).
   useEffect(() => {
     try {
-      const { colorScheme } = require('nativewind');
-      if (colorScheme && typeof colorScheme.set === 'function') {
-        colorScheme.set(theme);
-      }
-    } catch (e) {
-      // NativeWind not loaded or not in mobile environment
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const nw = require('nativewind');
+      if (nw?.colorScheme?.set) nw.colorScheme.set(theme);
+    } catch {
+      /* not in a NativeWind environment */
     }
   }, [theme]);
+
+  // Apply to the DOM. useLayoutEffect avoids a flash on web.
+  const apply = useCallback(() => applyThemeToDocument(theme, tokens), [theme, tokens]);
+  if (typeof window !== 'undefined') {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useLayoutEffect(apply, [apply]);
+  } else {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useEffect(apply, [apply]);
+  }
 
   const toggleTheme = useCallback(() => {
     setMode(mode === 'light' ? 'dark' : mode === 'dark' ? 'auto' : 'light');
   }, [mode, setMode]);
 
-  return (
-    <ThemeContext.Provider value={{ mode, theme, colors: resolvedColors, setMode, toggleTheme }}>
-      {children}
-    </ThemeContext.Provider>
+  const value = useMemo<ThemeContextType>(
+    () => ({ mode, theme, colors: tokens, setMode, toggleTheme, isDark: theme === 'dark', systemTheme }),
+    [mode, theme, tokens, setMode, toggleTheme, systemTheme]
   );
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}
+
+export function useThemeContext() {
+  const ctx = useContext(ThemeContext);
+  if (!ctx) throw new Error('useTheme must be used within a ThemeProvider');
+  return ctx;
 }

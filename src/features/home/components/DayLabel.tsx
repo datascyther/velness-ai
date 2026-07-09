@@ -34,21 +34,25 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
+    // Reserve a stable height to prevent vertical jitter/alignment issues in week columns
+    height: 22,
   },
   label: {
     fontSize: 10,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
+    lineHeight: 12,
   },
   today: {
     fontWeight: '800',
   },
   activeDot: {
+    position: 'absolute',
+    bottom: 0,
     width: 4,
     height: 4,
     borderRadius: 2,
-    marginTop: 4,
   },
 });
 

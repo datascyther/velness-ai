@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { MOOD_MAP } from '@/shared/types';
+import { MOOD_MAP, getMoodEmotion } from '@/shared/types';
 import type { MoodRating } from '@/shared/types';
 import { MoodOption } from './MoodOption';
 
@@ -18,7 +18,7 @@ export const MoodSelector = React.memo(({ selectedMood, onSelectMood }: MoodSele
         {VALUES.map((value) => (
           <MoodOption
             key={value}
-            emoji={MOOD_MAP[value].emoji}
+            emotion={getMoodEmotion(value)}
             label={MOOD_MAP[value].label}
             isSelected={selectedMood === value}
             onPress={() => onSelectMood(value)}

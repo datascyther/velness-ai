@@ -13,11 +13,12 @@ interface ThemeContextType {
   typography: typeof typography;
 }
 
-const STORAGE_KEY = 'neeva-theme-mode';
+const OLD_STORAGE_KEY = 'neeva-theme-mode';
+const STORAGE_KEY = 'velness-theme-mode';
 
 function getStoredMode(): ThemeMode {
   if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(OLD_STORAGE_KEY);
     if (stored === 'light' || stored === 'dark' || stored === 'auto') return stored;
   }
   return 'auto';
@@ -59,6 +60,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, mode);
+    localStorage.removeItem(OLD_STORAGE_KEY);
   }, [mode]);
 
   useEffect(() => {

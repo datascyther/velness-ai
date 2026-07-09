@@ -1,5 +1,5 @@
 /**
- * Neeva AI — Auth Validation Schemas
+ * Velness — Auth Validation Schemas
  *
  * Zod schemas for auth forms. Extends the shared schemas with
  * feature-specific validation rules.

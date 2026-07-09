@@ -1,9 +1,10 @@
-import React from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import React, { useCallback } from 'react';
+import { View, Text, ScrollView, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Crown, Check, Star, Sparkles } from 'lucide-react-native';
+import { useTheme } from '@/hooks/useTheme';
 import { features } from '@/core/config/features';
 
 const plans = [
@@ -52,94 +53,272 @@ const plans = [
 
 export default function SubscriptionScreen() {
   const router = useRouter();
+  const { colors, theme } = useTheme();
+
+  const handleSubscribe = useCallback((planName: string) => {
+    if (planName === 'Free') {
+      Alert.alert('Current Plan', 'You are already on the Free plan.');
+      return;
+    }
+    Alert.alert('Subscribe', `Initiating checkout for the ${planName} plan...`);
+  }, []);
 
   return (
-    <SafeAreaView className="flex-1 bg-app-dark" edges={['top']}>
-      <StatusBar style="light" />
-      <View className="px-5 pt-4 pb-6 flex-row items-center border-b border-neeva-glass-border">
-        <Pressable onPress={() => router.back()} className="w-10 h-10 items-center justify-center active:opacity-70">
-          <ArrowLeft size={22} color="white" />
-        </Pressable>
-        <Text className="text-white text-card-title font-semibold ml-4">Subscription</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background.primary }]} edges={['top']}>
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+
+      {/* Header */}
+      <View style={[styles.header, { borderBottomColor: colors.border.default }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
+          <ArrowLeft size={22} color={colors.text.primary} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>Subscription</Text>
+        <View style={styles.backButtonPlaceholder} />
       </View>
 
-      <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 40 }}>
-        <Text className="text-white/40 text-body-sm text-center mt-6 mb-2">
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <Text style={[styles.subtitle, { color: colors.text.secondary }]}>
           Choose the plan that fits your wellness journey
         </Text>
 
-        <View className="mt-4">
-          {plans.map((plan, index) => {
+        <View style={styles.plansContainer}>
+          {plans.map((plan) => {
             const Icon = plan.icon;
+            const isFree = plan.name === 'Free';
             return (
               <View
                 key={plan.name}
-                className={`mb-4 rounded-glass border p-5 ${
-                  plan.popular
-                    ? 'bg-neeva-purple-600/15 border-neeva-purple-500/40'
-                    : 'bg-neeva-glass-dark/20 border-neeva-glass-border'
-                }`}
+                style={[
+                  styles.planCard,
+                  {
+                    backgroundColor: colors.surface.secondary,
+                    borderColor: plan.popular ? colors.brand.primary : colors.border.default,
+                    borderWidth: plan.popular ? 2 : 1,
+                  }
+                ]}
               >
-                <View className="flex-row items-center justify-between mb-3">
-                  <View className="flex-row items-center">
-                    <View
-                      className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                      style={{ backgroundColor: `${plan.color}20` }}
-                    >
-                      <Icon size={20} color={plan.color} />
-                    </View>
-                    <View>
-                      <Text className="text-white text-body font-semibold">{plan.name}</Text>
-                      <View className="flex-row items-baseline">
-                        <Text className="text-white text-card-title font-bold">{plan.price}</Text>
-                        <Text className="text-white/40 text-body-sm ml-1">{plan.period}</Text>
-                      </View>
+                {/* Popular Badge */}
+                {plan.popular && (
+                  <View style={[styles.popularBadge, { backgroundColor: colors.brand.primary }]}>
+                    <Text style={[styles.popularBadgeText, { color: colors.brand.contrastText }]}>Popular</Text>
+                  </View>
+                )}
+
+                {/* Card Header */}
+                <View style={styles.cardHeader}>
+                  <View style={[styles.iconWrapper, { backgroundColor: plan.color + '15' }]}>
+                    <Icon size={20} color={plan.color} />
+                  </View>
+                  <View style={styles.headerInfo}>
+                    <Text style={[styles.planName, { color: colors.text.primary }]}>{plan.name}</Text>
+                    <View style={styles.priceRow}>
+                      <Text style={[styles.price, { color: colors.text.primary }]}>{plan.price}</Text>
+                      <Text style={[styles.period, { color: colors.text.secondary }]}>{plan.period}</Text>
                     </View>
                   </View>
-                  {plan.popular && (
-                    <View className="bg-neeva-purple-600 rounded-full px-3 py-1">
-                      <Text className="text-white text-label font-semibold">Popular</Text>
-                    </View>
-                  )}
                 </View>
 
-                <View className="mt-2">
-                  {plan.features.map((feature) => (
-                    <View key={feature} className="flex-row items-center mb-2">
-                      <Check size={14} color={plan.color} />
-                      <Text className="text-white/70 text-body-sm ml-2">{feature}</Text>
+                {/* Features list */}
+                <View style={styles.featuresList}>
+                  {plan.features.map((feat) => (
+                    <View key={feat} style={styles.featureRow}>
+                      <Check size={14} color={plan.color} style={styles.checkIcon} />
+                      <Text style={[styles.featureText, { color: colors.text.primary }]}>{feat}</Text>
                     </View>
                   ))}
                 </View>
 
-                <Pressable
-                  className={`mt-4 rounded-glass py-3 items-center ${
-                    plan.popular
-                      ? 'bg-neeva-purple-600 active:opacity-70'
-                      : 'bg-neeva-glass-dark/40 border border-neeva-glass-border active:opacity-70'
-                  }`}
+                {/* Button */}
+                <TouchableOpacity
+                  onPress={() => handleSubscribe(plan.name)}
+                  activeOpacity={0.8}
+                  style={[
+                    styles.ctaButton,
+                    {
+                      backgroundColor: isFree
+                        ? 'transparent'
+                        : plan.popular
+                        ? colors.brand.primary
+                        : colors.surface.primary,
+                      borderColor: isFree
+                        ? colors.border.default
+                        : plan.popular
+                        ? colors.brand.primary
+                        : colors.border.default,
+                      borderWidth: 1,
+                    }
+                  ]}
                 >
-                  <Text className={`text-body font-semibold ${plan.popular ? 'text-white' : 'text-white/80'}`}>
-                    {plan.name === 'Free' ? 'Current Plan' : `Subscribe — ${plan.price}${plan.period}`}
+                  <Text
+                    style={[
+                      styles.ctaText,
+                      {
+                        color: isFree
+                          ? colors.text.secondary
+                          : plan.popular
+                          ? colors.brand.contrastText
+                          : colors.brand.primary,
+                      }
+                    ]}
+                  >
+                    {isFree ? 'Current Plan' : `Upgrade to ${plan.name}`}
                   </Text>
-                </Pressable>
+                </TouchableOpacity>
               </View>
             );
           })}
         </View>
 
         {!features.subscriptions && (
-          <View className="mt-4 bg-neeva-glass-dark/20 rounded-glass p-4 border border-neeva-glass-border">
-            <Text className="text-white/50 text-body-sm text-center leading-relaxed">
+          <View style={[styles.infoCard, { backgroundColor: colors.surface.secondary, borderColor: colors.border.default }]}>
+            <Text style={[styles.infoText, { color: colors.text.secondary }]}>
               Subscription management is currently in development. Payment processing will be available soon with RevenueCat or Stripe integration. You are on the Free plan by default.
             </Text>
           </View>
         )}
 
-        <Text className="text-white/30 text-body-sm text-center mt-6">
+        <Text style={[styles.footerText, { color: colors.text.secondary }]}>
           Cancel anytime. Your data is always yours.
         </Text>
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backButtonPlaceholder: {
+    width: 40,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  subtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  plansContainer: {
+    gap: 16,
+  },
+  planCard: {
+    borderRadius: 20,
+    padding: 20,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  popularBadge: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  popularBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  iconWrapper: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  headerInfo: {
+    flex: 1,
+  },
+  planName: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginTop: 2,
+  },
+  price: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  period: {
+    fontSize: 13,
+    marginLeft: 4,
+  },
+  featuresList: {
+    gap: 10,
+    marginBottom: 20,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkIcon: {
+    marginRight: 10,
+  },
+  featureText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  ctaButton: {
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaText: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  infoCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    marginTop: 24,
+  },
+  infoText: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  footerText: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 20,
+  },
+});

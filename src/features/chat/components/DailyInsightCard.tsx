@@ -11,6 +11,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useTheme } from '@/hooks/useTheme';
 import { chat, spacing, borderRadius as radius } from '@/core/theme/tokens';
+import { SparkleMark } from '@/components/emotion';
 
 interface DailyInsightCardProps {
   title?: string;
@@ -49,7 +50,7 @@ export const DailyInsightCard = React.memo(function DailyInsightCard({
       <View style={styles.content}>
         {/* Header chip */}
         <View style={styles.chip}>
-          <Text style={styles.chipEmoji}>✨</Text>
+          <SparkleMark size={14} />
           <Text style={[styles.chipLabel, { color: ACCENT }]}>Insight</Text>
         </View>
 

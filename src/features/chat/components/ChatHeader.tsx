@@ -101,7 +101,7 @@ export function ChatHeader({
   }));
 
   // Resolve content based on conversation state
-  const resolvedTitle = inConversation ? "Today's Companion" : "Neeva";
+  const resolvedTitle = inConversation ? "Today's Companion" : "Velness";
   const resolvedSubtitle = inConversation && sessionStartedAt
     ? `Session started ${formatSessionTime(sessionStartedAt)}`
     : "Always here when you need it";
@@ -130,7 +130,7 @@ export function ChatHeader({
       <View style={styles.leftSection}>
         {!inConversation && (
           <Image
-            source={require('@/shared/assets/LOGO.png')}
+            source={require('@/shared/assets/velness-logo.jpg')}
             style={styles.logoImage}
             resizeMode="contain"
           />
@@ -282,6 +282,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     marginRight: spacing.sm,
+    borderRadius: 7,
   },
 });
 

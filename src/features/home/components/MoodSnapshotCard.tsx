@@ -4,8 +4,9 @@ import { ChevronRight } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { useTheme } from '@/hooks/useTheme';
-import { MOOD_MAP, getMoodEmoji, getMoodLabel } from '@/shared/types';
+import { getMoodLabel, getMoodEmotion } from '@/shared/types';
 import type { Mood } from '@/shared/types';
+import { EmotionAvatar } from '@/components/emotion/EmotionAvatar';
 
 interface MoodSnapshotCardProps {
   mood: Mood | null;
@@ -16,7 +17,7 @@ function getMoodSnapshotSupport(rating: number): string {
   if (rating >= 5) return 'Keep up the great work!';
   if (rating >= 4) return 'A calm state of mind.';
   if (rating >= 3) return 'Taking time to check in matters.';
-  return 'It\'s okay — Neeva is here for you.';
+  return 'It\'s okay — Velness is here for you.';
 }
 
 export function MoodSnapshotCard({
@@ -25,7 +26,7 @@ export function MoodSnapshotCard({
 }: MoodSnapshotCardProps) {
   const { colors } = useTheme();
   const rating = mood?.rating ?? 3;
-  const emoji = mood ? getMoodEmoji(rating) : '😌';
+  const emotion = mood ? getMoodEmotion(rating) : 'calm';
   const label = mood ? `You're feeling ${getMoodLabel(rating).toLowerCase()}` : "You're feeling balanced";
   const support = mood ? getMoodSnapshotSupport(rating) : 'Keep up the good work.';
 
@@ -41,7 +42,7 @@ export function MoodSnapshotCard({
       >
         <View style={styles.left}>
           <View style={[styles.emojiContainer, { backgroundColor: `${colors.brand.primary}1A` }]}>
-            <Text style={styles.emoji}>{emoji}</Text>
+            <EmotionAvatar emotion={emotion} size={28} animated={false} showGlow={false} />
           </View>
           <View style={styles.center}>
             <Text style={[styles.label, { color: colors.brand.primary }]}>Mood Snapshot</Text>
@@ -79,6 +80,10 @@ const styles = StyleSheet.create({
   },
   emoji: {
     fontSize: 24,
+  },
+  emotionAvatar: {
+    width: 28,
+    height: 28,
   },
   center: {
     flex: 1,

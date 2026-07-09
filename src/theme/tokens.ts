@@ -24,29 +24,3 @@ export const typography = {
   buttonPrimary: { fontSize: 16, fontWeight: '600' as const, lineHeight: 24 },
   buttonSecondary: { fontSize: 14, fontWeight: '500' as const, lineHeight: 20 },
 };
-
-export const colors = {
-  background: {
-    primary: '#F8F9FC',
-    secondary: '#F1F4F9',
-  },
-  surface: {
-    primary: '#FFFFFF',
-    secondary: '#F8FAFC',
-  },
-  text: {
-    primary: '#111827',
-    secondary: '#4B5563',
-  },
-  border: {
-    default: '#E5E7EB',
-  },
-  brand: {
-    primary: '#6C4CF1',
-    secondary: '#8B5CF6',
-    contrastText: '#FFFFFF',
-  },
-  success: '#22C55E',
-  warning: '#F59E0B',
-  danger: '#EF4444',
-};

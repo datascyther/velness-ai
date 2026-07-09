@@ -11,4 +11,11 @@ export { ContinueButton } from './ContinueButton';
 export { JourneyLoadingState } from './JourneyLoadingState';
 export { JourneyErrorState } from './JourneyErrorState';
 export { JourneyCompletedState } from './JourneyCompletedState';
-export { EmptyJourneyState } from './EmptyJourneyState';
+
+// New components — Phases 6-9
+export { HeroCard } from './HeroCard';
+export { QuickActionsBar } from './QuickActionsBar';
+export { SmartRecommendationCard } from './SmartRecommendationCard';
+export { TodaysMissionCard } from './TodaysMissionCard';
+export { DailyGoalsCard } from './DailyGoalsCard';
+export { AchievementsWidget } from './AchievementsWidget';

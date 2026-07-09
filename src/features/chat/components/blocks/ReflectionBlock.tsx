@@ -3,7 +3,7 @@
  *
  * 💭 Reflection — Purple accent
  *
- * Used when Neeva shares an empathetic observation or internal reflection
+ * Used when Velness shares an empathetic observation or internal reflection
  * with the user. Styled with soft purple tones and italic body text to
  * signal a thoughtful, introspective tone.
  */

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
+import { BrainIcon } from '@/shared/components/SymbolIcons';
 
 export const JourneyThumbnail = React.memo(() => {
   const { colors } = useTheme();
@@ -18,7 +19,7 @@ export const JourneyThumbnail = React.memo(() => {
       accessibilityRole="image"
       accessibilityLabel="Program icon"
     >
-      <Text style={{ fontSize: 28 }}>🧠</Text>
+      <BrainIcon size={28} />
     </View>
   );
 });

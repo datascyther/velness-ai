@@ -1,20 +1,20 @@
 # ARCHITECTURE.md
 
-# Neeva AI v1.0 Architecture
+# Velness v1.0 Architecture
 
 ## Overview
 
-Neeva AI is a mobile-first AI wellness platform built using React Native and Expo.
+Velness is a mobile-first AI wellness platform built using React Native and Expo.
 
 The system is designed around a simple philosophy:
 
 > Preserve the product. Replace the rendering engine.
 
-Neeva is **not** a chatbot.
+Velness is **not** a chatbot.
 
-Neeva is **not** a mood tracker.
+Velness is **not** a mood tracker.
 
-Neeva is an AI-powered wellness platform that combines conversations, therapeutic journeys, emotional tracking, and community support into one cohesive experience.
+Velness is an AI-powered wellness platform that combines conversations, therapeutic journeys, emotional tracking, and community support into one cohesive experience.
 
 ---
 
@@ -222,7 +222,7 @@ No additional root tabs without explicit approval.
 
 # Design System
 
-Neeva Design System v1.0 is frozen.
+Velness Design System v1.0 is frozen.
 
 Every screen must follow:
 
@@ -579,7 +579,7 @@ A feature is complete only when:
 
 # Long-Term Vision
 
-Neeva should evolve into a scalable AI wellness platform where:
+Velness should evolve into a scalable AI wellness platform where:
 
 * Features remain modular.
 * AI providers remain interchangeable.

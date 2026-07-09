@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Sparkles } from 'lucide-react-native';
+import { BellIcon } from '@/shared/components/SymbolIcons';
 import { Button } from '@/shared/components/Button';
 import { useTheme } from '@/hooks/useTheme';
 import { TextField } from '@/shared/components/TextField';
@@ -326,7 +327,7 @@ export default function OnboardingFlow() {
                 className="items-center justify-center mt-10"
               >
                 <View className="w-24 h-24 rounded-full bg-brand-primary/10 border border-border-default/50 items-center justify-center mb-6">
-                  <Text className="text-4xl">🔔</Text>
+                  <BellIcon size={36} />
                 </View>
                 <Text className="text-text-primary text-2xl font-semibold mb-2 text-center">
                   {ONBOARDING_STRINGS.PERMISSION_TITLE}

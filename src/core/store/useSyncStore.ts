@@ -5,6 +5,7 @@ import { storageService } from '@/services/storage';
 import { moodRepository } from '@/repositories/MoodRepository';
 import { journeyRepository } from '@/repositories/JourneyRepository';
 import { profileRepository } from '@/repositories/ProfileRepository';
+import { NotAuthenticatedError } from '../../../backend/repositories/baseRepository';
 import { useAppStore } from './useAppStore';
 import { logger } from '@/services/logging';
 import type { Mood } from '@/shared/types';
@@ -167,6 +168,8 @@ export const useSyncStore = create<SyncState>((set, get) => ({
           if (old.some((m) => m.id === entry.id)) return old;
           return [...old, entry];
         });
+        queryClient.invalidateQueries({ queryKey: ['journey', 'recommendations', uid] });
+        queryClient.invalidateQueries({ queryKey: ['personalization', uid] });
       }
     } else if (type === 'save_exercise_progress' || type === 'complete_lesson') {
       const { uid, exerciseId, exercises, streak } = payload;
@@ -258,6 +261,8 @@ export const useSyncStore = create<SyncState>((set, get) => ({
           const { uid, entry } = item.payload as { uid: string; entry: Mood };
           await moodRepository.syncToCloud(uid, entry);
           queryClient.invalidateQueries({ queryKey: ['moods', uid] });
+          queryClient.invalidateQueries({ queryKey: ['journey', 'recommendations', uid] });
+          queryClient.invalidateQueries({ queryKey: ['personalization', uid] });
         } else if (item.type === 'save_exercise_progress') {
           const { uid, exerciseId, streak } = item.payload;
           await journeyRepository.saveProgress(uid, exerciseId, streak);
@@ -290,6 +295,17 @@ export const useSyncStore = create<SyncState>((set, get) => ({
         i--;
         hasChanges = true;
       } catch (error) {
+        if (error instanceof NotAuthenticatedError) {
+          // Cloud writes require a real Supabase session. In fallback guest mode
+          // (no session) the local copy is the source of truth, so drop the item
+          // instead of retrying/failing. It will sync once the user authenticates.
+          logger.info('sync', 'Skipped cloud sync (not authenticated)', { type: item.type, id: item.id });
+          updatedQueue.splice(i, 1);
+          i--;
+          hasChanges = true;
+          continue;
+        }
+
         logger.error('sync', 'Process error', { type: item.type, id: item.id, error: String(error) });
 
         const isNetworkError =

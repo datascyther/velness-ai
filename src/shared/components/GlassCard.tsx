@@ -1,7 +1,7 @@
 /**
  * GlassCard — Frosted glass container component
  *
- * The signature Neeva visual element.
+ * The signature Velness visual element.
  * Supports pressable and non-pressable variants.
  */
 

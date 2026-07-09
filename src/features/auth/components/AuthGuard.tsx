@@ -67,7 +67,7 @@ export function AuthGuard({
           {error}
         </Text>
         <Text
-          className="text-neeva-purple-400 text-body-sm underline"
+          className="text-velness-purple-400 text-body-sm underline"
           onPress={() => {
             restoreSession().catch(console.error);
           }}

@@ -1,5 +1,5 @@
 /**
- * Neeva AI — Journey Tab
+ * Velness — Journey Tab
  *
  * Guided progression system for measurable emotional progress.
  * Think less like Netflix. Think more like Duolingo.

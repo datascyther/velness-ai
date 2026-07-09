@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
-import { Home, MessageSquare, LogOut } from 'lucide-react';
+import { View, Text, Pressable } from 'react-native';
+import { MessageSquare, LogOut } from 'lucide-react';
+import { ImHome } from '@react-icons/all-files/im/ImHome';
 import { useAppStore } from '@/core/store/useAppStore';
 import { useTheme } from '@/hooks/useTheme';
 import { HomeScreen } from '@/features/home/screens/HomeScreen';
@@ -35,18 +36,21 @@ function AppContent() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Show loading screen while store is initializing
-  if (!session.initialized) {
+  // Handle Supabase OAuth callback hash (access_token in URL fragment)
+  const isOAuthCallback = hash.startsWith('#access_token=') || hash.startsWith('#error=');
+
+  // Show loading screen while store is initializing or during OAuth callback processing
+  if (!session.initialized || isOAuthCallback) {
     return (
       <View className="flex-1 bg-background-primary items-center justify-center">
         <Text className="text-text-primary text-lg font-semibold animate-pulse">
-          Loading Neeva AI...
+          {isOAuthCallback ? 'Completing sign in...' : 'Loading Velness...'}
         </Text>
       </View>
     );
   }
 
-  // Auth routing logic on Web
+  // Auth routing logic
   if (!session.isAuthenticated) {
     if (hash === '#/auth/signup') {
       return <SignupScreen />;
@@ -87,7 +91,7 @@ function AppContent() {
               <Text className="text-white font-bold text-lg">N</Text>
             </View>
             <Text className="text-text-primary font-bold text-xl font-display">
-              Neeva AI
+              Velness
             </Text>
           </View>
 
@@ -104,7 +108,7 @@ function AppContent() {
                   : 'text-text-secondary hover:bg-surface-secondary/70 hover:text-text-primary'
               }`}
             >
-              <Home size={20} color={currentTab === 'home' ? colors.brand.primary : colors.text.secondary} />
+              <ImHome size={20} color={currentTab === 'home' ? colors.brand.primary : colors.text.secondary} />
               <Text className={`font-semibold text-sm ${
                 currentTab === 'home' ? 'text-brand-primary' : 'text-text-secondary'
               }`}>
@@ -127,7 +131,7 @@ function AppContent() {
               <Text className={`font-semibold text-sm ${
                 currentTab === 'chat' ? 'text-brand-primary' : 'text-text-secondary'
               }`}>
-                Neeva Chat
+                Velness Chat
               </Text>
             </Pressable>
           </View>

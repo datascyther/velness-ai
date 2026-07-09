@@ -34,6 +34,8 @@ interface CurrentProgramCardProps {
   category?: string;
   /** Callback when play/continue is tapped. */
   onContinue: () => void;
+  /** Optional custom progress subtitle. */
+  subtitle?: string;
 }
 
 export const CurrentProgramCard = React.memo(({
@@ -44,6 +46,7 @@ export const CurrentProgramCard = React.memo(({
   minutesRemaining = 8,
   category = 'CBT PROGRAM',
   onContinue,
+  subtitle,
 }: CurrentProgramCardProps) => {
   const { colors, theme } = useTheme();
   const isDark = theme === 'dark';
@@ -97,7 +100,7 @@ export const CurrentProgramCard = React.memo(({
             </Text>
 
             <Text style={[styles.lessonInfo, { color: colors.text.secondary }]}>
-              Lesson {currentLesson} of {totalLessons} · {minutesRemaining} min remaining
+              {subtitle || `Lesson ${currentLesson} of ${totalLessons} · ${minutesRemaining} min remaining`}
             </Text>
           </View>
 
