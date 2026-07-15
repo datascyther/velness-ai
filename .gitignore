@@ -60,6 +60,7 @@ Thumbs.db
 .parcel-cache/
 .eslintcache
 vite.config.timestamp-*
+.expo/
 
 # ── Logs ──────────────────────────────────────────────────────
 logs/
@@ -83,3 +84,4 @@ kilo.json
 skills-lock.json
 icon.png
 
+.opencode.jsonc
