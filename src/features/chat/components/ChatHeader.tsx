@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, Image, Platform } from 'react-native';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, History } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Animated, {
   useSharedValue,
@@ -11,11 +11,9 @@ import Animated, {
   FadeIn,
 } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
-import { Avatar } from '@/shared/components/Avatar';
 import { useTheme } from '@/hooks/useTheme';
 import { spacing, borderRadius, typography } from '@/core/theme/tokens';
 import { LAYOUT } from '@/shared/constants';
-import { useCheckInPresence } from '@/shared/hooks/useCheckInPresence';
 
 function formatSessionTime(date: Date): string {
   const now = new Date();
@@ -56,11 +54,10 @@ interface ChatHeaderProps {
   showBackButton?: boolean;
   title: string;
   status?: string;
-  avatarUrl?: string | null;
-  userName?: string | null;
   onBackPress?: () => void;
   inConversation?: boolean;
   sessionStartedAt?: Date;
+  onHistoryPress?: () => void;
 }
 
 const BACK_BUTTON_SIZE = 36;
@@ -70,14 +67,12 @@ export function ChatHeader({
   showBackButton = false,
   title,
   status = 'Listening',
-  avatarUrl,
-  userName,
   onBackPress,
   inConversation = false,
   sessionStartedAt,
+  onHistoryPress,
 }: ChatHeaderProps) {
   const { colors } = useTheme();
-  const { lastCheckIn } = useCheckInPresence();
 
   // Pulse animation for the "Listening" status dot
   const scale = useSharedValue(1);
@@ -189,20 +184,25 @@ export function ChatHeader({
           </View>
         </View>
 
-      <View style={styles.rightSection}>
-        {lastCheckIn ? (
-          <View style={[styles.checkInChip, { backgroundColor: colors.surface.secondary, borderColor: colors.border.default }]}>
-            <Text style={[styles.checkInChipText, { color: colors.text.primary }]}>
-              {lastCheckIn.emoji} {lastCheckIn.label}
-            </Text>
+        {onHistoryPress && (
+          <View style={styles.rightSection}>
+            <Pressable
+              onPress={() => {
+                try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+                onHistoryPress();
+              }}
+              style={({ pressed }) => [
+                styles.historyButton,
+                { backgroundColor: pressed ? colors.brand.subtle : 'transparent' },
+              ]}
+              hitSlop={spacing.sm}
+              accessibilityLabel="View chat history"
+              accessibilityRole="button"
+            >
+              <History size={20} color={colors.text.primary} strokeWidth={2} />
+            </Pressable>
           </View>
-        ) : null}
-        <Avatar
-          photoURL={avatarUrl ?? null}
-          name={userName ?? null}
-          size="sm"
-        />
-      </View>
+        )}
       </View>
 
       {/* Gradient accent line */}
@@ -251,6 +251,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    marginRight: spacing.sm,
+  },
+  rightSection: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   logoContainer: {
     position: 'relative',
@@ -274,6 +279,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: -0.3,
+    flexShrink: 1,
   },
   brandingTitle: {
     fontSize: 20,
@@ -324,26 +330,12 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     letterSpacing: 0.1,
   },
-  rightSection: {
-    flexDirection: 'row',
+  historyButton: {
+    width: BACK_BUTTON_SIZE,
+    height: BACK_BUTTON_SIZE,
+    borderRadius: borderRadius.md,
     alignItems: 'center',
-    marginLeft: spacing.md,
-  },
-  // ── Check-in presence chip ────────────────────────────────────────────
-  checkInChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: borderRadius.full,
-    borderWidth: 1,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    marginRight: spacing.sm,
-  },
-  checkInChipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    fontFamily: typography.fontFamily.sans,
-    letterSpacing: 0.2,
+    justifyContent: 'center',
   },
   accentLineContainer: {
     height: 1.5,

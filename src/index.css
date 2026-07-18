@@ -167,13 +167,9 @@ html {
   transition: color-scheme 0.3s ease;
 }
 
-*,
-*::before,
-*::after {
-  transition-property: background-color, border-color, color, fill, stroke, box-shadow;
-  transition-duration: 0.2s;
-  transition-timing-function: ease;
-}
+/* Intentionally no global * transition — per-element transitions are added
+   explicitly where needed (e.g. theme-toggle, buttons). A wildcard rule
+   caused visible flickering on every tab switch in the web build. */
 
 /* Disable transitions on page load to prevent FOUC-related flashes */
 html.preload *,

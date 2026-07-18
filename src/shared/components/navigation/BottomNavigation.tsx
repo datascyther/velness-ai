@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/hooks/useTheme';
@@ -34,7 +34,6 @@ const mapRouteToTab = (routeName: string): TabName => {
 
 export function BottomNavigation({ state, navigation }: BottomTabBarProps) {
   const { theme, colors } = useTheme();
-  const [pressedTab, setPressedTab] = useState<TabName | null>(null);
 
   const chatUnread = useUnreadCount();
   
@@ -53,19 +52,13 @@ export function BottomNavigation({ state, navigation }: BottomTabBarProps) {
   const activeTabName = mapRouteToTab(activeRoute.name);
 
   // Handle route switching
-  const handleTabPress = async (tabName: TabName) => {
-    // Map tabName back to the route name
+  const handleTabPress = (tabName: TabName) => {
     const targetRoute = state.routes.find((route) => mapRouteToTab(route.name) === tabName);
     if (!targetRoute) return;
 
     const isFocused = activeTabName === tabName;
 
-    // Trigger subtle physical feedback for tab click
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (e) {
-      // Ignored if device/platform does not support Haptics
-    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
     const event = navigation.emit({
       type: 'tabPress',
@@ -81,15 +74,13 @@ export function BottomNavigation({ state, navigation }: BottomTabBarProps) {
   const contextValue = useMemo(
     () => ({
       activeTab: activeTabName,
-      pressedTab,
-      setPressedTab,
       disabledTabs,
       badges,
       theme,
       colors,
       onTabPress: handleTabPress,
     }),
-    [activeTabName, pressedTab, disabledTabs, badges, theme, colors, state.routes]
+    [activeTabName, disabledTabs, badges, theme, colors, state.routes]
   );
 
   return (

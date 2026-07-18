@@ -19,7 +19,6 @@ import {
   StyleSheet,
   Text,
   View,
-  Pressable,
   RefreshControl,
   ActivityIndicator,
   Dimensions,
@@ -38,10 +37,12 @@ import Animated, {
   withRepeat,
   Easing,
   useReducedMotion,
+  interpolate,
 } from 'react-native-reanimated';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 
 import { router } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 import { ROUTES } from '@/core/config/routes';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useSaveMood } from '@/shared/hooks/useMood';
@@ -55,6 +56,7 @@ import { spacing, typography, borderRadius } from '@/core/theme';
 import { useSyncRefresh } from '@/shared/hooks/useSyncRefresh';
 import { useSyncStore } from '@/core/store/useSyncStore';
 import { ReflectionInput } from '../components/ReflectionInput';
+import { GradientButton } from '@/shared/components/GradientButton';
 import { useTheme } from '@/hooks/useTheme';
 
 import {
@@ -87,6 +89,7 @@ export function HomeScreen() {
   const { user } = useAuth();
   const uid = user?.uid || null;
   const queryClient = useQueryClient();
+  const isFocused = useIsFocused();
 
   const { data: home, isPending, isFetching } = useHomeState();
 
@@ -109,9 +112,10 @@ export function HomeScreen() {
   // While the cold-start skeleton is up, keep the orbs parked at a static
   // frame so the background loop never competes with the incoming content
   // for frames. Resume the gentle drift once real data arrives.
+  // Also pause when this tab is not focused to avoid wasting GPU cycles.
   React.useEffect(() => {
-    if (reduced) {
-      ambientT.value = 0.5;
+    if (reduced || !isFocused) {
+      ambientT.value = ambientT.value;
       return;
     }
     if (isPending) {
@@ -127,7 +131,7 @@ export function HomeScreen() {
       -1,
       false,
     );
-  }, [ambientT, reduced, isPending]);
+  }, [ambientT, reduced, isPending, isFocused]);
 
   const bgOrbAStyle = useAnimatedStyle(() => {
     const tx = -SCREEN_W * 0.3 + ambientT.value * (SCREEN_W * 0.4);
@@ -194,6 +198,26 @@ export function HomeScreen() {
   const reflectionSectionRef = useRef<View>(null);
   const reflectionY = useRef(0);
   const reflectionInputRef = useRef<{ focus: () => void } | null>(null);
+
+  // Save-reflection button: appears smoothly whenever the user is composing
+  // text (or just saved). The node stays PERMANENTLY mounted — we only animate
+  // opacity + translateY and toggle pointerEvents — never display/conditional
+  // mount — to avoid the documented Fabric responder/handle crash
+  // (see CheckInPanel.tsx). When hidden it is fully transparent (opacity 0) so
+  // its shadow cannot bleed onto the canvas as a smudge.
+  const SAVE_BTN_SPRING = { damping: 28, stiffness: 220, mass: 0.9, overshootClamping: true };
+  const saveBtnVis = useSharedValue(0);
+  const hasComposedText = reflectionNote.trim().length > 0;
+  const saveBtnVisible = hasComposedText || reflectionSaved;
+  useEffect(() => {
+    saveBtnVis.value = withSpring(saveBtnVisible ? 1 : 0, SAVE_BTN_SPRING);
+  }, [saveBtnVisible, reflectionSaved]);
+
+  const saveBtnStyle = useAnimatedStyle(() => ({
+    opacity: saveBtnVis.value,
+    transform: [{ translateY: interpolate(saveBtnVis.value, [0, 1], [8, 0]) }],
+    pointerEvents: saveBtnVisible ? 'auto' : 'none',
+  }));
 
   // ── Sync ─────────────────────────────────────────────────────────────────────
   useSyncRefresh();
@@ -478,7 +502,7 @@ export function HomeScreen() {
 
         {/* ── 5. Reflection (Journal) ─────────────────────────────────────── */}
         <Animated.View
-          entering={FadeInDown.delay(300).duration(500)}
+          entering={FadeInDown.duration(300)}
           style={styles.sectionReflection}
           ref={reflectionSectionRef}
           onLayout={(e) => {
@@ -511,65 +535,21 @@ export function HomeScreen() {
               </Text>
             </View>
           ) : (
-            <>
-              <Text style={[styles.reflectionPrompt, { color: colors.text.secondary }]}>
-                {reflection?.prompt ?? "Write one thought. That's enough."}
-              </Text>
-              <ReflectionInput value={reflectionNote} onChangeText={setReflectionNote} />
-              <View style={styles.submitRow}>
-                <Pressable
-                  onPress={() => void handleSaveReflection()}
-                  disabled={isSavingReflection || !reflectionNote.trim()}
-                  style={({ pressed }) => {
-                    const isDisabled = isSavingReflection || !reflectionNote.trim();
-                    return [
-                      styles.submitButton,
-                      {
-                        // Brand fill + onBrand text in the active state; a
-                        // clearly-visible muted surface fill + tertiary text
-                        // when disabled so the button never vanishes in light
-                        // theme (opacity-only fade made it invisible before).
-                        backgroundColor: isDisabled ? colors.surface.tertiary : colors.brand.primary,
-                        borderColor: isDisabled ? colors.border.subtle : colors.brand.border,
-                      },
-                      pressed && !isDisabled && styles.submitButtonPressed,
-                    ];
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Save reflection"
-                >
-                  {isSavingReflection ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={colors.text.onBrand}
-                    />
-                  ) : reflectionSaved ? (
-                    <Text
-                      style={[
-                        styles.submitButtonText,
-                        { color: colors.text.onBrand },
-                      ]}
-                    >
-                      Saved ✓
-                    </Text>
-                  ) : (
-                    <Text
-                      style={[
-                        styles.submitButtonText,
-                        {
-                          color: reflectionNote.trim()
-                            ? colors.text.onBrand
-                            : colors.text.tertiary,
-                        },
-                      ]}
-                    >
-                      Save reflection
-                    </Text>
-                  )}
-                </Pressable>
-              </View>
-            </>
+            <Text style={[styles.reflectionPrompt, { color: colors.text.secondary }]}>
+              {reflection?.prompt ?? "Write one thought. That's enough."}
+            </Text>
           )}
+          <ReflectionInput value={reflectionNote} onChangeText={setReflectionNote} />
+          <Animated.View style={[styles.submitRow, saveBtnStyle]}>
+            <GradientButton
+              title={reflectionSaved ? "Saved ✓" : "Save reflection"}
+              onPress={() => void handleSaveReflection()}
+              disabled={isSavingReflection || !reflectionNote.trim() || reflectionSaved}
+              loading={isSavingReflection}
+              visible={saveBtnVisible}
+              size="lg"
+            />
+          </Animated.View>
         </Animated.View>
 
         {/* ── 5. Compact Mood Timeline ─────────────────────────────────────── */}
@@ -751,36 +731,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Check-in / reflection save button — centered, responsive (caps on wide
-  // screens), with refined spacing and press feedback.
   submitRow: {
-    width: '100%',
-    alignItems: 'center',
-    marginTop: spacing.sm,
-  },
-  submitButton: {
     width: '100%',
     maxWidth: 360,
     alignSelf: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: 14,
-    borderRadius: 16,
-    minHeight: 50,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    borderWidth: 1,
-    opacity: 1,
-  },
-  submitButtonPressed: {
-    opacity: 0.92,
-    transform: [{ scale: 0.985 }],
-  },
-  submitButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-    textAlign: 'center',
-    fontFamily: typography.fontFamily.sans,
+    marginTop: spacing.sm,
   },
 
   // Success

@@ -16,6 +16,8 @@ import { saveDraft, loadSessionMeta } from '../persistence';
 import { LAYOUT } from '@/shared/constants';
 import { SessionContextProvider } from '../hooks/useSessionContext';
 import { useKeyboardHeight, useKeyboardHeightShared } from '@/shared/hooks/useKeyboardHeight';
+import { useAppStore } from '@/core/store/useAppStore';
+import { ChatHistorySheet } from '../components/ChatHistorySheet';
 
 export function ChatScreen() {
   return (
@@ -30,6 +32,8 @@ function ChatScreenContent() {
   const keyboardHeight = useKeyboardHeight();
   const { keyboardHeightSV } = useKeyboardHeightShared();
   const [pendingQuickStarter, setPendingQuickStarter] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const uid = useAppStore((state) => state.session.user?.uid ?? null);
 
   // Single animation source: `keyboardHeightSV` eases to the real keyboard
   // height whenever it changes (driven by `useKeyboardHeightShared`, which syncs
@@ -136,6 +140,7 @@ function ChatScreenContent() {
           onBackPress={controller.clear}
           inConversation={inConversation}
           sessionStartedAt={sessionStartedAt}
+          onHistoryPress={uid ? () => setHistoryOpen(true) : undefined}
         />
 
         <MessageList
@@ -147,7 +152,6 @@ function ChatScreenContent() {
           isRestored={isRestored}
           onDelete={controller.deleteMessage}
           onRegenerate={controller.regenerate}
-          onResumeLastConversation={controller.resumeLastConversation}
           keyboardHeight={keyboardHeight}
         />
 
@@ -160,6 +164,11 @@ function ChatScreenContent() {
           onPrefillSent={handlePrefillSent}
           conversationId={state.conversationId}
           onDraftChange={handleDraftChange}
+        />
+        <ChatHistorySheet
+          visible={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          uid={uid}
         />
       </View>
     </ScreenContainer>

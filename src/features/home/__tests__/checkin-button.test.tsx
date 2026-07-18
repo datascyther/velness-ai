@@ -1,3 +1,4 @@
+/// <reference types="vitest/globals" />
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import { CheckInPanel } from '@/features/home/components/CheckInPanel';
@@ -9,15 +10,14 @@ function renderWithLight(ui: React.ReactElement) {
 }
 
 describe('CheckInPanel Save check-in button (light theme)', () => {
-  it('renders the button with a visible (non-transparent) brand background when a mood is selected', () => {
-    const { getByLabelText } = renderWithLight(
+  it('renders the button with a visible (non-transparent) brand background when a mood is selected', async () => {
+    const { getByLabelText } = await renderWithLight(
       <CheckInPanel
         visible={true}
         selectedMood={5}
         onSelectMood={() => {}}
         reflectionNote=""
         onReflectionChange={() => {}}
-        // @ts-expect-error test ref
         reflectionInputRef={{ current: null }}
         isSaving={false}
         onSubmit={() => {}}

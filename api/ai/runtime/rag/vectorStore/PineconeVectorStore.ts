@@ -116,4 +116,74 @@ export class PineconeVectorStore implements VectorStore {
     const idx = await this.index();
     await idx.deleteMany({ ids });
   }
+
+  /**
+   * Enumerate every vector in the (optionally namespaced) index. Used by the
+   * memory layer to reload a uid's full memory set without a query vector.
+   * `listPaginated` returns ids only (no metadata), so we follow up with a
+   * single `fetch` to hydrate metadata. Returns bare records (id + metadata).
+   */
+  async listAll(): Promise<VectorRecord[]> {
+    if (!this.isConfigured()) return [];
+    const idx = await this.index();
+    const ids: string[] = [];
+    let paginationToken: string | undefined;
+    do {
+      const page = await idx.listPaginated({ paginationToken, limit: 100 });
+      for (const v of page.vectors ?? []) {
+        if (typeof v.id === 'string') ids.push(v.id);
+      }
+      paginationToken = page.pagination?.next;
+    } while (paginationToken);
+    if (ids.length === 0) return [];
+    const fetched = await idx.fetch({ ids });
+    const out: VectorRecord[] = [];
+    for (const id of ids) {
+      const rec = fetched.records?.[id];
+      if (rec?.metadata) {
+        out.push({ id, values: [], metadata: rec.metadata as Record<string, string | number | boolean> });
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Delete all chunk vectors for a document. Chunks are keyed `${docId}#${i}`,
+   * so we enumerate ids by prefix (paginating through the index) and delete the
+   * matches in batches. Returns the number of chunk vectors deleted.
+   *
+   * NOTE: index-level `deletionProtection` does NOT block vector deletes — it
+   * only guards against deleting the index itself. We still fail soft: if the
+   * API rejects a delete (e.g. a future protection mode), we warn and return
+   * the count deleted so far rather than aborting ingestion.
+   */
+  async deleteByDocId(docId: string): Promise<number> {
+    if (!this.isConfigured() || !docId) return 0;
+    const idx = await this.index();
+    const prefix = `${docId}#`;
+    let paginationToken: string | undefined;
+    let deleted = 0;
+    do {
+      // Prefer server-side prefix filtering when supported; fall back to
+      // client-side matching for portability across SDK/plan variants.
+      const page = await idx.listPaginated({ prefix, paginationToken, limit: 100 });
+      const ids = (page.vectors ?? [])
+        .map((v) => v.id)
+        .filter((id): id is string => typeof id === 'string' && id.startsWith(prefix));
+      if (ids.length > 0) {
+        try {
+          await idx.deleteMany({ ids });
+          deleted += ids.length;
+        } catch (err) {
+          console.warn(
+            `[PineconeVectorStore] deleteByDocId("${docId}") could not delete ` +
+              `${ids.length} chunk(s); continuing. Reason: ${(err as Error)?.message ?? err}`,
+          );
+          break;
+        }
+      }
+      paginationToken = page.pagination?.next;
+    } while (paginationToken);
+    return deleted;
+  }
 }

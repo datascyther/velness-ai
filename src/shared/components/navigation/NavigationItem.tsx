@@ -1,20 +1,8 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  WithSpringConfig,
-} from 'react-native-reanimated';
 import { TabName, useNavigationContext } from './NavigationContext';
 import IconWrapper from './IconWrapper';
 import Badge from './Badge';
-
-const springConfig: WithSpringConfig = {
-  stiffness: 300,
-  damping: 15,
-  mass: 1,
-};
 
 interface NavigationItemProps {
   name: TabName;
@@ -22,43 +10,39 @@ interface NavigationItemProps {
   hint: string;
 }
 
-export function NavigationItem({ name, label, hint }: NavigationItemProps) {
+export const NavigationItem = React.memo(function NavigationItem({
+  name,
+  label,
+  hint,
+}: NavigationItemProps) {
   const {
     activeTab,
-    pressedTab,
-    setPressedTab,
     disabledTabs,
     badges,
     colors,
     onTabPress,
   } = useNavigationContext();
 
+  const [isPressed, setIsPressed] = useState(false);
+
   const isActive = activeTab === name;
   const isDisabled = disabledTabs.includes(name);
   const badgeCount = badges[name] ?? 0;
 
-  const scale = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handlePressIn = () => {
+  const handlePressIn = useCallback(() => {
     if (isDisabled) return;
-    setPressedTab(name);
-    scale.value = withSpring(0.9, springConfig);
-  };
+    setIsPressed(true);
+  }, [isDisabled]);
 
-  const handlePressOut = () => {
+  const handlePressOut = useCallback(() => {
     if (isDisabled) return;
-    setPressedTab(null);
-    scale.value = withSpring(1, springConfig);
-  };
+    setIsPressed(false);
+  }, [isDisabled]);
 
-  const handlePress = () => {
+  const handlePress = useCallback(() => {
     if (isDisabled) return;
     onTabPress(name);
-  };
+  }, [isDisabled, onTabPress, name]);
 
   let textColor: string;
   if (isDisabled) {
@@ -81,12 +65,12 @@ export function NavigationItem({ name, label, hint }: NavigationItemProps) {
       accessibilityHint={hint}
       style={styles.pressable}
     >
-      <Animated.View style={[styles.container, animatedStyle]}>
+      <View style={styles.container}>
         <View style={styles.iconContainer}>
           <IconWrapper
             name={name}
             isActive={isActive}
-            isPressed={pressedTab === name}
+            isPressed={isPressed}
             isDisabled={isDisabled}
           />
           <Badge count={badgeCount} />
@@ -94,10 +78,10 @@ export function NavigationItem({ name, label, hint }: NavigationItemProps) {
         <Text style={[styles.label, { color: textColor }]}>
           {label}
         </Text>
-      </Animated.View>
+      </View>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   pressable: {

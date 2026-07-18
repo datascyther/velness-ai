@@ -8,6 +8,7 @@ function chatRowToMessage(row: {
   created_at: string;
   id: string;
   reasoning: string | null;
+  conversation_id: string | null;
 }): FirestoreChatMessage {
   return {
     id: row.id,
@@ -15,6 +16,7 @@ function chatRowToMessage(row: {
     isUser: row.is_user,
     timestamp: new Date(row.created_at),
     reasoning: row.reasoning ?? undefined,
+    conversationId: row.conversation_id ?? null,
   };
 }
 

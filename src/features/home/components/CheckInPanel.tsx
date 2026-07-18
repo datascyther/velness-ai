@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { GradientButton } from '@/shared/components/GradientButton';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -46,7 +47,7 @@ export function CheckInPanel({
   onSubmit,
   onDismiss,
 }: CheckInPanelProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const reduced = useReducedMotion();
 
   const progress = useSharedValue(visible ? 1 : 0);
@@ -56,6 +57,17 @@ export function CheckInPanel({
       ? withTiming(visible ? 1 : 0, { duration: 220 })
       : withSpring(visible ? 1 : 0, SPRING_CONFIG);
   }, [visible, reduced, progress]);
+
+  const [collapsed, setCollapsed] = useState(!visible);
+
+  useEffect(() => {
+    if (visible) {
+      setCollapsed(false);
+    } else {
+      const timer = setTimeout(() => setCollapsed(true), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [visible]);
 
   // Only animate opacity + translateY. Never animate `height` or layout
   // properties — on the Fabric (New Architecture) renderer that triggers the
@@ -71,13 +83,15 @@ export function CheckInPanel({
 
   return (
     // Outer wrapper stays PERMANENTLY mounted. Toggling `display:'none'` on
-    // Fabric unmounts the host node, which nulls the fiber handle and crashes
-    // the responder/inspector chain on the next tap. We hide via opacity +
-    // pointerEvents on the animated inner layer instead (node never unmounts).
-    // IMPORTANT: no `overflow: 'hidden'` here — it would clip the card's soft
-    // drop shadow into a rectangle, producing square shadow corners over the
-    // rounded card. The inner layer is hidden via opacity + pointerEvents.
-    <View style={{ marginTop: 20, height: visible ? undefined : 0 }}>
+    // Fabric unmounts the host node, nulls the fiber handle, and crashes the
+    // responder/inspector chain. We hide via opacity + pointerEvents on the
+    // animated inner layer (node never unmounts).
+    // `height` and `overflow` use a delayed `collapsed` state: on hide, they
+    // snap only AFTER the exit spring animation (~400ms) completes, so the
+    // ScrollView layout stays stable during the fade-out. On show, height
+    // restores immediately so the content fades in at full size.
+    // `overflow: 'hidden'` when collapsed clips the card's static shadow bleed.
+    <View style={{ marginTop: 20, height: collapsed ? 0 : undefined, overflow: collapsed ? 'hidden' : 'visible' }}>
       <Animated.View
         style={[styles.inner, innerStyle]}
         pointerEvents={visible ? 'auto' : 'none'}
@@ -129,44 +143,14 @@ export function CheckInPanel({
               />
 
               <View style={styles.submitWrapper}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Save check-in"
+                <GradientButton
+                  title="Save check-in"
                   onPress={onSubmit}
                   disabled={isSaving}
-                  style={({ pressed }) => [
-                    styles.submitButton,
-                    {
-                      // High-contrast fill so the white label is always legible.
-                      // In light mode the brand purple (#634EB8) is too light for
-                      // white text, so use a deeper purple; in dark mode the
-                      // brand purple is already light enough. Explicit fallbacks
-                      // keep the button visible even if a token is missing.
-                      backgroundColor: isSaving
-                        ? (colors.surface?.tertiary ?? '#EAEEF6')
-                        : (isDark
-                            ? (colors.brand?.primary ?? '#7E60CD')
-                            : '#4C1D95'),
-                      borderColor: isSaving
-                        ? (colors.border?.default ?? '#E2E8F0')
-                        : (colors.brand?.border ?? 'rgba(99, 78, 184, 0.45)'),
-                    },
-                    pressed && !isSaving && styles.submitButtonPressed,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.submitButtonText,
-                      {
-                        color: isSaving
-                          ? (colors.text?.secondary ?? '#475569')
-                          : (colors.text?.onBrand ?? '#FFFFFF'),
-                      },
-                    ]}
-                  >
-                    {isSaving ? 'Saving…' : 'Save check-in'}
-                  </Text>
-                </Pressable>
+                  loading={isSaving}
+                  visible={!collapsed}
+                  size="lg"
+                />
               </View>
             </View>
           )}
@@ -215,39 +199,12 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.sans,
   },
   // Wrapper centers the button and gives it room to breathe above the note
-  // field. alignSelf keeps the capped width centered on wide screens.
+  // field. maxWidth caps the button on wide screens.
   submitWrapper: {
-    width: '100%',
-    alignItems: 'center',
-    marginTop: spacing.sm,
-  },
-  submitButton: {
     width: '100%',
     maxWidth: 360,
     alignSelf: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: 14,
-    borderRadius: borderRadius.lg,
-    minHeight: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    shadowColor: '#05030C',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  submitButtonPressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.98 }],
-  },
-  submitButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-    textAlign: 'center',
-    fontFamily: typography.fontFamily.sans,
+    marginTop: spacing.sm,
   },
 });
 

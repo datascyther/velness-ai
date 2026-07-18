@@ -90,6 +90,7 @@ export interface ChatMessage {
   isUser: boolean;
   timestamp: Date;
   reasoning?: string;
+  conversationId: string | null;
 }
 
 // ─── Conversations / Groups ─────────────────────────────────────────────

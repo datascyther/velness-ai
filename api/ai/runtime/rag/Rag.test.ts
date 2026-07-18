@@ -32,7 +32,20 @@ class MemoryVectorStore implements VectorStore {
       .sort((a, b) => b.score - a.score)
       .slice(0, topK);
   }
-  async delete() {}
+  async delete(ids: string[]) {
+    for (const id of ids) this.data.delete(id);
+  }
+  async deleteByDocId(docId: string) {
+    const prefix = `${docId}#`;
+    let n = 0;
+    for (const key of Array.from(this.data.keys())) {
+      if (key.startsWith(prefix)) {
+        this.data.delete(key);
+        n += 1;
+      }
+    }
+    return n;
+  }
 }
 
 describe('toContextChunks', () => {
@@ -65,6 +78,10 @@ describe('PineconeVectorStore (injected client)', () => {
       upsert: vi.fn(async () => ({})),
       query: vi.fn(async () => ({ matches: [{ id: 'm1', score: 0.3, metadata: { text: 'hi', source: 's' } }] })),
       deleteMany: vi.fn(async () => ({})),
+      listPaginated: vi.fn(async () => ({
+        vectors: [{ id: 'cbt-guide#0' }, { id: 'cbt-guide#1' }, { id: 'other#0' }],
+        pagination: undefined,
+      })),
       namespace: () => index,
     };
     return {
@@ -82,6 +99,26 @@ describe('PineconeVectorStore (injected client)', () => {
     const res = await store.query([0.1, 0.2], 2);
     expect(res[0].metadata.text).toBe('hi');
     expect(client.index).toHaveBeenCalled();
+  });
+
+  it('deleteByDocId deletes only ${docId}#* chunks and returns the count', async () => {
+    const client = fakeClient();
+    const store = new PineconeVectorStore({ client, apiKey: 'k', index: 'velness-rag' });
+    const n = await store.deleteByDocId('cbt-guide');
+    expect(n).toBe(2);
+    const idx = client.index();
+    expect(idx.listPaginated).toHaveBeenCalledWith(
+      expect.objectContaining({ prefix: 'cbt-guide#' }),
+    );
+    expect(idx.deleteMany).toHaveBeenCalledWith({ ids: ['cbt-guide#0', 'cbt-guide#1'] });
+  });
+
+  it('deleteByDocId returns 0 when no matching chunks exist', async () => {
+    const client = fakeClient();
+    const store = new PineconeVectorStore({ client, apiKey: 'k', index: 'velness-rag' });
+    const n = await store.deleteByDocId('missing-doc');
+    expect(n).toBe(0);
+    expect(client.index().deleteMany).not.toHaveBeenCalled();
   });
 });
 
@@ -102,7 +139,7 @@ describe('PineconeRetrievalTool', () => {
     vi.spyOn(emb, 'isConfigured').mockReturnValue(true);
     vi.spyOn(emb, 'embed').mockResolvedValue([0.1, 0.2]);
     await store.upsert([{ id: 'c1', values: [0.1, 0.2], metadata: { text: 'CBT guide', source: 'internal' } }]);
-    const tool = new PineconeRetrievalTool(store, emb, 3);
+    const tool = new PineconeRetrievalTool(store, emb, { topK: 3 });
     const chunks = await tool.retrieve('what is cbt');
     expect(chunks.length).toBe(1);
     expect(chunks[0].content).toBe('CBT guide');
@@ -112,7 +149,7 @@ describe('PineconeRetrievalTool', () => {
 describe('IngestionPipeline', () => {
   it('chunks long text with overlap', () => {
     const pipe = new IngestionPipeline(new MemoryVectorStore(), new EmbeddingService());
-    const chunks = pipe.chunk('a'.repeat(2000), 800, 120);
+    const chunks = pipe.chunk('a'.repeat(2000));
     expect(chunks.length).toBeGreaterThan(1);
   });
 

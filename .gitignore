@@ -92,3 +92,15 @@ opencode.jsonc
 *.md
 !README.md
 !AGENTS.md
+!scripts/rag-corpus/**/*.md
+# RAG ingestion manifest (generated, per-corpus) — keep out of git
+scripts/rag-corpus/.rag-manifest.json
+
+.opencode
+.playwright-mcp
+.kilo
+.kilocode
+AI
+.agents
+Full Tech Stack
+.expo

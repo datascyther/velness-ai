@@ -13,6 +13,13 @@ const allFlags: FeatureFlags = {
   ENABLE_MEMORY: true,
   ENABLE_CITATIONS: true,
   ENABLE_RAG: true,
+  ENABLE_SEMANTIC_CACHE: true,
+  ENABLE_RERANK: true,
+  ENABLE_QUERY_REWRITE: true,
+  ENABLE_RETRIEVAL_ANALYTICS: true,
+  ENABLE_QUALITY_SCORING: true,
+  ENABLE_EVALUATION: true,
+  ENABLE_MEMORY_EXTRACTION: true,
 };
 
 // Fake tool that records it was run.

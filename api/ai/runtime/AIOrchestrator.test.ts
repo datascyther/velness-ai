@@ -1,8 +1,21 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+const capturedTraces: Array<{ requestId: string; quality?: unknown }> = [];
+
+vi.mock('./config', async () => {
+  const actual = await vi.importActual<typeof import('./config')>('./config');
+  return {
+    ...actual,
+    logTrace: (trace: Parameters<typeof actual.logTrace>[0]) => {
+      capturedTraces.push({ requestId: trace.requestId, quality: trace.quality });
+    },
+  };
+});
+
 import { AIOrchestrator } from './AIOrchestrator';
 import { ToolRegistry, type Tool, type ToolInput } from './tools/Tool';
 import { CacheManager } from './cache/CacheManager';
-import { Capability, type ToolResult, type StreamChunk } from './types';
+import { Capability, type ToolResult, type StreamChunk, type QualityFields } from './types';
 
 /** Stub gateway: returns a fixed stream, no network. */
 class StubGateway {
@@ -28,9 +41,25 @@ class KnowledgeToolStub implements Tool {
   }
 }
 
+class MemoryToolStub implements Tool {
+  capability = Capability.MEMORY;
+  name = 'MemoryStub';
+  async run(_input: ToolInput): Promise<ToolResult> {
+    return {
+      capability: Capability.MEMORY,
+      success: true,
+      confidence: 0.85,
+      timestamp: new Date().toISOString(),
+      sources: [],
+      payload: 'User previously discussed anxiety.',
+    };
+  }
+}
+
 function buildOrchestrator(): AIOrchestrator {
   const registry = new ToolRegistry();
   registry.register(new KnowledgeToolStub());
+  registry.register(new MemoryToolStub());
   return new AIOrchestrator({
     registry,
     cache: new CacheManager(),
@@ -39,6 +68,10 @@ function buildOrchestrator(): AIOrchestrator {
 }
 
 describe('AIOrchestrator (acceptance)', () => {
+  beforeEach(() => {
+    capturedTraces.length = 0;
+  });
+
   it('streams a response and emits terminal citations chunk', async () => {
     const orch = buildOrchestrator();
     const chunks: StreamChunk[] = [];
@@ -66,5 +99,25 @@ describe('AIOrchestrator (acceptance)', () => {
       chunks.push(c);
     }
     expect(chunks.some((c) => c.done)).toBe(true);
+  });
+
+  it('attaches quality fields to the trace when ENABLE_QUALITY_SCORING is on', async () => {
+    const orch = buildOrchestrator();
+    for await (const _ of orch.handle({ text: 'What is CBT?', uid: 'u3' })) {
+      // consume stream
+    }
+    expect(capturedTraces.length).toBe(1);
+    const trace = capturedTraces[0];
+    expect(trace.quality).toBeDefined();
+    const q = trace.quality as QualityFields;
+    expect(typeof q.memoryQuality).toBe('number');
+    expect(typeof q.ragQuality).toBe('number');
+    expect(typeof q.liveSearchQuality).toBe('number');
+    expect(typeof q.citationCount).toBe('number');
+    expect(typeof q.retrievalConfidence).toBe('number');
+    expect(typeof q.responseConfidence).toBe('number');
+    expect(typeof q.overall).toBe('number');
+    expect(q.overall).toBeGreaterThanOrEqual(0);
+    expect(q.overall).toBeLessThanOrEqual(1);
   });
 });

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTheme } from '@/hooks/useTheme';
-import { MessageRenderer } from './MessageRenderer';
+import { MarkdownRenderer } from './MarkdownRenderer';
 import { chat } from '@/core/theme/tokens';
 import type { Message } from '../types/Message';
 
@@ -16,8 +16,8 @@ export const MessageContent = React.memo(function MessageContent({ message }: Me
   const baseStyle = { ...typo, color };
 
   return (
-    <MessageRenderer
-      message={message}
+    <MarkdownRenderer
+      text={message.content}
       baseStyle={baseStyle}
       codeBackground={colors.surface.primary}
       linkColor={colors.brand.primary}

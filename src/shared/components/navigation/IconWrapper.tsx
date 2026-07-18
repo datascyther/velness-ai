@@ -1,13 +1,5 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withSequence,
-  withTiming,
-  Easing,
-} from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { TabName, useNavigationContext } from './NavigationContext';
 
@@ -78,30 +70,6 @@ export function IconWrapper({
 }: IconWrapperProps) {
   const { colors } = useNavigationContext();
 
-  const pulse = useSharedValue(1);
-
-  useEffect(() => {
-    if (name === 'chat' && isActive) {
-      pulse.value = withRepeat(
-        withSequence(
-          withTiming(1.06, { duration: 1200, easing: Easing.inOut(Easing.sin) }),
-          withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.sin) }),
-        ),
-        -1,
-        true
-      );
-    } else {
-      pulse.value = withTiming(1, { duration: 200 });
-    }
-    return () => {
-      pulse.value = 1;
-    };
-  }, [isActive, name]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulse.value }],
-  }));
-
   let iconColor: string;
   if (isDisabled) {
     iconColor = colors.text.disabled;
@@ -128,21 +96,9 @@ export function IconWrapper({
     }
   };
 
-  const iconElement = renderIcon();
-
-  if (name === 'chat') {
-    return (
-      <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
-        <Animated.View style={animatedStyle}>
-          {iconElement}
-        </Animated.View>
-      </View>
-    );
-  }
-
   return (
     <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
-      {iconElement}
+      {renderIcon()}
     </View>
   );
 }

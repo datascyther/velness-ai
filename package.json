@@ -83,7 +83,16 @@
     "test:integration": "vitest run --config backend/integration-tests/vitest.config.ts",
     "firebase:sync-env": "node scripts/sync-firebase-env.mjs",
     "postinstall": "patch-package",
-    "rag:ingest": "tsx scripts/rag-ingest.mjs"
+    "rag:ingest": "tsx scripts/rag-ingest.mjs",
+    "pinecone:describe": "tsx scripts/pinecone-admin.mjs describe",
+    "pinecone:stats": "tsx scripts/pinecone-admin.mjs stats",
+    "pinecone:namespaces": "tsx scripts/pinecone-admin.mjs namespaces",
+    "pinecone:list": "tsx scripts/pinecone-admin.mjs list",
+    "pinecone:query": "tsx scripts/pinecone-admin.mjs query",
+    "pinecone:delete-prefix": "tsx scripts/pinecone-admin.mjs delete-prefix",
+    "pinecone:backups": "tsx scripts/pinecone-admin.mjs backups",
+    "pinecone:auth": "pc auth login",
+    "pinecone:connect": "tsx scripts/pinecone-connect.mjs"
   },
   "allowScripts": {
     "@firebase/util@1.12.1": true,

@@ -9,6 +9,8 @@ import { Capability, type ToolResult } from '../types';
 import type { CacheManager } from '../cache/CacheManager';
 import { GoogleNewsRssProvider, toCitation as newsCite } from './providers/GoogleNewsRssProvider';
 import { ExaProvider, toCitation as exaCite } from './providers/ExaProvider';
+import { TavilyProvider, toCitation as tavilyCite } from './providers/TavilyProvider';
+import { SearchRouter } from './providers/SearchRouter';
 
 export class NewsTool implements Tool {
   readonly capability = Capability.NEWS;
@@ -17,7 +19,7 @@ export class NewsTool implements Tool {
   constructor(
     private cache: CacheManager,
     private news = new GoogleNewsRssProvider(),
-    private exa = new ExaProvider(),
+    private router = new SearchRouter([new ExaProvider(), new TavilyProvider()]),
   ) {}
 
   async run(input: ToolInput): Promise<ToolResult> {
@@ -34,10 +36,12 @@ export class NewsTool implements Tool {
       payload += `\n\n- ${r.title} (${r.source})${r.publishedAt ? ` — ${r.publishedAt}` : ''})\n${r.url}`;
     }
 
-    if (payload.length < 100 && this.exa.isConfigured()) {
-      const exa = await this.exa.search(`${query} news`);
-      for (const r of exa) {
-        citations.push(exaCite(r));
+    // Premium resilient search (Exa → Tavily, shifts on error) supplements the
+    // free Google News feed for broader, fresher coverage.
+    if (payload.length < 100) {
+      const premium = await this.router.search(`${query} news`);
+      for (const r of premium) {
+        citations.push(r.source === 'Tavily' ? tavilyCite(r) : exaCite(r));
         payload += `\n\n- ${r.title} (${r.source})\n${r.url}`;
       }
     }

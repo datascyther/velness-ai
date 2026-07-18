@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { generateResponse, streamChat } from '@/services/ai';
+import { generateResponse, streamChat, probeEdgeRuntime } from '@/services/ai';
 import { AIError } from '@/services/ai/types';
 import type { ChatMode } from '@/services/ai/types';
 import { PerfTracker } from '@/utils/chat-performance';
@@ -131,6 +131,12 @@ export function useChatStream({ uid, contextEngine }: UseChatStreamOptions): Use
   useEffect(() => {
     setConversationId(conversationIdRef.current);
   }, []);
+
+  // One-time probe so the device logs confirm whether the app is on the
+  // server-side AI Runtime (real-time web + RAG) or the direct-NVIDIA fallback.
+  useEffect(() => {
+    if (uid) probeEdgeRuntime(uid);
+  }, [uid]);
 
   useEffect(() => {
     return () => {

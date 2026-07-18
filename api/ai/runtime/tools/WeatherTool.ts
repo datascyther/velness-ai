@@ -20,8 +20,26 @@ export class WeatherTool implements Tool {
   ) {}
 
   async run(input: ToolInput): Promise<ToolResult> {
-    const query = 'current';
-    const { lat, lon } = input.location ?? {};
+    let { lat, lon } = input.location ?? {};
+
+    // No coordinates supplied (e.g. the user asked about a city by name) — try
+    // to resolve the location from the query text via free Open-Meteo geocoding
+    // so real-time weather can still be returned.
+    if (typeof lat !== 'number' || typeof lon !== 'number') {
+      const geo = await this.meteo.geocode(input.query).catch(() => null);
+      if (geo) {
+        lat = geo.lat;
+        lon = geo.lon;
+      }
+    }
+
+    // Cache key is coordinate + current hour so real-time data stays fresh and
+    // a failed lookup is never cached (we only set on success below).
+    const hour = new Date().toISOString().slice(0, 13);
+    const query = typeof lat === 'number' && typeof lon === 'number'
+      ? `current:${lat.toFixed(2)},${lon.toFixed(2)}:${hour}`
+      : `current:${hour}`;
+
     const cached = this.cache.get<ToolResult>(this.capability, query);
     if (cached) return cached;
 
@@ -37,7 +55,8 @@ export class WeatherTool implements Tool {
       sources: citations,
       payload,
     };
-    this.cache.set(this.capability, query, result);
+    // Only cache successful lookups; failures fall through next time.
+    if (result.success) this.cache.set(this.capability, query, result);
     return result;
   }
 }

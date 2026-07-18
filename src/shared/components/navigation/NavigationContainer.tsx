@@ -1,24 +1,11 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withDelay,
-  WithSpringConfig,
-} from 'react-native-reanimated';
 import { useNavigationContext } from './NavigationContext';
 import { LAYOUT } from '@/shared/constants';
 
 const PILL_RADIUS = LAYOUT.TAB_BAR_HEIGHT / 2;
-
-const entrySpring: WithSpringConfig = {
-  stiffness: 200,
-  damping: 20,
-  mass: 1,
-};
 
 interface NavigationContainerProps {
   children: React.ReactNode;
@@ -29,24 +16,6 @@ export function NavigationContainer({
 }: NavigationContainerProps) {
   const { theme } = useNavigationContext();
   const insets = useSafeAreaInsets();
-
-  const opacity = useSharedValue(0);
-  const scale = useSharedValue(0.92);
-  const translateY = useSharedValue(20);
-
-  useEffect(() => {
-    opacity.value = withDelay(100, withSpring(1, entrySpring));
-    scale.value = withDelay(100, withSpring(1, entrySpring));
-    translateY.value = withDelay(100, withSpring(0, entrySpring));
-  }, []);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [
-      { scale: scale.value } as { scale: number },
-      { translateY: translateY.value } as { translateY: number },
-    ],
-  }));
 
   // Light mode needs a firmer edge (it can wash out over bright pages);
   // dark mode wants a brighter rim so the glass catches the light.
@@ -60,10 +29,9 @@ export function NavigationContainer({
   const bottomPosition = Math.max(LAYOUT.TAB_BAR_MARGIN, insets.bottom);
 
   return (
-    <Animated.View
+    <View
       style={[
         styles.container,
-        animatedStyle,
         {
           borderColor: containerBorderColor,
           shadowColor: shadowColor,
@@ -115,7 +83,7 @@ export function NavigationContainer({
       />
 
       <View style={styles.contentRow}>{children}</View>
-    </Animated.View>
+    </View>
   );
 }
 

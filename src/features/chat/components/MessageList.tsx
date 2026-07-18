@@ -34,7 +34,6 @@ interface MessageListProps {
   state: ConversationState;
   onRefresh?: () => Promise<void>;
   onQuickStarterSelect?: (text: string) => void;
-  onResumeLastConversation?: () => void;
   onRetry: () => void;
   onDismiss: (id: string) => void;
   isRestored?: boolean;
@@ -62,7 +61,6 @@ export function MessageList({
   state,
   onRefresh,
   onQuickStarterSelect,
-  onResumeLastConversation,
   onRetry,
   onDismiss,
   isRestored = false,
@@ -274,7 +272,6 @@ export function MessageList({
             >
               <EmptyConversation 
                 onQuickStarterSelect={onQuickStarterSelect} 
-                onResumeLastConversation={onResumeLastConversation}
               />
             </Animated.View>
           ) : null
@@ -333,7 +330,7 @@ const styles = StyleSheet.create({
   },
   emptyContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
   },
   restoreHeader: {
     alignItems: 'center',

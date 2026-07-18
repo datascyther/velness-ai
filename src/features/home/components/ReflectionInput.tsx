@@ -10,6 +10,8 @@ export interface ReflectionInputProps {
   placeholder?: string;
   maxLength?: number;
   inputRef?: React.MutableRefObject<{ focus: () => void } | null>;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 export const ReflectionInput = React.memo(({
@@ -18,6 +20,8 @@ export const ReflectionInput = React.memo(({
   placeholder = "What's contributing to this feeling today? (Optional)",
   maxLength = 200,
   inputRef,
+  onFocus: onFocusProp,
+  onBlur: onBlurProp,
 }: ReflectionInputProps) => {
   const innerRef = React.useRef<TextInput>(null);
 
@@ -57,8 +61,8 @@ export const ReflectionInput = React.memo(({
           value={value}
           onChangeText={onChangeText}
           maxLength={maxLength}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onFocus={() => { setIsFocused(true); onFocusProp?.(); }}
+          onBlur={() => { setIsFocused(false); onBlurProp?.(); }}
           onContentSizeChange={(e) => {
             setInputHeight(Math.max(40, e.nativeEvent.contentSize.height));
           }}

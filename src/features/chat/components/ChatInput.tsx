@@ -1,18 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, TextInput, Text, StyleSheet, Pressable, Alert, type NativeSyntheticEvent, type TextInputContentSizeChangeEventData } from 'react-native';
-import { Square, AudioLines, MicOff, X, Check } from 'lucide-react-native';
+import { View, TextInput, Text, StyleSheet, Pressable, type NativeSyntheticEvent, type TextInputContentSizeChangeEventData } from 'react-native';
+import { Square } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/hooks/useTheme';
-import Animated, { useSharedValue, useAnimatedStyle, withSequence, withSpring, withTiming, withRepeat, withDelay, FadeIn, FadeOut } from 'react-native-reanimated';
-import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
-import {
-  speechRecognitionAvailable,
-  useSpeechRecognitionEvent,
-  requestSpeechPermission,
-  startSpeechRecognition,
-  stopSpeechRecognition,
-  abortSpeechRecognition,
-} from '@/services/speech/SpeechRecognition';
+import Animated, { useSharedValue, useAnimatedStyle, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { SendButton } from './SendButton';
 import { saveDraft, loadDraft, clearDraft } from '../persistence/draftStorage';
 import type { SharedValue } from 'react-native-reanimated';
@@ -23,43 +14,6 @@ const WARM_PLACEHOLDERS = [
   "Tell me how your day went...",
   "How can I support you today?",
 ] as const;
-
-/**
- * Subtle "live presence" dot shown beside the Send button while the user is
- * composing. It breathes gently so the composer feels alive and responsive.
- */
-function LivePresenceDot() {
-  const { colors } = useTheme();
-  const pulse = useSharedValue(0.3);
-
-  useEffect(() => {
-    pulse.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 900 }),
-        withTiming(0.3, { duration: 900 })
-      ),
-      -1,
-      true
-    );
-  }, []);
-
-  const animStyle = useAnimatedStyle(() => ({
-    opacity: pulse.value,
-    transform: [{ scale: 0.8 + pulse.value * 0.4 }],
-  }));
-
-  return (
-    <Animated.View
-      style={[
-        styles.presenceDot,
-        { backgroundColor: colors.brand.primary },
-        animStyle,
-      ]}
-      accessibilityElementsHidden
-      importantForAccessibility="no"
-    />
-  );
-}
 
 interface ChatInputProps {
   onSend: (text: string) => void;
@@ -87,9 +41,6 @@ export function ChatInput({
   const [inputText, setInputText] = useState('');
   const [inputHeight, setInputHeight] = useState(0);
   const [isFocused, setIsFocused] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [transcriptionText, setTranscriptionText] = useState('');
-  const [permissionAsked, setPermissionAsked] = useState(false);
 
   const inputRef = useRef<TextInput>(null);
   const { colors } = useTheme();
@@ -98,54 +49,7 @@ export function ChatInput({
   const focusBorderColor = useSharedValue(colors.border.default);
   const focusShadowOpacity = useSharedValue(0.04);
 
-  const bar1 = useSharedValue(10);
-  const bar2 = useSharedValue(10);
-  const bar3 = useSharedValue(10);
-  const bar4 = useSharedValue(10);
-
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isListeningRef = useRef(false);
-  const transcriptionRef = useRef('');
-
-  // --- Speech Recognition Events ---
-
-  useSpeechRecognitionEvent('result', (event) => {
-    const transcript = event.results.map(r => r.transcript).join(' ');
-    transcriptionRef.current = transcript;
-    setTranscriptionText(transcript);
-  });
-
-  useSpeechRecognitionEvent('error', (event) => {
-    if (event.error === 'not-allowed') {
-      setIsListening(false);
-      isListeningRef.current = false;
-      Alert.alert(
-        'Microphone Permission Required',
-        'Voice typing needs microphone access. You can enable it in your device Settings.'
-      );
-      return;
-    }
-    setIsListening(false);
-    isListeningRef.current = false;
-    setTranscriptionText('');
-  });
-
-  useSpeechRecognitionEvent('end', () => {
-    if (isListeningRef.current) {
-      setIsListening(false);
-      isListeningRef.current = false;
-    }
-  });
-
-  useSpeechRecognitionEvent('volumechange', (event) => {
-    if (!isListeningRef.current) return;
-    const vol = Math.max(0, Math.min(1, (event.value + 2) / 12));
-    const target = 6 + vol * 30;
-    bar1.value = withTiming(target * 0.7, { duration: 100 });
-    bar2.value = withTiming(target * 0.9, { duration: 100 });
-    bar3.value = withTiming(target * 1.1, { duration: 100 });
-    bar4.value = withTiming(target * 0.8, { duration: 100 });
-  });
 
   // --- Focus effect ---
 
@@ -166,120 +70,13 @@ export function ChatInput({
     transform: [{ scale: inputScale.value }],
   }));
 
-  // Keep isListeningRef in sync with isListening state
-  useEffect(() => {
-    isListeningRef.current = isListening;
-  }, [isListening]);
-
-  // --- Waveform animation fallback (when not listening) ---
-
-  useEffect(() => {
-    if (!isListening) {
-      bar1.value = withTiming(10);
-      bar2.value = withTiming(10);
-      bar3.value = withTiming(10);
-      bar4.value = withTiming(10);
-    }
-  }, [isListening]);
-
-  const animatedBar1 = useAnimatedStyle(() => ({ height: bar1.value }));
-  const animatedBar2 = useAnimatedStyle(() => ({ height: bar2.value }));
-  const animatedBar3 = useAnimatedStyle(() => ({ height: bar3.value }));
-  const animatedBar4 = useAnimatedStyle(() => ({ height: bar4.value }));
-
-  // --- Voice Typing ---
-
-  const requestMicPermission = useCallback(async (): Promise<boolean> => {
-    const granted = await requestSpeechPermission();
-    if (granted) {
-      setPermissionAsked(true);
-      return true;
-    }
-    return false;
-  }, []);
-
-  const startVoiceTyping = useCallback(async () => {
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
-
-    if (!speechRecognitionAvailable) {
-      Alert.alert(
-        'Voice Typing Unavailable',
-        'Voice typing requires a development build with the speech recognition module. Please rebuild the app using `npx expo run:android` or `npx expo run:ios`.'
-      );
-      return;
-    }
-
-    if (!permissionAsked) {
-      const permissionResult = await requestMicPermission();
-      if (!permissionResult) {
-        Alert.alert(
-          'Microphone Access Needed',
-          'Velness uses the microphone to convert your speech into text. This helps you express yourself more naturally, especially when typing feels heavy. You can enable mic access in your device Settings.'
-        );
-        return;
-      }
-    }
-
-    transcriptionRef.current = '';
-    setTranscriptionText('');
-
-    startSpeechRecognition({
-      lang: 'en-US',
-      interimResults: true,
-      continuous: false,
-      addsPunctuation: true,
-      iosTaskHint: 'dictation',
-      contextualStrings: [
-        'anxiety', 'depression', 'overwhelmed', 'stressed', 'worried',
-        'grateful', 'hopeful', 'anxious', 'calm', 'peaceful',
-        'therapy', 'mental health', 'self care', 'mindfulness',
-      ],
-      volumeChangeEventOptions: {
-        enabled: true,
-        intervalMillis: 100,
-      },
-    });
-
-    setIsListening(true);
-  }, [permissionAsked, requestMicPermission]);
-
-  const stopVoiceTyping = useCallback(() => {
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
-    stopSpeechRecognition();
-    setIsListening(false);
-    isListeningRef.current = false;
-  }, []);
-
-  const cancelVoiceTyping = useCallback(() => {
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
-    abortSpeechRecognition();
-    setIsListening(false);
-    isListeningRef.current = false;
-    transcriptionRef.current = '';
-    setTranscriptionText('');
-  }, []);
-
-  const acceptVoiceTyping = useCallback(() => {
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
-    stopSpeechRecognition();
-    setIsListening(false);
-    isListeningRef.current = false;
-    const transcript = transcriptionRef.current;
-    if (transcript.trim()) {
-      setInputText(transcript);
-    }
-    transcriptionRef.current = '';
-    setTranscriptionText('');
-    setTimeout(() => inputRef.current?.focus(), 150);
-  }, []);
-
   // --- Auto focus when streaming stops ---
 
   useEffect(() => {
-    if (!isStreaming && !disabled && !isListening) {
+    if (!isStreaming && !disabled) {
       inputRef.current?.focus();
     }
-  }, [isStreaming, disabled, isListening]);
+  }, [isStreaming, disabled]);
 
   // --- Prefill handling ---
 
@@ -381,168 +178,57 @@ export function ChatInput({
     <Animated.View
       style={[styles.outerContainer, outerStyle]}
     >
-      {isListening ? (
-        // Voice Typing View — Premium Redesign
-        <Animated.View
-          entering={FadeIn.duration(250)}
-          exiting={FadeOut.duration(200)}
+      <Animated.View
+        style={[
+          styles.inputWrapper,
+          animatedWrapperStyle,
+          {
+            backgroundColor: colors.surface.primary,
+          },
+        ]}
+      >
+        <TextInput
+          ref={inputRef}
           style={[
-            styles.voiceContainer,
-            {
-              backgroundColor: colors.surface.primary,
-              borderColor: colors.brand.primary,
-            },
+            styles.textInput,
+            { color: colors.text.primary },
+            inputHeight > 0 && { height: Math.min(inputHeight, 150) },
           ]}
-        >
-          {/* Brand gradient accent at left edge */}
-          <View style={styles.voiceAccent}>
-            <Svg width={4} height="100%">
-              <Defs>
-                <LinearGradient id="voiceAccentGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <Stop offset="0%" stopColor={colors.brand.primary} stopOpacity={0.8} />
-                  <Stop offset="100%" stopColor={colors.brand.secondary} stopOpacity={0.8} />
-                </LinearGradient>
-              </Defs>
-              <Rect width={4} height="100%" rx={2} fill="url(#voiceAccentGrad)" />
-            </Svg>
-          </View>
+          placeholder={placeholder}
+          placeholderTextColor={colors.text.tertiary}
+          value={inputText}
+          onChangeText={setInputText}
+          onContentSizeChange={handleContentSizeChange}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          multiline
+          maxLength={1000}
+          editable={!disabled && !isStreaming}
+          accessibilityLabel="Chat input field"
+        />
 
-          <View style={styles.waveformContainer}>
-            <Animated.View style={[styles.waveBar, animatedBar1, { backgroundColor: colors.brand.primary }]} />
-            <Animated.View style={[styles.waveBar, animatedBar2, { backgroundColor: colors.brand.secondary }]} />
-            <Animated.View style={[styles.waveBar, animatedBar3, { backgroundColor: colors.brand.primary }]} />
-            <Animated.View style={[styles.waveBar, animatedBar4, { backgroundColor: colors.brand.secondary }]} />
-          </View>
-
-          <Text
-            style={[
-              styles.transcriptionText,
-              { color: transcriptionText ? colors.text.primary : colors.text.tertiary },
+        {isStreaming ? (
+          <Pressable
+            onPress={handleAbort}
+            style={({ pressed }) => [
+              styles.abortButton,
+              {
+                backgroundColor: colors.brand.primary,
+                opacity: pressed ? 0.8 : 1,
+              },
             ]}
-            numberOfLines={2}
+            accessibilityRole="button"
+            accessibilityLabel="Stop AI response"
           >
-            {transcriptionText || 'Listening... Speak now...'}
-          </Text>
-
-          <View style={styles.voiceActions}>
-            <Pressable
-              onPress={cancelVoiceTyping}
-              style={[styles.voiceActionBtn, styles.cancelBtn, { borderColor: colors.border.default, backgroundColor: colors.surface.secondary }]}
-              accessibilityLabel="Cancel voice typing"
-              accessibilityRole="button"
-            >
-              <X size={16} color={colors.text.secondary} strokeWidth={2.5} />
-            </Pressable>
-            <Pressable
-              onPress={transcriptionText.trim() ? acceptVoiceTyping : stopVoiceTyping}
-              style={[
-                styles.voiceActionBtn,
-                styles.acceptBtn,
-                {
-                  backgroundColor: transcriptionText.trim()
-                    ? colors.brand.primary
-                    : colors.surface.secondary,
-                },
-              ]}
-              accessibilityLabel={transcriptionText.trim() ? 'Accept transcription' : 'Stop listening'}
-              accessibilityRole="button"
-            >
-              {transcriptionText.trim() ? (
-                <Check size={16} color={colors.brand.contrastText} strokeWidth={2.5} />
-              ) : (
-                <Square size={12} color={colors.text.secondary} fill={colors.text.secondary} />
-              )}
-            </Pressable>
-          </View>
-        </Animated.View>
-      ) : (
-        // Regular Text Composer Input View — Premium Redesign
-        <Animated.View
-          style={[
-            styles.inputWrapper,
-            animatedWrapperStyle,
-            {
-              backgroundColor: colors.surface.primary,
-            },
-          ]}
-        >
-          <TextInput
-            ref={inputRef}
-            style={[
-              styles.textInput,
-              { color: colors.text.primary },
-              inputHeight > 0 && { height: Math.min(inputHeight, 150) },
-            ]}
-            placeholder={placeholder}
-            placeholderTextColor={colors.text.tertiary}
-            value={inputText}
-            onChangeText={setInputText}
-            onContentSizeChange={handleContentSizeChange}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            multiline
-            maxLength={1000}
-            editable={!disabled && !isStreaming}
-            accessibilityLabel="Chat input field"
+            <Square size={12} color="#FFFFFF" fill="#FFFFFF" strokeWidth={0} />
+          </Pressable>
+        ) : (
+          <SendButton
+            onPress={handleSend}
+            disabled={inputText.trim() === ''}
           />
-
-          {/* Voice button (left of send) */}
-          {!disabled && !isStreaming && (
-            <Pressable
-              onPress={startVoiceTyping}
-              style={({ pressed }) => [
-                styles.micButton,
-                {
-                  backgroundColor: pressed
-                    ? colors.brand.primary + '20'
-                    : colors.surface.secondary,
-                  borderColor: pressed ? colors.brand.primary + '30' : 'transparent',
-                },
-              ]}
-              accessibilityLabel="Voice typing"
-              accessibilityRole="button"
-            >
-              <AudioLines size={17} color={colors.brand.primary} strokeWidth={2} />
-            </Pressable>
-          )}
-
-          {disabled && !isStreaming && (
-            <View style={[styles.micButton, { backgroundColor: colors.surface.secondary }]}>
-              <MicOff size={15} color={colors.text.secondary} />
-            </View>
-          )}
-
-          {isStreaming ? (
-            <Animated.View
-              entering={FadeIn.duration(200)}
-              exiting={FadeOut.duration(150)}
-            >
-              <Pressable
-                onPress={handleAbort}
-                style={({ pressed }) => [
-                  styles.abortButton,
-                  {
-                    backgroundColor: colors.brand.primary,
-                    opacity: pressed ? 0.8 : 1,
-                  },
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel="Stop AI response"
-              >
-                <Square size={12} color="#FFFFFF" fill="#FFFFFF" strokeWidth={0} />
-              </Pressable>
-            </Animated.View>
-          ) : (
-            <>
-              <SendButton
-                onPress={handleSend}
-                disabled={inputText.trim() === ''}
-              />
-              {inputText.trim().length > 0 && <LivePresenceDot />}
-            </>
-          )}
-        </Animated.View>
-      )}
+        )}
+      </Animated.View>
 
       {inputText.length > 800 && (
         <Text
@@ -582,15 +268,6 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 5,
   },
-  micButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 6,
-    borderWidth: 1,
-  },
   textInput: {
     flex: 1,
     fontSize: 15,
@@ -613,74 +290,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
-  },
-  presenceDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    marginLeft: 4,
-  },
-  voiceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 26,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    minHeight: 52,
-    borderWidth: 1.5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 5,
-    overflow: 'hidden',
-  },
-  voiceAccent: {
-    position: 'absolute',
-    left: 0,
-    top: 8,
-    bottom: 8,
-  },
-  waveformContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
-    width: 48,
-    height: 40,
-  },
-  waveBar: {
-    width: 3.5,
-    borderRadius: 2,
-  },
-  transcriptionText: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 19,
-    marginHorizontal: 12,
-    fontWeight: '500',
-    letterSpacing: 0.1,
-  },
-  voiceActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  voiceActionBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelBtn: {
-    borderWidth: 1,
-  },
-  acceptBtn: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 2,
   },
   charCounter: {
     fontSize: 11,

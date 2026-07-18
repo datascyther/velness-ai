@@ -98,11 +98,7 @@ export function MessageActionSheet({ visible, onClose, actions }: MessageActionS
                     }}
                     accessibilityRole="menuitem"
                   >
-                    {action.icon && (
-                      <View style={[styles.iconContainer, action.destructive && { tintColor: colors.danger }]}>
-                        {action.icon}
-                      </View>
-                    )}
+                    {action.icon && <View style={styles.iconContainer}>{action.icon}</View>}
                     <Text
                       style={[
                         styles.actionLabel,

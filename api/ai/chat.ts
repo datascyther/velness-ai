@@ -15,7 +15,7 @@ type ChatRequest = {
     sessionId?: string;
     uid?: string;
     history?: ChatHistoryMessage[];
-    mode?: 'standard' | 'deep';
+    mode?: 'concise' | 'standard' | 'deep';
     memoryContext?: Record<string, unknown>;
     requestId?: string;
 };
@@ -79,9 +79,19 @@ export default async function handler(request: Request) {
     }
 
     const history = Array.isArray(body.history) ? body.history : [];
-    const mode: 'standard' | 'deep' = body.mode === 'deep' ? 'deep' : 'standard';
+    const validModes = ['concise', 'standard', 'deep'] as const;
+    const mode: 'concise' | 'standard' | 'deep' = validModes.includes(body.mode as any) ? (body.mode as any) : 'standard';
 
-    const orchestrator = await getOrchestrator();
+    let orchestrator: Awaited<ReturnType<typeof getOrchestrator>>;
+    try {
+      orchestrator = await getOrchestrator();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      return jsonResponse(
+        { error: 'AI service is unavailable.', detail: msg },
+        503,
+      );
+    }
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream<Uint8Array>({

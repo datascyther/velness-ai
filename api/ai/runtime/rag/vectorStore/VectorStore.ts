@@ -30,6 +30,14 @@ export interface VectorStore {
   /** Top-k nearest neighbors for a query vector. */
   query(vector: number[], topK: number): Promise<QueryResult[]>;
   delete(ids: string[]): Promise<void>;
+  /**
+   * Delete every vector belonging to a document. Chunks are stored as
+   * `${docId}#${chunkIndex}`, so a bare docId never matches via {@link delete};
+   * implementations must enumerate/prefix-match `${docId}#*` and remove them.
+   * Returns the number of chunk vectors deleted. Optional so alternate stores
+   * may implement it lazily; callers should feature-detect.
+   */
+  deleteByDocId?(docId: string): Promise<number>;
 }
 
 /** Convert raw vector matches into the ContextChunk shape the runtime consumes. */

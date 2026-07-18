@@ -41,7 +41,9 @@ export class TavilyProvider {
         search_depth: 'basic',
       }),
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      throw new Error(`Tavily HTTP ${res.status}`);
+    }
     const data = await res.json().catch(() => null);
     const results: any[] = data?.results ?? [];
     return results.map((r) => ({

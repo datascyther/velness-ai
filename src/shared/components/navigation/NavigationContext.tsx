@@ -5,8 +5,6 @@ export type TabName = 'home' | 'chat' | 'journey' | 'profile';
 
 export interface NavigationContextType {
   activeTab: TabName;
-  pressedTab: TabName | null;
-  setPressedTab: (tab: TabName | null) => void;
   disabledTabs: TabName[];
   badges: Partial<Record<TabName, number>>;
   theme: 'light' | 'dark';

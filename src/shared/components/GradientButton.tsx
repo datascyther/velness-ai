@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import {
   Text,
   Pressable,
@@ -12,6 +12,7 @@ import {
 import Animated, {
   useAnimatedStyle,
   withSpring,
+  withTiming,
   useSharedValue,
 } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
@@ -24,6 +25,7 @@ export interface GradientButtonProps {
   onPress: () => void;
   disabled?: boolean;
   loading?: boolean;
+  visible?: boolean;
   icon?: React.ReactNode;
   size?: 'sm' | 'md' | 'lg';
   colors?: readonly string[];
@@ -33,11 +35,15 @@ export interface GradientButtonProps {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
+const SPRING_SCALE = { damping: 15, stiffness: 400, mass: 0.6 };
+const SPRING_OPACITY = { damping: 15, stiffness: 200 };
+
 export const GradientButton = React.memo(({
   title,
   onPress,
   disabled = false,
   loading = false,
+  visible = true,
   icon,
   size = 'md',
   colors: propColors,
@@ -48,39 +54,60 @@ export const GradientButton = React.memo(({
   const colors = propColors || [themeColors.brand.primary, themeColors.brand.secondary];
 
   const scale = useSharedValue(1);
+  const svOpacity = useSharedValue(1);
+  const svShadowOpacity = useSharedValue(0.35);
+  const svShadowRadius = useSharedValue(18);
+  const svShadowHeight = useSharedValue(8);
+  const svElevation = useSharedValue(8);
 
-  const animatedStyle = useAnimatedStyle(() => {
-    const isPressed = scale.value < 1.0;
-    const springScale = withSpring(scale.value, {
-      damping: 15,
-      stiffness: 400,
-      mass: 0.6,
-    });
+  useEffect(() => {
+    svOpacity.value = withSpring(disabled ? 0.5 : 1.0, SPRING_OPACITY);
+    if (!visible) {
+      svShadowOpacity.value = withTiming(0, { duration: 0 });
+      svShadowRadius.value = withTiming(0, { duration: 0 });
+      svShadowHeight.value = withTiming(0, { duration: 0 });
+      svElevation.value = withTiming(0, { duration: 0 });
+    } else {
+      const shadowOn = !(disabled || loading);
+      svShadowOpacity.value = withSpring(shadowOn ? 0.35 : 0, SPRING_OPACITY);
+      svShadowRadius.value = withSpring(shadowOn ? 18 : 0, SPRING_OPACITY);
+      svShadowHeight.value = withSpring(shadowOn ? 8 : 0, SPRING_OPACITY);
+      svElevation.value = withSpring(shadowOn ? 8 : 0, SPRING_OPACITY);
+    }
+  }, [disabled, loading, visible]);
 
-    return {
-      transform: [{ scale: springScale }],
-      opacity: withSpring(disabled ? 0.5 : 1.0, { damping: 15, stiffness: 200 }),
-      // Deep glow shadow which shrinks/collapses on press to simulate physical depth
-      shadowOpacity: withSpring(isPressed ? 0.12 : 0.35, { damping: 15 }),
-      shadowRadius: withSpring(isPressed ? 6 : 18, { damping: 15 }),
-      shadowOffset: {
-        width: 0,
-        height: withSpring(isPressed ? 2 : 8, { damping: 15 }),
-      },
-      // Android depth
-      elevation: withSpring(isPressed ? 2 : 8, { damping: 15 }),
-    };
-  });
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: svOpacity.value,
+    shadowOpacity: svShadowOpacity.value,
+    shadowRadius: svShadowRadius.value,
+    shadowOffset: {
+      width: 0,
+      height: svShadowHeight.value,
+    },
+    elevation: svElevation.value,
+  }));
 
   const handlePressIn = useCallback(() => {
     if (!disabled && !loading) {
-      scale.value = 0.95;
+      const cfg = { damping: 15 };
+      scale.value = withSpring(0.95, SPRING_SCALE);
+      svShadowOpacity.value = withSpring(0.12, cfg);
+      svShadowRadius.value = withSpring(6, cfg);
+      svShadowHeight.value = withSpring(2, cfg);
+      svElevation.value = withSpring(2, cfg);
     }
-  }, [disabled, loading, scale]);
+  }, [disabled, loading]);
 
   const handlePressOut = useCallback(() => {
-    scale.value = 1.0;
-  }, [scale]);
+    const cfg = { damping: 15 };
+    scale.value = withSpring(1.0, SPRING_SCALE);
+    if (disabled || loading || !visible) return;
+    svShadowOpacity.value = withSpring(0.35, cfg);
+    svShadowRadius.value = withSpring(18, cfg);
+    svShadowHeight.value = withSpring(8, cfg);
+    svElevation.value = withSpring(8, cfg);
+  }, [disabled, loading, visible]);
 
   const handlePress = useCallback(async () => {
     if (disabled || loading) return;

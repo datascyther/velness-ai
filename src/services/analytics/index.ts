@@ -1,4 +1,5 @@
 import { analyticsRepository } from '../../../backend/repositories/AnalyticsRepository';
+import type { Json } from '../../../backend/database.types';
 
 export type AnalyticsEvent =
   | 'daily_checkin'
@@ -55,7 +56,7 @@ class AnalyticsService {
     try {
       void analyticsRepository.track({
         event_name: event,
-        properties: (properties ?? {}) as Record<string, unknown>,
+        properties: (properties ?? {}) as unknown as Json,
       });
     } catch {
       // analytics failures never crash the app

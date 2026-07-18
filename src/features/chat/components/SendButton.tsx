@@ -1,75 +1,83 @@
-import React, { useEffect } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
-import { SendHorizontal } from 'lucide-react-native';
+import React from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/hooks/useTheme';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 
 interface SendButtonProps {
   onPress: () => void;
   disabled?: boolean;
+  visible?: boolean;
 }
 
-export function SendButton({ onPress, disabled = false }: SendButtonProps) {
-  const { colors } = useTheme();
-  const scale = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+export function SendButton({ onPress, disabled = false, visible = true }: SendButtonProps) {
+  const { isDark } = useTheme();
 
   const handlePress = () => {
     if (disabled) return;
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
-    scale.value = withSpring(0.88, { damping: 12, stiffness: 300 }, () => {
-      scale.value = withSpring(1, { damping: 10, stiffness: 250 });
-    });
     onPress();
   };
 
-  const isDisabled = disabled;
-  const brand = (colors.brand ?? {}) as Record<string, string>;
-  const primary = brand.primary ?? '#7E60CD';
-  const subtle = brand.subtle ?? 'rgba(126, 96, 205, 0.16)';
-  const border = brand.border ?? 'rgba(126, 96, 205, 0.45)';
-  const secondary = brand.secondary ?? '#9F8BE6';
-  const contrastText = brand.contrastText ?? '#FFFFFF';
+  // Strict, hardcoded brand purple so the send button is ALWAYS clearly visible
+  // and can never drift to white/invisible on either theme. The icon stays white
+  // for contrast on the purple fill.
+  const SEND_BG_LIGHT = '#634EB8';
+  const SEND_BG_DARK = '#7E60CD';
+  const SEND_ICON = '#FFFFFF';
+
+  const backgroundColor = isDark ? SEND_BG_DARK : SEND_BG_LIGHT;
+
+  if (!visible) return null;
 
   return (
-    <Animated.View style={[styles.sendWrapper, animatedStyle]}>
+    <View
+      style={[
+        styles.sendWrapper,
+        {
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor,
+          shadowColor: backgroundColor,
+        },
+      ]}
+    >
       <Pressable
         onPress={handlePress}
-        disabled={isDisabled}
+        disabled={disabled}
         style={({ pressed }) => [
           styles.sendButton,
           {
-            backgroundColor: isDisabled ? subtle : primary,
-            borderWidth: isDisabled ? 1 : 0,
-            borderColor: isDisabled ? border : 'transparent',
-            shadowColor: isDisabled ? 'transparent' : primary,
-            opacity: isDisabled ? (pressed ? 0.75 : 0.7) : pressed ? 0.85 : 1,
+            backgroundColor: 'transparent',
+            opacity: pressed ? 0.8 : 1,
           },
         ]}
         accessibilityRole="button"
         accessibilityLabel="Send message"
       >
-        <SendHorizontal
-          size={20}
-          color={isDisabled ? secondary : contrastText}
-          strokeWidth={2.5}
-        />
+        <Svg width={20} height={20} viewBox="0 0 24 24">
+          <Path
+            d="m21.426 11.095-17-8A1 1 0 0 0 3.03 4.242l1.212 4.849L12 12l-7.758 2.909-1.212 4.849a.998.998 0 0 0 1.396 1.147l17-8a1 1 0 0 0 0-1.81z"
+            fill={SEND_ICON}
+          />
+        </Svg>
       </Pressable>
-    </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   sendWrapper: {
-    marginLeft: 18,
+    marginLeft: 8,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sendButton: {
     width: 40,
     height: 40,
+    flexShrink: 0,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',

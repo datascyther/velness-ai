@@ -24,6 +24,8 @@ import {
   type ChatHistoryMessage,
   type MemoryContext,
   type ModelGatewayLike,
+  type RetrievalAnalyticsFields,
+  type ResponseMode,
 } from './types';
 import { ModelGateway } from './ModelGateway';
 import { buildSystemPrompt } from './PromptAssembler';
@@ -34,6 +36,12 @@ import { ContextBuilder } from './ContextBuilder';
 import { CacheManager } from './cache/CacheManager';
 import { getFeatureFlags, Timer, logTrace } from './config';
 import type { RetrievalTool } from './rag/RetrievalTool';
+import { QualityScorer } from './rag/QualityScorer';
+import type { QualityFields } from './types';
+import { MemoryExtractor } from './memory/MemoryExtractor';
+import { MemoryStore } from './memory/MemoryStore';
+import { MemoryService } from './memory/MemoryService';
+import { routeResponse } from './ResponseRouter';
 
 export interface OrchestratorDeps {
   registry: ToolRegistry;
@@ -41,6 +49,11 @@ export interface OrchestratorDeps {
   gateway?: ModelGatewayLike;
   /** Optional RAG retriever (Phase 4.1). Wired only when ENABLE_RAG is on. */
   retrievalTool?: RetrievalTool;
+  /** Phase 6 — Personal Intelligence Layer (defaults constructed internally). */
+  memoryExtractor?: MemoryExtractor;
+  memoryStore?: MemoryStore;
+  /** Preferred entry point: the runtime talks to the service, not storage. */
+  memoryService?: MemoryService;
 }
 
 export class AIOrchestrator {
@@ -50,12 +63,19 @@ export class AIOrchestrator {
   private router: ToolRouter;
   private contextBuilder: ContextBuilder;
   private retrievalTool?: RetrievalTool;
+  private memoryService: MemoryService;
 
   constructor(deps: OrchestratorDeps) {
     this.gateway = deps.gateway ?? new ModelGateway();
     this.cache = deps.cache ?? new CacheManager();
     this.contextBuilder = new ContextBuilder();
     this.retrievalTool = deps.retrievalTool;
+    this.memoryService =
+      deps.memoryService ??
+      new MemoryService(
+        { extractor: deps.memoryExtractor, store: deps.memoryStore },
+        { enabled: getFeatureFlags().ENABLE_MEMORY_EXTRACTION },
+      );
     const flags = getFeatureFlags();
     this.router = new ToolRouter(deps.registry, flags);
     this.classifier = new IntentClassifier({
@@ -99,7 +119,24 @@ export class AIOrchestrator {
     const intentTimer = new Timer();
     const totalTimer = new Timer();
 
-    const intent = await this.classifier.classify(req.text, req.history ?? [], req.memoryContext);
+    // Determine response mode from query text (concise / standard / deep).
+    // The server-side router runs before any LLM call — no extra latency.
+    const responseMode: ResponseMode = routeResponse(req.text);
+
+    // Phase 6 — Personal Intelligence. Enrich the user's context from this turn
+    // through the MemoryService (extraction, scoring, storage, ranking, and
+    // privacy controls all live behind that one surface). The service degrades
+    // gracefully to the client-supplied context when the feature is off or the
+    // user has opted out.
+    const remembered = this.memoryService.remember(
+      req.uid,
+      req.text,
+      req.memoryContext,
+      req.history ?? [],
+    );
+    let enrichedContext: MemoryContext = remembered.context;
+
+    const intent = await this.classifier.classify(req.text, req.history ?? [], enrichedContext);
     const intentMs = intentTimer.stop();
 
     // Run tools (parallel). Cache hits/misses recorded inside CacheManager.
@@ -108,9 +145,9 @@ export class AIOrchestrator {
       intent,
       {
         query: req.text,
-        memoryContext: req.memoryContext,
+        memoryContext: enrichedContext,
         uid: req.uid,
-        location: (req.memoryContext as MemoryContext & { location?: { lat: number; lon: number } })?.location,
+        location: (enrichedContext as MemoryContext & { location?: { lat: number; lon: number } })?.location,
       },
     );
     const providerMs = providerTimer.stop();
@@ -121,15 +158,38 @@ export class AIOrchestrator {
       ? await this.retrievalTool.retrieve(req.text).catch(() => [])
       : [];
 
+    // Sprint 5.6: fold retrieval analytics into the trace when the tool exposes
+    // them (feature-detected; RetrievalTool contract signature is unchanged).
+    // Never let instrumentation break the response path.
+    let retrievalAnalytics: RetrievalAnalyticsFields | undefined;
+    if (flags.ENABLE_RAG && flags.ENABLE_RETRIEVAL_ANALYTICS && this.retrievalTool) {
+      try {
+        const tool = this.retrievalTool as RetrievalTool & {
+          getLastAnalytics?: () => RetrievalAnalyticsFields | null;
+        };
+        if (typeof tool.getLastAnalytics === 'function') {
+          retrievalAnalytics = tool.getLastAnalytics() ?? undefined;
+        }
+      } catch {
+        retrievalAnalytics = undefined;
+      }
+    }
+
+    // Sprint 6.5 — Memory Retrieval (via the service). Surface only the most
+    // relevant personal memories (ranked by importance × query similarity) into
+    // the prompt, not the whole history. Returns '' when disabled/opted-out.
+    const personalMemories = this.memoryService.recall(req.uid, req.text, 5);
+
     const citations = flags.ENABLE_CITATIONS
       ? this.contextBuilder.citations(results)
       : [];
     const contextBlock = this.contextBuilder.buildContextBlock(results, ragChunks);
 
-    const system = buildSystemPrompt(req.memoryContext);
-    const augmentedSystem = contextBlock
-      ? `${system}\n\n${contextBlock}`
-      : system;
+    const system = buildSystemPrompt(enrichedContext, responseMode);
+    let augmentedSystem = contextBlock ? `${system}\n\n${contextBlock}` : system;
+    if (personalMemories) {
+      augmentedSystem += `\n\n## Personal Memory (relevant to this message)\n${personalMemories}`;
+    }
 
     const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
       { role: 'system', content: augmentedSystem },
@@ -139,8 +199,10 @@ export class AIOrchestrator {
 
     const llmTimer = new Timer();
     let firstChunk = true;
+    let responseText = '';
     const toolsUsed = results.map((r) => r.capability);
-    for await (const chunk of this.gateway.streamCompletion(messages, req.mode ?? 'standard')) {
+    for await (const chunk of this.gateway.streamCompletion(messages, req.mode ?? 'standard', responseMode)) {
+      responseText += chunk.contentDelta;
       if (firstChunk) {
         firstChunk = false;
         llmTimer.stop(); // measured from first token
@@ -150,6 +212,7 @@ export class AIOrchestrator {
         yield {
           ...chunk,
           requestId,
+          responseMode,
           capabilities: intent.capabilities,
           toolsUsed,
         };
@@ -159,12 +222,34 @@ export class AIOrchestrator {
     }
 
     // Terminal chunk carries citations (no extra content).
+    const lastChar = responseText.trimEnd().slice(-1);
+    const truncated = lastChar.length > 0 && !'。.!？！?'.includes(lastChar) && responseText.trimEnd().length > 0;
     yield {
       id: crypto.randomUUID(),
       contentDelta: '',
       done: true,
+      truncated: truncated || undefined,
       citations: citations.length ? citations : undefined,
     };
+
+    let quality: QualityFields | undefined;
+    if (flags.ENABLE_QUALITY_SCORING) {
+      try {
+        const memoryResults = results.filter((r) => r.capability === Capability.MEMORY);
+        const liveResults = results.filter((r) => r.success && r.capability !== Capability.MEMORY && r.capability !== Capability.RAG && r.payload);
+        const scored = new QualityScorer().score({
+          memoryResults,
+          ragChunks,
+          liveResults,
+          citations,
+          retrievalAnalytics,
+          responseLength: responseText.length,
+        });
+        quality = { ...scored.dimensions, overall: scored.overall };
+      } catch {
+        quality = undefined;
+      }
+    }
 
     const trace: RequestTrace = {
       requestId,
@@ -176,6 +261,8 @@ export class AIOrchestrator {
       providerMs,
       llmMs: llmTimer.stop(),
       totalMs: totalTimer.stop(),
+      retrieval: retrievalAnalytics,
+      quality,
     };
     logTrace(trace);
   }

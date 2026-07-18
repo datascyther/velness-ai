@@ -6,12 +6,11 @@
  */
 
 import React from 'react';
-import { Pressable } from 'react-native';
-import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { Pressable, StyleSheet } from 'react-native';
 import { cva, type VariantProps } from 'class-variance-authority';
 
 const iconButtonVariants = cva(
-  'items-center justify-center rounded-full active:opacity-70',
+  'items-center justify-center rounded-full',
   {
     variants: {
       variant: {
@@ -39,8 +38,6 @@ interface IconButtonProps extends VariantProps<typeof iconButtonVariants> {
   className?: string;
 }
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
 export function IconButton({
   icon,
   onPress,
@@ -49,20 +46,28 @@ export function IconButton({
   size,
   className = '',
 }: IconButtonProps) {
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: withSpring(disabled ? 0.4 : 1, { damping: 15, stiffness: 200 }),
-  }));
-
   return (
-    <AnimatedPressable
+    <Pressable
       onPress={onPress}
       disabled={disabled}
       className={`${iconButtonVariants({ variant, size })} ${className}`}
-      style={animatedStyle}
+      style={({ pressed }) => [
+        disabled && styles.disabled,
+        pressed && !disabled && styles.pressed,
+      ]}
     >
       {icon}
-    </AnimatedPressable>
+    </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  disabled: {
+    opacity: 0.4,
+  },
+  pressed: {
+    opacity: 0.7,
+  },
+});
 
 export default IconButton;

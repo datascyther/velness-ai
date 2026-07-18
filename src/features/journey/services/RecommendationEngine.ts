@@ -3,7 +3,7 @@ import type { Category } from '../models/Category';
 import type { Exercise } from '../models/Exercise';
 import type { Recommendation } from '../models/Recommendation';
 import type { Mood } from '@/shared/types';
-import { CATEGORY_ID } from '../constants';
+import { CATEGORY_ID, type CategoryId, type ExerciseType } from '../constants';
 import { DEFAULT_LESSONS, DEFAULT_PROGRAMS } from '../data/programs';
 
 export interface RecommendationInputs {
@@ -136,8 +136,8 @@ export function getTodaysRecommendations(inputs: RecommendationInputs): Recommen
   let exerciseId = 'box-breathing-l1-ex1';
   let title = '3-Minute Breathing';
   let description = 'Start your morning with a quick, grounding breathing space.';
-  let categoryId = CATEGORY_ID.BREATHING;
-  let exerciseType = 'breathing';
+  let categoryId: CategoryId = CATEGORY_ID.BREATHING;
+  let exerciseType: ExerciseType = 'breathing';
   let durationMinutes = 3;
   let reason = 'Morning routine recommendation';
 

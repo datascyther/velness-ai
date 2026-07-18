@@ -15,6 +15,7 @@ function flag(name: string, fallback = true): boolean {
 }
 
 export function getFeatureFlags(): FeatureFlags {
+  const ENABLE_RAG = flag('ENABLE_RAG', false);
   return {
     ENABLE_KNOWLEDGE: flag('ENABLE_KNOWLEDGE'),
     ENABLE_NEWS: flag('ENABLE_NEWS'),
@@ -22,7 +23,25 @@ export function getFeatureFlags(): FeatureFlags {
     ENABLE_MEDICAL: flag('ENABLE_MEDICAL'),
     ENABLE_MEMORY: flag('ENABLE_MEMORY'),
     ENABLE_CITATIONS: flag('ENABLE_CITATIONS'),
-    ENABLE_RAG: flag('ENABLE_RAG', false),
+    ENABLE_RAG,
+    // Phase 5 — Intelligence Optimization. Defaults: cache + rewrite ON when
+    // RAG is on (they only help when retrieval is configured); rerank ON. They
+    // individually no-op when embeddings/store are unconfigured.
+    ENABLE_SEMANTIC_CACHE: flag('ENABLE_SEMANTIC_CACHE', ENABLE_RAG),
+    ENABLE_RERANK: flag('ENABLE_RERANK', true),
+    ENABLE_QUERY_REWRITE: flag('ENABLE_QUERY_REWRITE', ENABLE_RAG),
+    // Sprint 5.6 — retrieval analytics. Default ON; it only records when a
+    // retrieval tool exposes analytics, and never affects the response path.
+    ENABLE_RETRIEVAL_ANALYTICS: flag('ENABLE_RETRIEVAL_ANALYTICS', true),
+    // Sprint 5.7 — internal quality scoring. Default ON; never surfaces to
+    // users. The scorer is pure and defensive so it cannot break the response.
+    ENABLE_QUALITY_SCORING: flag('ENABLE_QUALITY_SCORING', true),
+    // Sprint 5.8 — evaluation suite runner. Default ON; only used by tests /
+    // external harnesses, not the request path.
+    ENABLE_EVALUATION: flag('ENABLE_EVALUATION', true),
+    // Phase 6 — Personal Intelligence Layer. Extraction enriches context in
+    // memory from conversation; default ON, pure + free (no LLM call).
+    ENABLE_MEMORY_EXTRACTION: flag('ENABLE_MEMORY_EXTRACTION', true),
   };
 }
 
@@ -61,8 +80,11 @@ export class Timer {
  * changes.
  */
 export function logTrace(trace: RequestTrace): void {
+  const base = `[ai-trace] ${trace.requestId} intent=${trace.intentMs}ms provider=${trace.providerMs}ms llm=${trace.llmMs}ms total=${trace.totalMs}ms capabilities=${trace.capabilities.join(',')} tools=${trace.toolsUsed.join(',')} cacheHit=${trace.cacheHits.join(',')} cacheMiss=${trace.cacheMisses.join(',')}`;
+  const r = trace.retrieval;
+  const retrieval = r
+    ? ` retrievalLatency=${r.retrieval_latency}ms retrievalHits=${r.retrieval_hits} retrievalMisses=${r.retrieval_misses} ragCacheHits=${r.cache_hits} ragCacheMisses=${r.cache_misses} rerankTime=${r.rerank_time}ms emptyResults=${r.empty_results} avgSimilarity=${r.average_similarity.toFixed(3)} topDoc=${r.top_document || '-'} knowledgeCategory=${r.knowledge_category || '-'}`
+    : '';
   // eslint-disable-next-line no-console
-  console.log(
-    `[ai-trace] ${trace.requestId} intent=${trace.intentMs}ms provider=${trace.providerMs}ms llm=${trace.llmMs}ms total=${trace.totalMs}ms capabilities=${trace.capabilities.join(',')} tools=${trace.toolsUsed.join(',')} cacheHit=${trace.cacheHits.join(',')} cacheMiss=${trace.cacheMisses.join(',')}`,
-  );
+  console.log(base + retrieval);
 }

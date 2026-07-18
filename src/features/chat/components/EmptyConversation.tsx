@@ -1,10 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInUp, useSharedValue, useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
-import { RefreshCw, ChevronRight } from 'lucide-react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect, Path } from 'react-native-svg';
-import { BreathingSticker, type StickerKind } from './BreathingSticker';
 import { EmotionAvatar } from '@/components/emotion';
 import type { EmotionType } from '@/constants/emotions';
 import { useTheme } from '@/hooks/useTheme';
@@ -68,69 +66,7 @@ const CHIP_GLYPHS = {
   },
 } satisfies Record<string, ChipGlyph>;
 
-const STICKER_KINDS: Record<string, StickerKind> = {
-  'Breathing Space': 'breath',
-  'Box Breathing': 'box',
-  '4-7-8 Breath': '478',
-  'Grounding Check-in': 'ground',
-  'Body Scan': 'body',
-  'Worry Dump': 'worry',
-  'Gratitude Pause': 'gratitude',
-  'Thought Reframe': 'reframe',
-  'Evening Wind-Down': 'winddown',
-  'Stress Reset': 'reset',
-  'Self-Compassion': 'compassion',
-  'Focus Primer': 'focus',
-  'Anxiety Relief': 'anxiety',
-  'Morning Intention': 'intention',
-  'Let It Go': 'letgo',
-  'Heartbeat Calm': 'heartbeat',
-  Visualization: 'visualize',
-  'Name the Feeling': 'name',
-  'Digital Detox': 'detox',
-  'Confidence Boost': 'confidence',
-};
-
 type ChipGlyphName = keyof typeof CHIP_GLYPHS;
-
-interface BreathingTemplate {
-  title: string;
-  subtitle: string;
-  prompt: string;
-  color: string;
-}
-
-const BREATHING_TEMPLATES: BreathingTemplate[] = [
-  { title: 'Breathing Space', subtitle: 'A quick 2-minute exercise to calm your racing thoughts', prompt: 'Guide me through a 2-minute breathing space exercise to calm my racing thoughts.', color: '#38BDF8' },
-  { title: 'Box Breathing', subtitle: 'Inhale, hold, exhale, hold — steady your nervous system', prompt: 'Walk me through a box breathing exercise (4-4-4-4) to feel grounded.', color: '#A78BFA' },
-  { title: '4-7-8 Breath', subtitle: 'A calming rhythm to help you unwind and sleep', prompt: 'Lead me through a 4-7-8 breathing exercise to help me relax.', color: '#60A5FA' },
-  { title: 'Grounding Check-in', subtitle: 'Notice 5 things you can see, 4 you can feel…', prompt: 'Take me through a 5-4-3-2-1 grounding exercise for anxiety.', color: '#34D399' },
-  { title: 'Body Scan', subtitle: 'Release tension you did not know you were holding', prompt: 'Guide me through a short body scan to release tension.', color: '#F472B6' },
-  { title: 'Worry Dump', subtitle: 'Offload what is on your mind, one line at a time', prompt: 'Help me brain-dump my worries and sort out what I can actually control.', color: '#94A3B8' },
-  { title: 'Gratitude Pause', subtitle: 'Name three small good things from today', prompt: 'Help me reflect on three things I am grateful for today.', color: '#FB7185' },
-  { title: 'Thought Reframe', subtitle: 'Look at a heavy thought from a kinder angle', prompt: 'Help me reframe a negative thought I keep having.', color: '#FBBF24' },
-  { title: 'Evening Wind-Down', subtitle: 'Signal your body it is safe to rest', prompt: 'Guide me through an evening wind-down routine to sleep better.', color: '#818CF8' },
-  { title: 'Stress Reset', subtitle: 'A 60-second reset when everything feels loud', prompt: 'Give me a 60-second reset I can do right now when overwhelmed.', color: '#F59E0B' },
-  { title: 'Self-Compassion', subtitle: 'Speak to yourself like a good friend would', prompt: 'Help me practice self-compassion about something I am struggling with.', color: '#F472B6' },
-  { title: 'Focus Primer', subtitle: 'Clear the mental clutter before you begin', prompt: 'Help me clear my head and get focused before I start working.', color: '#2DD4BF' },
-  { title: 'Anxiety Relief', subtitle: 'Slow the spiral with a simple breathing pattern', prompt: 'Help me calm an anxiety spiral with a simple technique.', color: '#38BDF8' },
-  { title: 'Morning Intention', subtitle: 'Set one gentle intention for the day', prompt: 'Help me set a calm, realistic intention for my day.', color: '#FCD34D' },
-  { title: 'Let It Go', subtitle: 'Loosen your grip on a frustrating moment', prompt: 'Help me let go of something frustrating that happened today.', color: '#A3E635' },
-  { title: 'Heartbeat Calm', subtitle: 'Slow a pounding heart after a shock', prompt: 'Help me calm my racing heart after a stressful moment.', color: '#F87171' },
-  { title: 'Visualization', subtitle: 'Picture a place where you feel safe', prompt: 'Guide me through a calming safe-place visualization.', color: '#C084FC' },
-  { title: 'Name the Feeling', subtitle: 'Put words to what is really going on', prompt: 'Help me name and understand what I am actually feeling right now.', color: '#38BDF8' },
-  { title: 'Digital Detox', subtitle: 'A minute away from the noise of screens', prompt: 'Help me take a mindful break from my phone and screens.', color: '#22D3EE' },
-  { title: 'Confidence Boost', subtitle: 'Reconnect with something you do well', prompt: 'Help me rebuild a little confidence before a hard conversation.', color: '#FB923C' },
-];
-
-function pickTemplateIndex(prev: number): number {
-  if (BREATHING_TEMPLATES.length <= 1) return 0;
-  let next = prev;
-  while (next === prev) {
-    next = Math.floor(Math.random() * BREATHING_TEMPLATES.length);
-  }
-  return next;
-}
 
 function ChipGlyphIcon({
   glyph,
@@ -155,48 +91,28 @@ function ChipGlyphIcon({
 
 interface EmptyConversationProps {
   onQuickStarterSelect?: (text: string) => void;
-  onResumeLastConversation?: () => void;
 }
 
 export const EmptyConversation = React.memo(function EmptyConversation({
   onQuickStarterSelect,
-  onResumeLastConversation,
 }: EmptyConversationProps) {
   const { colors } = useTheme();
   const user = useAppStore((state) => state.session.user);
   const sessionContext = useSessionContext();
   const [selectedChip, setSelectedChip] = useState<string | null>(null);
-  const [templateIndex, setTemplateIndex] = useState<number>(() => pickTemplateIndex(-1));
-
-  useEffect(() => {
-    setTemplateIndex((prev) => pickTemplateIndex(prev));
-  }, []);
-
-  const breathingTemplate = BREATHING_TEMPLATES[templateIndex];
 
   const userName = user?.name || 'NK';
   const currentMood = sessionContext?.mood || sessionContext?.previousSessionMood || 'Overwhelmed';
-  const hasPreviousSession = !!sessionContext?.previousSessionAt;
   const dateLabel = sessionContext?.previousSessionAt
     ? formatRelativeDate(sessionContext.previousSessionAt)
     : null;
   const focus = sessionContext?.previousSessionFocus ?? null;
-
-  const handleStarterSelect = useCallback((text: string) => {
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
-    onQuickStarterSelect?.(text);
-  }, [onQuickStarterSelect]);
 
   const handleChipSelect = useCallback((chip: { label: string; text: string }) => {
     try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
     setSelectedChip(chip.label);
     onQuickStarterSelect?.(chip.text);
   }, [onQuickStarterSelect]);
-
-  const handleResumePress = useCallback(() => {
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
-    onResumeLastConversation?.();
-  }, [onResumeLastConversation]);
 
   const topicChips = useMemo<{ label: string; icon: ChipGlyphName; text: string }[]>(() => [
     { label: 'Work', icon: 'work', text: 'I want to reflect on my work day' },
@@ -343,101 +259,6 @@ export const EmptyConversation = React.memo(function EmptyConversation({
         </View>
       </Animated.View>
 
-      {/* 4. Shortcuts: Breathing & Resume last session — High-Quality Premium Cards */}
-      <Animated.View entering={FadeInUp.duration(450).delay(250)} style={styles.shortcutContainer}>
-        <Pressable
-          onPress={() => {
-            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
-            onQuickStarterSelect?.(breathingTemplate.prompt);
-          }}
-          style={styles.pressableContainer}
-          accessibilityRole="button"
-          accessibilityLabel={breathingTemplate.title}
-        >
-          {({ pressed }) => (
-            <View style={[
-              styles.breathingSpaceCard,
-              {
-                backgroundColor: pressed ? colors.background.secondary : colors.surface.primary,
-                borderColor: colors.border.default,
-              }
-            ]}>
-              {/* Premium Subtle Gradient overlay for the card background */}
-              <Svg style={StyleSheet.absoluteFillObject} width="100%" height="100%">
-                <Defs>
-                  <LinearGradient id="exerciseRecCardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <Stop offset="0%" stopColor={breathingTemplate.color} stopOpacity={0.03} />
-                    <Stop offset="100%" stopColor={breathingTemplate.color} stopOpacity={0.005} />
-                  </LinearGradient>
-                </Defs>
-                <Rect width="100%" height="100%" fill="url(#exerciseRecCardGrad)" rx={borderRadius.xl} />
-              </Svg>
-
-              <View style={styles.breathingLeft}>
-                {/* Visual sticker wrapped in a custom, glowing, translucent circle */}
-                <View style={[styles.stickerGlowWrapper, { backgroundColor: breathingTemplate.color + '18' }]}>
-                  <BreathingSticker
-                    kind={STICKER_KINDS[breathingTemplate.title] ?? 'breath'}
-                    color={breathingTemplate.color}
-                    size={30}
-                  />
-                </View>
-                <View style={styles.breathingMeta}>
-                  <Text style={[styles.breathingTitle, { color: colors.text.primary }]}>{breathingTemplate.title}</Text>
-                  <Text style={[styles.breathingSubtitle, { color: colors.text.secondary }]}>{breathingTemplate.subtitle}</Text>
-                </View>
-              </View>
-              <View style={styles.breathingActions}>
-                <Pressable
-                  onPress={() => {
-                    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
-                    setTemplateIndex((prev) => pickTemplateIndex(prev));
-                  }}
-                  hitSlop={8}
-                  style={[styles.refreshPill, { borderColor: colors.border.default, backgroundColor: colors.surface.secondary }]}
-                  accessibilityRole="button"
-                  accessibilityLabel="Show another exercise"
-                >
-                  <RefreshCw size={12} color={colors.text.secondary} />
-                </Pressable>
-                <View style={[styles.startPill, { backgroundColor: colors.brand.primary }]}>
-                  <Text style={[styles.startText, { color: colors.brand.contrastText }]}>Start</Text>
-                </View>
-              </View>
-            </View>
-          )}
-        </Pressable>
-
-        {hasPreviousSession && onResumeLastConversation && (
-          <Pressable
-            onPress={handleResumePress}
-            style={[styles.pressableContainer, { marginTop: spacing.md }]}
-            accessibilityRole="button"
-          >
-            {({ pressed }) => (
-              <View style={[
-                styles.resumeCard,
-                {
-                  backgroundColor: pressed ? colors.background.secondary : colors.surface.primary,
-                  borderColor: colors.border.default,
-                }
-              ]}>
-                <View style={styles.resumeLeft}>
-                  <View style={[styles.resumeIconCircle, { backgroundColor: colors.surface.secondary }]}>
-                    <RefreshCw size={15} color={colors.brand.primary} />
-                  </View>
-                  <View style={styles.resumeMeta}>
-                    <Text style={[styles.resumeTitle, { color: colors.text.primary }]}>Resume Last Conversation</Text>
-                    <Text style={[styles.resumeSubtitle, { color: colors.text.secondary }]}>Pick up where you left off with Velness</Text>
-                  </View>
-                </View>
-                <ChevronRight size={18} color={colors.text.secondary} />
-              </View>
-            )}
-          </Pressable>
-        )}
-      </Animated.View>
-
       <View style={styles.heroSpacerBottom} />
     </View>
   );
@@ -452,7 +273,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing['6xl'],
   },
   heroSpacer: {
-    flex: 0.4,
+    height: spacing.md - 1,
   },
   heroSpacerBottom: {
     flex: 1.4,
@@ -463,6 +284,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingVertical: spacing.xl,
     paddingHorizontal: spacing.xl,
+    marginTop: spacing.lg,
     marginBottom: spacing.xl,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
@@ -569,9 +391,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  pressableContainer: {
-    width: '100%',
-  },
   chipPressable: {
     alignSelf: 'flex-start',
   },
@@ -598,122 +417,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 0.1,
-  },
-  shortcutContainer: {
-    width: '100%',
-  },
-  breathingSpaceCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing.md + 2,
-    paddingVertical: spacing.md,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  stickerGlowWrapper: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  breathingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: spacing.sm,
-    marginRight: spacing.md,
-  },
-  breathingMeta: {
-    flex: 1,
-  },
-  breathingTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  breathingSubtitle: {
-    fontSize: 11.5,
-    fontWeight: '500',
-    lineHeight: 15,
-  },
-  breathingActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm - 2,
-    zIndex: 2,
-  },
-  refreshPill: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  startPill: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
-    borderRadius: borderRadius.full,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  startText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  resumeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing.md + 2,
-    paddingVertical: spacing.md,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  resumeLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: spacing.md,
-  },
-  resumeIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.sm + 2,
-  },
-  resumeMeta: {
-    flex: 1,
-  },
-  resumeTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  resumeSubtitle: {
-    fontSize: 11.5,
-    fontWeight: '500',
-    lineHeight: 15,
   },
 });
