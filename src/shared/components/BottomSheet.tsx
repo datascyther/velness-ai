@@ -80,7 +80,7 @@ export function BottomSheet({
       statusBarTranslucent
     >
       <View className="flex-1 justify-end">
-        <Animated.View style={backdropStyle} className="absolute inset-0 bg-black/50">
+        <Animated.View style={backdropStyle} className="absolute inset-0 bg-overlay-strong">
           <Pressable className="flex-1" onPress={onClose} />
         </Animated.View>
 
@@ -94,13 +94,13 @@ export function BottomSheet({
           >
             {/* Handle */}
             <View className="items-center pt-3 pb-2">
-              <View className="w-10 h-1 rounded-full bg-white/20" />
+              <View className="w-10 h-1 rounded-full bg-velness-glass-border" />
             </View>
 
             {/* Header */}
             {title && (
               <View className="px-5 pb-3">
-                <Text className="text-white text-card-title font-semibold">{title}</Text>
+                <Text className="text-text-primary text-card-title font-semibold">{title}</Text>
               </View>
             )}
 
